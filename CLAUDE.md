@@ -86,12 +86,13 @@ Read these before any work. They are in Arabic.
   - what Mohd can look at and click, with no commands;
   - which acceptance criteria are covered;
   - assumptions and open questions.
-- **Commit** at the end of each phase with a clear message.
+- **Commit** once, at the end of each phase, with a clear message. No commits for each step along the way.
+- **Push** to GitHub only when Mohd asks.
 
 ## Target layout
 
 ```
-src/engine     rules, reducer, selectors (pure, tested)
+src/engine     rules, reducer, selectors (pure, tested); index.ts exports it all, scenarios.ts has ready-made games
 src/state      events, persistence, window sync
 src/ui         shared components: TeamBadge, Sign, Timer, Board, Button
 src/referee    referee screens (R01–R13)
