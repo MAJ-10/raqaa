@@ -1,0 +1,18 @@
+# Dependencies and build output
+node_modules
+dist
+*.tsbuildinfo
+
+# Test output
+test-results
+playwright-report
+coverage
+
+# Logs
+*.log
+
+# Local files
+*.local
+.vscode/*
+!.vscode/extensions.json
+.idea

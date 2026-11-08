@@ -1,0 +1,37 @@
+:root{
+  --ink:#13213D;
+  --ink-soft:#3F5378;
+  --sky:#F2F7FF;
+  --line:#DCE7F7;
+  --line-strong:#6F88B3;
+  --white:#FFFFFF;
+  --night:#13213D;
+  --night-city:#22355C;
+  --crown:#FFD166;
+  --ok:#147A4B;
+  --no:#C62828;
+  --warn:#F2B300;
+  --lit-window:#FFF1C4;
+  --lit-window-shade:#FFE29A;
+  --coral:#FF6B57;
+  --coral-side:#C2412F;
+  --coral-side2:#9E3424;
+  --blue:#5C8DFF;
+  --blue-side:#3F6FE0;
+  --blue-side2:#2F59C2;
+  --green:#22B573;
+  --green-side:#178553;
+  --green-side2:#106640;
+  --gold:#FFB400;
+  --gold-side:#C98A00;
+  --gold-side2:#9C6B00;
+  --r-chip:6px;
+  --r-control:8px;
+  --r-tile:10px;
+  --r-plate:12px;
+  --r-box:14px;
+  --r-card:24px;
+}
+@font-face{font-family:"Alexandria";font-weight:400;src:url("./fonts/Alexandria-400.ttf") format("truetype")}
+@font-face{font-family:"Alexandria";font-weight:600;src:url("./fonts/Alexandria-600.ttf") format("truetype")}
+@font-face{font-family:"Alexandria";font-weight:900;src:url("./fonts/Alexandria-900.ttf") format("truetype")}

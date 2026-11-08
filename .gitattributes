@@ -1,0 +1,7 @@
+* text=auto eol=lf
+*.png binary
+*.pdf binary
+*.ttf binary
+*.woff2 binary
+# Keep sample spreadsheets byte for byte (BOM and CRLF, as Excel saves them).
+*.csv -text

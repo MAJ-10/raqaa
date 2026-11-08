@@ -1,0 +1,27 @@
+{
+  "fence": {
+    "name": "سياج",
+    "art": "fence.svg",
+    "icon": "../icons/fence.svg"
+  },
+  "crane": {
+    "name": "رافعة",
+    "art": "crane.svg",
+    "icon": "../icons/crane.svg"
+  },
+  "bridge": {
+    "name": "جسر",
+    "art": "bridge.svg",
+    "icon": "../icons/bridge.svg"
+  },
+  "plan": {
+    "name": "مخطط سري",
+    "art": "plan.svg",
+    "icon": "../icons/plan.svg"
+  },
+  "inspector": {
+    "name": "مفتش البلدية",
+    "art": "inspector.svg",
+    "icon": "../icons/inspector.svg"
+  }
+}
