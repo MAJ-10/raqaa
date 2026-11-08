@@ -30,14 +30,14 @@ Read these before any work. They are in Arabic.
 - Embed Alexandria 400/600/900 from `assets/fonts`, as WOFF2.
 - Two windows: the referee and the display (`#display`). They sync over `BroadcastChannel` and, as a fallback, `localStorage` "storage" events; every message goes over both and the display drops copies (`src/state/sync.ts`). Each works alone in Chrome and Edge, on the website and from `file://`; `?sync=broadcast` or `?sync=storage` keeps one, for tests. The display can be opened from its own link at any time. It asks for the full state when it opens or reloads, only renders the state and the last event, and never changes anything. The referee window is the only writer.
 - The state is event-sourced. Every change is an event, and state is a pure fold of the events over the initial state. Undo removes the last event and recomputes. Generated content (math problems, scrambled sentences, memory items) and each event's time live in the event's payload. A timer running out is an event.
-- Save the setup and the events to `localStorage` after every event, and offer "resume" on open. Export and import a competition as a JSON file.
+- Save the setup and the events to `localStorage` after every event. On open, the referee goes straight back to the saved competition, with no "resume" prompt. Export and import a competition as a JSON file.
 - The rules engine lives in `src/engine`: pure functions with no UI, supporting both map sizes. Use the event names from the requirements' events table, with the changes in `docs/decisions.md`.
 - Tests: Vitest, with at least one test per acceptance criterion. Playwright, on the installed Chrome and Edge, for two windows, reloads and offline use.
 - Read the question file (Excel or CSV) with SheetJS from its official distribution (the copy on the npm registry is outdated), bundled into the app.
 - Animate with the Web Animations API. Under `prefers-reduced-motion`, every motion becomes an instant change.
 - The display plays sounds generated with the Web Audio API, with no audio files. Audio starts on the display's first click, and the referee can mute it.
 - Mohd works on Windows. The project lives in OneDrive and must stay there, with `node_modules` inside it; OneDrive uploads it, by Mohd's choice. Use pnpm with the settings in `pnpm-workspace.yaml`: `nodeLinker: hoisted` and `packageImportMethod: copy` keep `node_modules` as plain files with no links. OneDrive follows directory links and uploads their targets, so never move dependencies out through junctions, symlinks or an outside virtual store.
-- Every command must run in PowerShell through package scripts, with no bash-only syntax: `pnpm dev`, `pnpm build`, `pnpm preview`, `pnpm test`, `pnpm e2e` (builds, then runs Playwright), `pnpm lint`, and `pnpm icons` (redraws `public/icons` from the mark).
+- Package scripts must work on Windows (PowerShell), with no bash-only syntax: `pnpm dev`, `pnpm build`, `pnpm preview`, `pnpm test`, `pnpm e2e` (builds, then runs Playwright), `pnpm lint`, and `pnpm icons` (redraws `public/icons` from the mark).
 
 ## UI conventions
 
@@ -75,13 +75,15 @@ Read these before any work. They are in Arabic.
 
 ## How we work
 
+- **Keep it basic, with high quality.** Choose the simplest design that meets the requirements well. Don't add features, warnings, screens, settings or tooling Mohd didn't ask for; mention an idea in one line at most.
+- **You run everything.** Mohd doesn't run commands. Install, build, run the tests and check the screens yourself (the browser pane works well). Show Mohd results they can see without a terminal: the browser pane, `dist\raqaa.html` by double-click, or the published site.
 - **One phase at a time.** The requirements list 7 phases, and `prompts/` has one prompt per phase. Never start the next phase on your own.
 - **Plan first.** Start every phase with a short plan, then wait for Mohd's approval.
 - **Engine before UI.** Keep the engine pure and tested before any UI depends on it.
 - **Decisions:** record every decision Mohd makes in `docs/decisions.md`, in Arabic. When a decision changes the stack or a convention, update this file too.
-- **End-of-phase report**, covering:
+- **End-of-phase report**, short and plain, covering:
   - what you built;
-  - exactly how to try it (commands, and what to click);
+  - what Mohd can look at and click, with no commands;
   - which acceptance criteria are covered;
   - assumptions and open questions.
 - **Commit** at the end of each phase with a clear message.
