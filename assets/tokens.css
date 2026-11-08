@@ -32,6 +32,6 @@
   --r-box:14px;
   --r-card:24px;
 }
-@font-face{font-family:"Alexandria";font-weight:400;src:url("./fonts/Alexandria-400.ttf") format("truetype")}
-@font-face{font-family:"Alexandria";font-weight:600;src:url("./fonts/Alexandria-600.ttf") format("truetype")}
-@font-face{font-family:"Alexandria";font-weight:900;src:url("./fonts/Alexandria-900.ttf") format("truetype")}
+@font-face{font-family:"Alexandria";font-weight:400;font-display:block;src:url("./fonts/Alexandria-400.woff2") format("woff2")}
+@font-face{font-family:"Alexandria";font-weight:600;font-display:block;src:url("./fonts/Alexandria-600.woff2") format("woff2")}
+@font-face{font-family:"Alexandria";font-weight:900;font-display:block;src:url("./fonts/Alexandria-900.woff2") format("woff2")}

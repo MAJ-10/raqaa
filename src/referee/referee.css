@@ -1,0 +1,41 @@
+.referee {
+  min-height: 100%;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 40px;
+  padding: 48px 24px;
+}
+
+.referee-logo {
+  width: 320px;
+  height: auto;
+}
+
+.demo {
+  display: grid;
+  justify-items: center;
+  gap: 24px;
+  width: 420px;
+  padding: 32px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-box);
+  background: var(--white);
+}
+
+.demo-count {
+  font-size: 96px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.demo-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  width: 100%;
+}
+
+.referee-open-display {
+  width: 420px;
+}

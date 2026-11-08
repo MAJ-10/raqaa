@@ -1,0 +1,38 @@
+import { useEffect, useState, type ReactNode } from 'react';
+
+const STAGE_WIDTH = 1280;
+const STAGE_HEIGHT = 720;
+
+/** How much the 1280×720 stage grows or shrinks to fit a window, keeping its proportions. */
+function stageScale(width: number, height: number): number {
+  return Math.min(width / STAGE_WIDTH, height / STAGE_HEIGHT);
+}
+
+function enterFullscreen(): void {
+  if (document.fullscreenElement) return;
+  document.documentElement.requestFullscreen?.().catch(() => {
+    // The browser refused (for example without a user gesture); the stage still works in a window.
+  });
+}
+
+/**
+ * The display is drawn on a fixed 1280×720 stage, scaled to fit the screen, with the sky colour around it.
+ * The first click on the display makes it fullscreen.
+ */
+export function Stage({ children }: { children: ReactNode }) {
+  const [scale, setScale] = useState(() => stageScale(innerWidth, innerHeight));
+
+  useEffect(() => {
+    const update = () => setScale(stageScale(innerWidth, innerHeight));
+    addEventListener('resize', update);
+    return () => removeEventListener('resize', update);
+  }, []);
+
+  return (
+    <div className="stage-viewport" onPointerDown={enterFullscreen}>
+      <div className="stage" data-testid="stage" style={{ transform: `translate(-50%, -50%) scale(${scale})` }}>
+        {children}
+      </div>
+    </div>
+  );
+}

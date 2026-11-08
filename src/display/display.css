@@ -1,0 +1,36 @@
+.stage-viewport {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: var(--sky);
+}
+
+.stage {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1280px;
+  height: 720px;
+  overflow: hidden;
+  transform-origin: center;
+}
+
+.display-demo {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 40px;
+}
+
+.display-logo {
+  width: 440px;
+  height: auto;
+}
+
+.display-count {
+  font-size: 220px;
+  font-weight: 900;
+  line-height: 1;
+}

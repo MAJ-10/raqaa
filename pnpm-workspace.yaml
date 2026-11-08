@@ -1,0 +1,9 @@
+# pnpm settings for this project.
+
+# The project lives in OneDrive, which follows directory links and syncs what they point to.
+# So node_modules holds plain files with no links and no hard links into pnpm's store, like npm.
+nodeLinker: hoisted
+packageImportMethod: copy
+
+# Skip package versions published less than a day ago (protection against hijacked releases).
+minimumReleaseAge: 1440
