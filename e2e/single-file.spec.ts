@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { SINGLE_FILE, checkSync, count, expect, singleFileUrl, test } from './fixtures.ts';
+import { SINGLE_FILE, checkDisplayAlone, checkSync, count, expect, singleFileUrl, test } from './fixtures.ts';
 
 test.describe('single file (raqaa.html)', () => {
   for (const sync of ['', '?sync=broadcast', '?sync=storage']) {
@@ -7,6 +7,10 @@ test.describe('single file (raqaa.html)', () => {
       await checkSync(page, singleFileUrl(sync), singleFileUrl(`${sync}#display`));
     });
   }
+
+  test('the display shows the competition while the referee window is closed', async ({ page }) => {
+    await checkDisplayAlone(page, singleFileUrl());
+  });
 
   test('makes no network requests', async ({ page, requests }) => {
     await checkSync(page, singleFileUrl(), singleFileUrl('#display'));

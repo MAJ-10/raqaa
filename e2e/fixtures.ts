@@ -84,3 +84,25 @@ export async function checkSync(referee: Page, home: string, own: string): Promi
   await expect(count(referee)).toHaveText('١١');
   await expect(count(fromLink)).toHaveText('١١');
 }
+
+/**
+ * A display that opens while no referee window is open shows the competition as it was left. Here the
+ * referee's own tab turns into the display, as happens in browsers that open the display in the same tab.
+ * When the referee window opens again, the display follows it.
+ */
+export async function checkDisplayAlone(page: Page, home: string): Promise<void> {
+  await page.goto(home);
+  await add(page, 2);
+  await expect(count(page)).toHaveText('٢');
+
+  await page.evaluate(() => {
+    location.hash = 'display';
+  });
+  await expect(page).toHaveTitle('شاشة العرض · رقعة');
+  await expect(count(page)).toHaveText('٢');
+
+  const referee = await page.context().newPage();
+  await referee.goto(home);
+  await add(referee, 1);
+  await expect(count(page)).toHaveText('٣');
+}

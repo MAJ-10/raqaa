@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { Page } from '@playwright/test';
-import { add, checkSync, count, expect, openDisplay, test } from './fixtures.ts';
+import { add, checkDisplayAlone, checkSync, count, expect, openDisplay, test } from './fixtures.ts';
 
 const ORIGIN = 'http://localhost:4173';
 
@@ -18,6 +18,10 @@ test.describe('website', () => {
       await checkSync(page, `/${sync}`, `/${sync}#display`);
     });
   }
+
+  test('the display shows the competition while the referee window is closed', async ({ page }) => {
+    await checkDisplayAlone(page, '/');
+  });
 
   test('makes no requests outside the app', async ({ page, requests }) => {
     await checkSync(page, '/', '/#display');

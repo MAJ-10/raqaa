@@ -6,6 +6,8 @@
 // Messages travel over a BroadcastChannel and, as a fallback, through localStorage and its "storage" event.
 // Both work between windows of the website and between windows of the local file (raqaa.html) in Chrome
 // and Edge. Every message goes over both, and a display ignores copies it has already seen.
+// localStorage also keeps the last snapshot, so a display that opens while the referee window is closed
+// still shows the competition as it was left.
 
 export type Snapshot<State, Event> = {
   /** A new id each time the referee window opens, so a display follows a reopened referee. */
@@ -29,7 +31,8 @@ export interface SyncLink<Message> {
 }
 
 const CHANNEL = 'raqaa.sync';
-const MAILBOX_KEY = 'raqaa.sync';
+// One localStorage key per message type: raqaa.sync.hello and raqaa.sync.snapshot.
+const MAILBOX = 'raqaa.sync.';
 
 /** Both transports by default. "?sync=broadcast" or "?sync=storage" keeps one, so tests can check each alone. */
 export function pickTransports(search: string = globalThis.location?.search ?? ''): Transport[] {
@@ -38,7 +41,7 @@ export function pickTransports(search: string = globalThis.location?.search ?? '
   return typeof BroadcastChannel === 'function' ? ['broadcast', 'storage'] : ['storage'];
 }
 
-export function openSyncLink<Message>(
+export function openSyncLink<Message extends { type: string }>(
   onMessage: (message: Message) => void,
   transports: Transport[] = pickTransports(),
 ): SyncLink<Message> {
@@ -52,6 +55,17 @@ export function openSyncLink<Message>(
 /** True when a snapshot should replace the one on screen. */
 export function isNewer(next: Snapshot<unknown, unknown>, current: Snapshot<unknown, unknown> | null): boolean {
   return current === null || next.session !== current.session || next.seq > current.seq;
+}
+
+/** The last snapshot the referee sent, as the "storage" transport left it, or null. */
+export function readLastSnapshot<State, Event>(): Snapshot<State, Event> | null {
+  try {
+    const raw = localStorage.getItem(`${MAILBOX}snapshot`);
+    const message = raw ? (JSON.parse(raw) as { message: SyncMessage<State, Event> }).message : null;
+    return message?.type === 'snapshot' ? message.snapshot : null;
+  } catch {
+    return null;
+  }
 }
 
 export function makeId(): string {
@@ -68,9 +82,9 @@ function broadcastLink<Message>(onMessage: (message: Message) => void): SyncLink
 }
 
 // The "storage" event fires in every other window of the same origin when a localStorage value changes.
-function mailboxLink<Message>(onMessage: (message: Message) => void): SyncLink<Message> {
+function mailboxLink<Message extends { type: string }>(onMessage: (message: Message) => void): SyncLink<Message> {
   const onStorage = (event: StorageEvent) => {
-    if (event.key !== MAILBOX_KEY || event.newValue === null) return;
+    if (!event.key?.startsWith(MAILBOX) || event.newValue === null) return;
     try {
       onMessage((JSON.parse(event.newValue) as { message: Message }).message);
     } catch {
@@ -82,7 +96,7 @@ function mailboxLink<Message>(onMessage: (message: Message) => void): SyncLink<M
     send(message) {
       try {
         // The id makes every write a change, so the event fires even for a repeated message.
-        localStorage.setItem(MAILBOX_KEY, JSON.stringify({ id: makeId(), message }));
+        localStorage.setItem(MAILBOX + message.type, JSON.stringify({ id: makeId(), message }));
       } catch (error) {
         console.error('Sync through localStorage failed', error);
       }
