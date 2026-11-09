@@ -37,7 +37,7 @@ Read these before any work. They are in Arabic.
 - Animate with the Web Animations API. Under `prefers-reduced-motion`, every motion becomes an instant change.
 - The display plays sounds generated with the Web Audio API, with no audio files. Audio starts on the display's first click, and the referee can mute it.
 - Mohd works on Windows. The project lives in OneDrive and must stay there, with `node_modules` inside it; OneDrive uploads it, by Mohd's choice. Use pnpm with the settings in `pnpm-workspace.yaml`: `nodeLinker: hoisted` and `packageImportMethod: copy` keep `node_modules` as plain files with no links. OneDrive follows directory links and uploads their targets, so never move dependencies out through junctions, symlinks or an outside virtual store.
-- Package scripts must work on Windows (PowerShell), with no bash-only syntax: `pnpm dev`, `pnpm build`, `pnpm preview`, `pnpm test`, `pnpm e2e` (builds, then runs Playwright), `pnpm lint`, and `pnpm icons` (redraws `public/icons` from the mark).
+- Package scripts must work on Windows (PowerShell), with no bash-only syntax: `pnpm dev`, `pnpm build`, `pnpm preview`, `pnpm test`, `pnpm e2e` (builds, then runs Playwright), `pnpm lint`, `pnpm icons` (redraws `public/icons` from the mark) and `pnpm images` (fetches the memory images listed in `src/content/memory-images.json`).
 
 ## UI conventions
 
@@ -67,7 +67,8 @@ Read these before any work. They are in Arabic.
 | Folder | Contents |
 | --- | --- |
 | `assets/brand` | Logo (full and horizontal, day and night) and `mark.svg`, the game icon (also the favicon). |
-| `assets/icons` | 24-grid icons in `currentColor`. Draw new icons in the same style: 24 grid, 2.6 stroke, round caps and joins, or solid shapes. This includes the memory images. |
+| `assets/icons` | 24-grid icons in `currentColor`. Draw new icons in the same style: 24 grid, 2.6 stroke, round caps and joins, or solid shapes. |
+| `src/content/memory-images` | The memory images: Fluent Emoji Flat (Microsoft, MIT) with an ink outline, fetched by `pnpm images` from the list in `memory-images.json`. Don't draw memory images; pick clear, single-object, unambiguous ones. |
 | `assets/teams` | The team symbols. |
 | `assets/cards` | Action-card art (200 grid) and `cards.json` with the Arabic names. |
 | `assets/fonts` | Alexandria (TTF originals and the WOFF2 the app uses) and its license note. |
@@ -92,7 +93,7 @@ Read these before any work. They are in Arabic.
 ## Target layout
 
 ```
-src/engine     rules, reducer, selectors (pure, tested); index.ts exports it all, scenarios.ts has ready-made games
+src/engine     rules, reducer, selectors (pure, tested); scenarios.ts has ready-made games
 src/state      events, persistence, window sync
 src/ui         shared components: TeamBadge, Sign, Timer, Board, Button
 src/referee    referee screens (R01–R13)

@@ -3,12 +3,17 @@ import type { Card, GameState, PlotId, Setup, Team } from '../../src/engine/type
 
 type Owned = PlotId | [PlotId, number];
 
+/** A deep copy of a state that tests may change. The setup never changes, so it is shared. */
+export function copyState(state: GameState): GameState {
+  return { ...structuredClone({ ...state, setup: undefined }), setup: state.setup };
+}
+
 /**
  * Returns a copy of the state with plots given to teams, as if they were built long ago
  * (or on the given day). Any card on those plots is removed.
  */
 export function arrange(state: GameState, owners: Partial<Record<Team, Owned[]>>): GameState {
-  const s: GameState = { ...structuredClone({ ...state, setup: undefined }), setup: state.setup };
+  const s = copyState(state);
   for (const [team, plots] of Object.entries(owners) as [Team, Owned[]][]) {
     for (const entry of plots) {
       const [id, since] = typeof entry === 'string' ? [entry, null] : entry;
@@ -24,7 +29,7 @@ export function arrange(state: GameState, owners: Partial<Record<Team, Owned[]>>
 
 /** Returns a copy of the state where the team holds these cards. */
 export function give(state: GameState, team: Team, cards: Card[]): GameState {
-  const s: GameState = { ...structuredClone({ ...state, setup: undefined }), setup: state.setup };
+  const s = copyState(state);
   s.teams[team].cards.push(...cards);
   return s;
 }

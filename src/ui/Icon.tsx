@@ -1,8 +1,8 @@
-// Icons from assets/icons (24 grid, drawn in currentColor), inlined so they take the text colour.
-const files = import.meta.glob<string>('../../assets/icons/*.svg', { query: '?raw', import: 'default', eager: true });
+import { svgByName } from './svg.ts';
 
-const icons: Record<string, string> = Object.fromEntries(
-  Object.entries(files).map(([path, svg]) => [path.slice(path.lastIndexOf('/') + 1, -'.svg'.length), svg]),
+// Icons from assets/icons (24 grid, drawn in currentColor), inlined so they take the text colour.
+const icons = svgByName(
+  import.meta.glob<string>('../../assets/icons/*.svg', { query: '?raw', import: 'default', eager: true }),
 );
 
 export function Icon({ name, size = 24 }: { name: string; size?: number }) {

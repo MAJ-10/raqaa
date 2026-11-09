@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { RuleError } from '../../src/engine/reduce.ts';
 import { Play, sampleSetup } from '../../src/engine/scenarios.ts';
-import { buildOrder, canBridge, canBuild, currentQuestion } from '../../src/engine/select.ts';
+import { buildOrder, canBridge, canBuild, currentQuestion, options, questionsLeft } from '../../src/engine/select.ts';
 import { arrange, give, startWith } from './helpers.ts';
 
 describe('building (criterion 2)', () => {
@@ -122,6 +122,25 @@ describe('who gets a turn (criterion 7)', () => {
     // Coral's base is boxed in by blue plots built today, which can't be auctioned yet.
     const play = startWith({ blue: [['1-2', 1], ['2-1', 1]] }).question(['coral', 'blue']);
     expect(play.state.turn).toBe('blue');
+  });
+});
+
+describe('what the screens offer', () => {
+  it('lists the plots to build, bridge (only with a usable bridge card) and auction', () => {
+    const play = startWith({ coral: ['5-5'], blue: ['5-4'] });
+    const before = options(play.state, 'coral');
+    expect(before.build).toContain('4-5');
+    expect(before.auction).toEqual(['5-4']);
+    expect(before.bridge).toEqual([]);
+    play.state = give(play.state, 'coral', ['bridge']);
+    expect(options(play.state, 'coral').bridge).toContain('5-7');
+  });
+
+  it('counts the questions left in the file', () => {
+    const play = new Play(sampleSetup()).do({ type: 'game/start' });
+    expect(questionsLeft(play.state)).toBe(11); // 12 in the sample, one taken for day 1
+    play.do({ type: 'question/replace' });
+    expect(questionsLeft(play.state)).toBe(10);
   });
 });
 

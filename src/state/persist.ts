@@ -1,8 +1,11 @@
 // Saves the competition (its setup and every event) to localStorage after every event,
 // so the referee can resume after closing the app or a power cut.
 
-/** Raise this when the saved format changes, and teach loadGame to read the older versions. */
-export const SCHEMA_VERSION = 1;
+/**
+ * Raise this when the saved format changes, and teach loadGame to read the older versions.
+ * 1: the Phase 1 demo counter. 2: a real competition (engine setup and events).
+ */
+export const SCHEMA_VERSION = 2;
 
 const SAVE_KEY = 'raqaa.game';
 

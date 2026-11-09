@@ -3,10 +3,10 @@ import { describe, expect, it } from 'vitest';
 import { RuleError } from '../../src/engine/reduce.ts';
 import { planScenario, Play } from '../../src/engine/scenarios.ts';
 import type { GameState, PlotId, Team } from '../../src/engine/types.ts';
-import { give, startWith } from './helpers.ts';
+import { copyState, give, startWith } from './helpers.ts';
 
 function withPlan(state: GameState, team: Team, plots: PlotId[]): GameState {
-  const s: GameState = { ...structuredClone({ ...state, setup: undefined }), setup: state.setup };
+  const s = copyState(state);
   for (const id of plots) s.plots[id]!.plan = team;
   return s;
 }

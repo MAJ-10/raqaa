@@ -108,13 +108,13 @@ export function makeContent(s: GameState, type: ChallengeType, banks: Banks, ran
       return { content: makeMath(random), recycled: false };
     case 'spelling': {
       const { items, recycled } = pickFresh(banks.spelling, s.used.spelling, 1, random);
-      return { content: { type, word: items[0]! }, recycled };
+      return { content: { type, id: items[0]! }, recycled };
     }
     case 'ordering': {
       const ids = banks.ordering.map((sentence) => sentence.id);
       const { items, recycled } = pickFresh(ids, s.used.ordering, 1, random);
       const sentence = banks.ordering.find((x) => x.id === items[0])!;
-      return { content: { type, sentence: sentence.id, order: scramble(sentence.length, random) }, recycled };
+      return { content: { type, id: sentence.id, order: scramble(sentence.length, random) }, recycled };
     }
     case 'memory': {
       // Memory challenges alternate: images, then words, then images...

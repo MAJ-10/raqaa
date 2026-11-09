@@ -55,6 +55,18 @@ describe('the result (criterion 15)', () => {
     expect(populationHidden(play.state)).toBe(true);
   });
 
+  it('keeps the population hidden through a long extension', () => {
+    const { setup, events } = lastDayScenario(); // 5 days: hidden from day 3
+    const play = new Play(setup);
+    for (const e of events) play.do(e);
+    play.do({ type: 'days/extend', count: 5 });
+    for (let day = 6; day <= 10; day++) {
+      expect(populationHidden(play.state), `day ${day}`).toBe(true);
+      play.question([]);
+      if (day < 10) play.endDay();
+    }
+  });
+
   it('extending only comes at the end of the last day', () => {
     const play = new Play(sampleSetup(9, 5)).do({ type: 'game/start' }).question([]);
     expect(() => play.do({ type: 'days/extend', count: 1 })).toThrow(RuleError);

@@ -10,6 +10,8 @@ import {
   canStillAct,
   canUseCard,
   currentChallenge,
+  nextAuction,
+  openAuction,
   planTargets,
   wins,
 } from './select.ts';
@@ -133,8 +135,7 @@ function settleTurn(s: GameState): void {
 /** When no auction is left to play today, the day ends. */
 function settleAuctions(s: GameState): void {
   if (s.step !== 'auctions' || s.pending) return;
-  const left = s.auctions.some((a) => a.day === s.day && (a.status === 'declared' || a.status === 'open'));
-  if (!left) s.step = 'dayEnd';
+  if (!nextAuction(s) && !openAuction(s)) s.step = 'dayEnd';
 }
 
 function myTurn(s: GameState, team: Team): void {
@@ -178,8 +179,8 @@ function openAuctionById(s: GameState, id: number): Auction {
 }
 
 function noteContent(s: GameState, content: ChallengeContent): void {
-  if (content.type === 'spelling') s.used.spelling.push(content.word);
-  if (content.type === 'ordering') s.used.ordering.push(content.sentence);
+  if (content.type === 'spelling') s.used.spelling.push(content.id);
+  if (content.type === 'ordering') s.used.ordering.push(content.id);
   if (content.type === 'memory') {
     s.used[content.kind].push(...content.items);
     s.memoryCount += 1;
@@ -256,7 +257,7 @@ function apply(s: GameState, e: GameEvent): void {
         s.timer = null;
         return;
       }
-      const auction = s.auctions.find((a) => a.status === 'open');
+      const auction = openAuction(s);
       const challenge = auction && currentChallenge(auction);
       rule(challenge && !challenge.stopped && s.timer?.kind === 'challenge', 'No timer is running');
       challenge.stopped = true;
@@ -379,8 +380,8 @@ function apply(s: GameState, e: GameEvent): void {
 
     case 'auction/open': {
       rule(s.step === 'auctions' && !s.pending, 'Auctions open after building');
-      rule(!s.auctions.some((a) => a.status === 'open'), 'Finish the open auction first');
-      const auction = s.auctions.find((a) => a.day === s.day && a.status === 'declared');
+      rule(!openAuction(s), 'Finish the open auction first');
+      const auction = nextAuction(s);
       rule(auction && auction.id === e.auction, 'Auctions open in the order they were declared');
       // Each side's player is the next from its bidder counter, kept for every challenge of this auction.
       const bidder = s.teams[auction.bidder];
@@ -461,5 +462,8 @@ function apply(s: GameState, e: GameEvent): void {
       rule(s.step === 'announce' && s.announce < announcement(s).length - 1, 'The announcement is over');
       s.announce += 1;
       return;
+
+    default:
+      throw new RuleError(`Unknown event: ${(e as { type: string }).type}`);
   }
 }

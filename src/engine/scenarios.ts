@@ -1,5 +1,6 @@
 // Ready-made competitions stopped at interesting moments. Tests use them, and so can the screens later.
 import { initialState, reduce } from './reduce.ts';
+import { nextAuction } from './select.ts';
 import type { GameEvent, GameState, PlotId, Setup, Team } from './types.ts';
 
 type WithoutTime<E> = E extends unknown ? Omit<E, 'at'> : never;
@@ -76,7 +77,7 @@ export class Play {
 
   /** Opens the next auction and plays challenges with these winners. "tie" replays the challenge. */
   auction(winners: (Team | 'tie')[], planTake?: PlotId): this {
-    const auction = this.state.auctions.find((a) => a.day === this.state.day && a.status === 'declared');
+    const auction = nextAuction(this.state);
     if (!auction) throw new Error('No auction to open');
     this.do({ type: 'auction/open', auction: auction.id });
     let running = false;
@@ -156,7 +157,7 @@ function fourDays(setup: Setup): Play {
 /** Day 5: coral bids for blue's plot 1-6; the auction is open and coral won the first challenge. */
 export function openAuctionScenario(): Scenario {
   const play = fourDays(sampleSetup(9, 8)).question(['coral', 'blue']).build({ coral: [{ auction: '1-6' }], blue: ['2-6'] });
-  const auction = play.state.auctions.find((a) => a.status === 'declared')!;
+  const auction = nextAuction(play.state)!;
   play
     .do({ type: 'auction/open', auction: auction.id })
     .do({ type: 'challenge/start', auction: auction.id, content: { type: 'precision' } })
@@ -190,7 +191,7 @@ export function planScenario(): Scenario {
     .endDay()
     .question(two)
     .build({ coral: ['4-4'], blue: [{ auction: '2-4' }] });
-  const auction = play.state.auctions.find((a) => a.status === 'declared')!;
+  const auction = nextAuction(play.state)!;
   play
     .do({ type: 'auction/open', auction: auction.id })
     .do({ type: 'challenge/start', auction: auction.id, content: { type: 'precision' } })

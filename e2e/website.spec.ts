@@ -1,21 +1,26 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { Page } from '@playwright/test';
-import { add, checkDisplayAlone, checkSync, count, expect, openDisplay, test } from './fixtures.ts';
+import {
+  SYNC_MODES,
+  checkDisplayAlone,
+  checkSync,
+  createRoom,
+  displayTeams,
+  expect,
+  fontsLoaded,
+  nameField,
+  openDisplay,
+  outside,
+  test,
+} from './fixtures.ts';
 
 const ORIGIN = 'http://localhost:4173';
 
-async function fontsLoaded(page: Page): Promise<boolean[]> {
-  return page.evaluate(async () => {
-    const faces = await Promise.all(['400', '600', '900'].map((weight) => document.fonts.load(`${weight} 20px Alexandria`)));
-    return faces.map((list) => list.length > 0 && list.every((face) => face.status === 'loaded'));
-  });
-}
-
 test.describe('website', () => {
-  for (const sync of ['', '?sync=broadcast', '?sync=storage']) {
-    test(`the two windows stay in sync${sync ? ` (${sync.slice('?sync='.length)} alone)` : ''}`, async ({ page }) => {
-      await checkSync(page, `/${sync}`, `/${sync}#display`);
+  for (const { search, label } of SYNC_MODES) {
+    test(`the two windows stay in sync${label}`, async ({ page }) => {
+      await checkSync(page, `/${search}`, `/${search}#display`);
     });
   }
 
@@ -26,7 +31,7 @@ test.describe('website', () => {
   test('makes no requests outside the app', async ({ page, requests }) => {
     await checkSync(page, '/', '/#display');
     expect(requests.length).toBeGreaterThan(0);
-    expect(requests.filter((url) => !url.startsWith(`${ORIGIN}/`) && !url.startsWith('data:'))).toEqual([]);
+    expect(outside(requests, `${ORIGIN}/`)).toEqual([]);
   });
 
   test('is Arabic, right to left, in Alexandria', async ({ page }) => {
@@ -57,11 +62,11 @@ test.describe('website', () => {
     await page.evaluate(() => navigator.serviceWorker.ready);
     await context.setOffline(true);
     await page.reload();
-    await expect(count(page)).toHaveText('٠');
     expect(await fontsLoaded(page)).toEqual([true, true, true]);
+    await createRoom(page, '/');
     const display = await openDisplay(page);
-    await add(page, 2);
-    await expect(count(display)).toHaveText('٢');
+    await nameField(page, 'coral').fill('الرواد');
+    await expect(displayTeams(display)).toContainText('الرواد');
   });
 
   test('an update waits until every window of the app is closed', async ({ page, context }) => {
@@ -77,10 +82,10 @@ test.describe('website', () => {
     try {
       await page.goto('/');
       await page.evaluate(() => navigator.serviceWorker.ready);
-      await page.reload();
+      await createRoom(page, '/');
       const display = await openDisplay(page);
-      await add(page, 2);
-      await expect(count(display)).toHaveText('٢');
+      await nameField(page, 'coral').fill('الرواد');
+      await expect(displayTeams(display)).toContainText('الرواد');
 
       // A new version is published while the competition is running.
       writeFileSync(file, original.replace(`const VERSION = '${version}'`, `const VERSION = '${version}-next'`));
@@ -89,8 +94,8 @@ test.describe('website', () => {
 
       // The running windows keep the old version, and keep working together.
       expect((await registration(page)).active).toBe('activated');
-      await add(page, 1);
-      await expect(count(display)).toHaveText('٣');
+      await nameField(page, 'blue').fill('النجوم');
+      await expect(displayTeams(display)).toContainText('النجوم');
 
       // Once every window is closed, the next open gets the new version and resumes the competition.
       await display.close();
@@ -98,7 +103,7 @@ test.describe('website', () => {
       const reopened = await context.newPage();
       await reopened.goto('/');
       await expect.poll(async () => (await registration(reopened)).caches).toEqual([`raqaa-${version}-next`]);
-      await expect(count(reopened)).toHaveText('٣');
+      await expect(nameField(reopened, 'blue')).toHaveValue('النجوم');
     } finally {
       writeFileSync(file, original);
     }

@@ -12,6 +12,10 @@ export default defineConfig(({ mode }) => {
     base: './',
     plugins: [react(), single ? singleFile('raqaa.html') : website()],
     publicDir: single ? false : 'public',
+    server: {
+      // The project lives in OneDrive, where Windows sometimes misses a file change. Polling never does.
+      watch: { usePolling: true, interval: 300 },
+    },
     build: {
       // The single file is added next to the website, so its build must not clear dist/.
       emptyOutDir: !single,

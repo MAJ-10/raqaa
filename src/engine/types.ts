@@ -8,7 +8,7 @@ export type Size = 7 | 9;
 /** A plot's id is "row-col": rows from the top, columns from the right, from 1. */
 export type PlotId = string;
 
-export const CARDS = ['fence', 'crane', 'bridge', 'plan', 'inspector'] as const;
+const CARDS = ['fence', 'crane', 'bridge', 'plan', 'inspector'] as const;
 export type Card = (typeof CARDS)[number];
 
 export const MISSIONS = [
@@ -31,11 +31,15 @@ export type Question = { text: string; answer: string };
 
 export type TeamSetup = { name: string; players: number; missions: Mission[] };
 
+/** Where the questions came from. Only a file today; a built-in bank may come later. */
+export type QuestionSource = { kind: 'file'; name: string };
+
 export type Setup = {
   size: Size;
   days: number;
   teams: Record<Team, TeamSetup>;
   questions: Question[];
+  questionSource?: QuestionSource | null;
 };
 
 export type MathOp = '+' | '-' | '*' | '/';
@@ -43,9 +47,9 @@ export type MathOp = '+' | '-' | '*' | '/';
 /** Generated in the referee window and kept in the event, so replaying the events gives the same content. */
 export type ChallengeContent =
   | { type: 'math'; start: number; steps: { op: MathOp; n: number }[]; answer: number }
-  | { type: 'spelling'; word: string }
+  | { type: 'spelling'; id: string } // a spelling bank id
   | { type: 'memory'; kind: 'images' | 'words'; items: string[] }
-  | { type: 'ordering'; sentence: string; order: number[] }
+  | { type: 'ordering'; id: string; order: number[] } // a sentence bank id, and the order its words are shown in
   | { type: 'precision' }
   | { type: 'building' };
 
@@ -77,7 +81,6 @@ export type GameEvent = { at: number } & (
   | { type: 'announce/next' }
 );
 
-export type EventType = GameEvent['type'];
 
 /** Where the day stands. */
 export type Step =

@@ -1,11 +1,33 @@
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { test as base, expect, type Page } from '@playwright/test';
+import type { Team } from '../src/engine/types.ts';
+import { TEAM_COLOUR } from '../src/ui/names.ts';
 
 export { expect };
 
 export const SINGLE_FILE = resolve('dist/raqaa.html');
 export const singleFileUrl = (suffix = '') => pathToFileURL(SINGLE_FILE).href + suffix;
+export const SAMPLE_QUESTIONS = resolve('samples/questions-sample.csv');
+
+/** Both sync transports together, then each alone. */
+export const SYNC_MODES = [
+  { search: '', label: '' },
+  { search: '?sync=broadcast', label: ' (broadcast alone)' },
+  { search: '?sync=storage', label: ' (storage alone)' },
+];
+
+/** Requests that left the app: anything not under one of these address beginnings, or a data: URL. */
+export const outside = (requests: string[], ...own: string[]) =>
+  requests.filter((url) => !url.startsWith('data:') && !own.some((start) => url.startsWith(start)));
+
+/** Whether the three Alexandria weights are loaded in the page. */
+export async function fontsLoaded(page: Page): Promise<boolean[]> {
+  return page.evaluate(async () => {
+    const faces = await Promise.all(['400', '600', '900'].map((weight) => document.fonts.load(`${weight} 20px Alexandria`)));
+    return faces.map((list) => list.length > 0 && list.every((face) => face.status === 'loaded'));
+  });
+}
 
 /**
  * Every test records the address of every request the browser makes, and fails if any window logs an
@@ -35,12 +57,30 @@ export const test = base.extend<{ requests: string[]; pageErrors: string[] }>({
   ],
 });
 
-export const count = (page: Page) => page.getByTestId('count');
+/** A team's name field on the setup screen. */
+export const nameField = (page: Page, team: Team) => page.getByLabel(`اسم الحي ${TEAM_COLOUR[team]}`);
 
-export async function add(referee: Page, times = 1): Promise<void> {
-  for (let i = 0; i < times; i++) {
-    await referee.getByRole('button', { name: 'إضافة' }).click();
+/** The team names on the display. */
+export const displayTeams = (page: Page) => page.getByTestId('display-teams');
+
+/** Opens the intro page and creates a new competition. */
+export async function createRoom(referee: Page, home: string): Promise<void> {
+  await referee.goto(home);
+  await referee.getByRole('button', { name: 'إنشاء غرفة' }).click();
+  await expect(nameField(referee, 'coral')).toBeVisible();
+}
+
+/** Fills the whole setup: names, one mission each, and the sample questions. */
+export async function fillSetup(referee: Page): Promise<void> {
+  const names = { coral: 'الرواد', blue: 'النجوم', green: 'الصقور', gold: 'الفرسان' } as const;
+  for (const [team, name] of Object.entries(names) as [Team, string][]) {
+    await nameField(referee, team).fill(name);
+    await referee.getByRole('button', { name: `مشاريع الحي ${TEAM_COLOUR[team]}` }).click();
+    await referee.getByRole('button', { name: 'برج الرقعة' }).click();
+    await referee.getByRole('button', { name: 'تم' }).click();
   }
+  await referee.getByTestId('questions-file').setInputFiles(SAMPLE_QUESTIONS);
+  await expect(referee.getByText('٣٠ سؤالاً')).toBeVisible();
 }
 
 export async function openDisplay(referee: Page): Promise<Page> {
@@ -57,32 +97,28 @@ export async function openDisplay(referee: Page): Promise<Page> {
  * and keeps up after the referee window reloads. `home` is the referee's address, `own` the display's.
  */
 export async function checkSync(referee: Page, home: string, own: string): Promise<void> {
-  await referee.goto(home);
-  await expect(count(referee)).toHaveText('٠');
+  await createRoom(referee, home);
+  await nameField(referee, 'coral').fill('الرواد');
 
   const display = await openDisplay(referee);
-  await expect(count(display)).toHaveText('٠');
-  await add(referee, 3);
-  await expect(count(display)).toHaveText('٣');
+  await expect(displayTeams(display)).toContainText('الرواد');
+  await nameField(referee, 'blue').fill('النجوم');
+  await expect(displayTeams(display)).toContainText('النجوم');
 
   await display.reload();
-  await expect(count(display)).toHaveText('٣');
+  await expect(displayTeams(display)).toContainText('النجوم');
 
   await display.close();
   const fromLink = await referee.context().newPage();
   await fromLink.goto(own);
-  await expect(count(fromLink)).toHaveText('٣');
+  await expect(displayTeams(fromLink)).toContainText('الرواد');
 
   // The new page took the front; a page in the background answers clicks slowly, as in a hidden browser tab.
   await referee.bringToFront();
   await referee.reload();
-  await expect(count(referee)).toHaveText('٣');
-  await add(referee, 9);
-  await expect(count(fromLink)).toHaveText('١٢');
-
-  await referee.getByRole('button', { name: 'تراجع' }).click();
-  await expect(count(referee)).toHaveText('١١');
-  await expect(count(fromLink)).toHaveText('١١');
+  await expect(nameField(referee, 'coral')).toHaveValue('الرواد');
+  await nameField(referee, 'green').fill('الصقور');
+  await expect(displayTeams(fromLink)).toContainText('الصقور');
 }
 
 /**
@@ -91,18 +127,17 @@ export async function checkSync(referee: Page, home: string, own: string): Promi
  * When the referee window opens again, the display follows it.
  */
 export async function checkDisplayAlone(page: Page, home: string): Promise<void> {
-  await page.goto(home);
-  await add(page, 2);
-  await expect(count(page)).toHaveText('٢');
+  await createRoom(page, home);
+  await nameField(page, 'coral').fill('الرواد');
 
   await page.evaluate(() => {
     location.hash = 'display';
   });
   await expect(page).toHaveTitle('شاشة العرض · رقعة');
-  await expect(count(page)).toHaveText('٢');
+  await expect(displayTeams(page)).toContainText('الرواد');
 
   const referee = await page.context().newPage();
   await referee.goto(home);
-  await add(referee, 1);
-  await expect(count(page)).toHaveText('٣');
+  await nameField(referee, 'blue').fill('النجوم');
+  await expect(displayTeams(page)).toContainText('النجوم');
 }

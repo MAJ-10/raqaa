@@ -14,11 +14,13 @@
     "test": "vitest run",
     "e2e": "pnpm build && playwright test",
     "lint": "oxlint",
-    "icons": "node tools/icons.mjs"
+    "icons": "node tools/icons.mjs",
+    "images": "node tools/memory-images.mjs"
   },
   "dependencies": {
     "react": "^19.3.1",
-    "react-dom": "^19.3.1"
+    "react-dom": "^19.3.1",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
     "@playwright/test": "^1.65.0",

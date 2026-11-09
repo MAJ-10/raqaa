@@ -105,9 +105,9 @@ export function isMapFull(s: GameState): boolean {
   return boardOf(s).ids.every((id) => s.plots[id]?.owner !== null);
 }
 
-/** The last three days, and any extension: the display hides the population. */
+/** The last three days of the setup, and every extension after them: the display hides the population. */
 export function populationHidden(s: GameState): boolean {
-  return s.day > s.days - 3;
+  return s.day > s.setup.days - 3;
 }
 
 export function todaysAuctions(s: GameState): Auction[] {

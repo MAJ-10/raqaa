@@ -1,67 +1,96 @@
-import { saveGame } from './persist.ts';
+import { initialState, reduce } from '../engine/reduce.ts';
+import type { GameEvent, GameState, Setup } from '../engine/types.ts';
+import { clearGame, saveGame, SCHEMA_VERSION, type SavedGame } from './persist.ts';
 import { makeId, openSyncLink, type Snapshot, type SyncLink, type SyncMessage, type Transport } from './sync.ts';
 
-export type Reducer<State, Event> = (state: State, event: Event) => State;
-
-export type RefereeView<State, Event> = {
-  readonly state: State;
-  readonly events: readonly Event[];
+/** What the referee window holds: no competition (the intro page), or a competition and its events. */
+export type RefereeView = {
+  readonly state: GameState | null;
+  readonly events: readonly GameEvent[];
 };
 
-export type RefereeStoreOptions<Setup, State, Event> = {
-  setup: Setup;
-  initial: State;
-  reduce: Reducer<State, Event>;
-  /** Events of a saved competition to resume. */
-  events?: readonly Event[];
+/** What the display receives. A null state means there is no competition. */
+export type DisplaySnapshot = Snapshot<GameState | null, GameEvent>;
+type Message = SyncMessage<GameState | null, GameEvent>;
+
+export type RefereeStoreOptions = {
+  saved?: SavedGame<Setup, GameEvent> | null;
   storage?: Storage;
   transports?: Transport[];
 };
 
+/** Folds events over the setup, keeping those that still follow the rules (a newer version may refuse an old one). */
+function resume(setup: Setup, saved: readonly GameEvent[]): RefereeView {
+  let state = initialState(setup);
+  const events: GameEvent[] = [];
+  for (const event of saved) {
+    try {
+      state = reduce(state, event);
+      events.push(event);
+    } catch (error) {
+      console.error('A saved event no longer follows the rules; the competition resumes before it', error);
+      break;
+    }
+  }
+  return { state, events };
+}
+
 /**
- * The referee window's store, and the only writer. The state is a pure fold of the events over the
+ * The referee window's store, and the only writer. The state is a fold of the events over the setup's
  * initial state, so undo removes the last event and folds again. After every change the store saves
  * the setup and the events, and sends a snapshot to the display windows.
  */
-export class RefereeStore<Setup, State, Event> {
-  readonly setup: Setup;
-  private readonly initial: State;
-  private readonly reduce: Reducer<State, Event>;
+export class RefereeStore {
   private readonly storage: Storage | undefined;
-  private readonly link: SyncLink<SyncMessage<State, Event>>;
+  private readonly link: SyncLink<Message>;
   private readonly session = makeId();
   private readonly listeners = new Set<() => void>();
   private readonly answered = new Set<string>();
-  private view: RefereeView<State, Event>;
+  private view: RefereeView;
   private seq = 0;
 
-  constructor(options: RefereeStoreOptions<Setup, State, Event>) {
-    this.setup = options.setup;
-    this.initial = options.initial;
-    this.reduce = options.reduce;
+  constructor(options: RefereeStoreOptions = {}) {
     this.storage = options.storage;
-    const events = [...(options.events ?? [])];
-    this.view = { state: events.reduce(this.reduce, this.initial), events };
-    this.link = openSyncLink<SyncMessage<State, Event>>((message) => this.receive(message), options.transports);
+    this.view = options.saved ? resume(options.saved.setup, options.saved.events) : { state: null, events: [] };
+    this.link = openSyncLink<Message>((message) => this.receive(message), options.transports);
     // Displays that are already open follow the referee as soon as it opens.
     this.publish(null);
   }
 
-  getView = (): RefereeView<State, Event> => this.view;
+  getView = (): RefereeView => this.view;
 
   subscribe = (listener: () => void): (() => void) => {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
   };
 
-  dispatch(event: Event): void {
-    this.commit({ state: this.reduce(this.view.state, event), events: [...this.view.events, event] }, event);
+  /** A new competition with this setup. */
+  create(setup: Setup): void {
+    this.commit({ state: initialState(setup), events: [] }, null);
+  }
+
+  /** Changes the setup. Only before the competition starts. */
+  updateSetup(setup: Setup): void {
+    if (!this.view.state || this.view.events.length > 0) throw new Error('The setup is fixed once the competition starts');
+    this.commit({ state: initialState(setup), events: [] }, null);
+  }
+
+  /** Applies an event. Throws, and changes nothing, when the event breaks a rule. */
+  dispatch(event: GameEvent): void {
+    const { state, events } = this.view;
+    if (!state) throw new Error('There is no competition');
+    this.commit({ state: reduce(state, event), events: [...events, event] }, event);
   }
 
   undo(): void {
-    if (this.view.events.length === 0) return;
-    const events = this.view.events.slice(0, -1);
-    this.commit({ state: events.reduce(this.reduce, this.initial), events }, null);
+    const { state, events } = this.view;
+    if (!state || events.length === 0) return;
+    this.commit(resume(state.setup, events.slice(0, -1)), null);
+  }
+
+  /** Clears the competition: back to the intro page. */
+  end(): void {
+    this.commit({ state: null, events: [] }, null);
   }
 
   close(): void {
@@ -69,19 +98,26 @@ export class RefereeStore<Setup, State, Event> {
     this.listeners.clear();
   }
 
-  private commit(view: RefereeView<State, Event>, last: Event | null): void {
+  private commit(view: RefereeView, last: GameEvent | null): void {
     this.view = view;
-    saveGame({ setup: this.setup, events: view.events }, this.storage);
+    if (view.state) saveGame({ setup: view.state.setup, events: view.events }, this.storage);
+    else clearGame(this.storage);
     this.publish(last);
     this.listeners.forEach((listener) => listener());
   }
 
-  private publish(last: Event | null): void {
-    const snapshot: Snapshot<State, Event> = { session: this.session, seq: ++this.seq, state: this.view.state, last };
+  private publish(last: GameEvent | null): void {
+    const snapshot: DisplaySnapshot = {
+      schema: SCHEMA_VERSION,
+      session: this.session,
+      seq: ++this.seq,
+      state: this.view.state,
+      last,
+    };
     this.link.send({ type: 'snapshot', snapshot });
   }
 
-  private receive(message: SyncMessage<State, Event>): void {
+  private receive(message: Message): void {
     // A "hello" arrives once per transport; answer it once.
     if (message.type !== 'hello' || this.answered.has(message.id)) return;
     this.answered.add(message.id);

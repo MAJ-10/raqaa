@@ -10,6 +10,8 @@
 // still shows the competition as it was left.
 
 export type Snapshot<State, Event> = {
+  /** The saved-game format of the state (SCHEMA_VERSION). A display ignores any other version. */
+  schema: number;
   /** A new id each time the referee window opens, so a display follows a reopened referee. */
   session: string;
   /** Counts up within a session. A display ignores a snapshot older than the one it shows. */
@@ -57,12 +59,12 @@ export function isNewer(next: Snapshot<unknown, unknown>, current: Snapshot<unkn
   return current === null || next.session !== current.session || next.seq > current.seq;
 }
 
-/** The last snapshot the referee sent, as the "storage" transport left it, or null. */
-export function readLastSnapshot<State, Event>(): Snapshot<State, Event> | null {
+/** The last snapshot the referee sent, as the "storage" transport left it, if it has this schema; or null. */
+export function readLastSnapshot<State, Event>(schema: number): Snapshot<State, Event> | null {
   try {
     const raw = localStorage.getItem(`${MAILBOX}snapshot`);
     const message = raw ? (JSON.parse(raw) as { message: SyncMessage<State, Event> }).message : null;
-    return message?.type === 'snapshot' ? message.snapshot : null;
+    return message?.type === 'snapshot' && message.snapshot.schema === schema ? message.snapshot : null;
   } catch {
     return null;
   }

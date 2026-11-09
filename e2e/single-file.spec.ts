@@ -1,10 +1,22 @@
 import { readFileSync } from 'node:fs';
-import { SINGLE_FILE, checkDisplayAlone, checkSync, count, expect, singleFileUrl, test } from './fixtures.ts';
+import {
+  SINGLE_FILE,
+  SYNC_MODES,
+  checkDisplayAlone,
+  checkSync,
+  createRoom,
+  expect,
+  fillSetup,
+  fontsLoaded,
+  outside,
+  singleFileUrl,
+  test,
+} from './fixtures.ts';
 
 test.describe('single file (raqaa.html)', () => {
-  for (const sync of ['', '?sync=broadcast', '?sync=storage']) {
-    test(`the two windows stay in sync${sync ? ` (${sync.slice('?sync='.length)} alone)` : ''}`, async ({ page }) => {
-      await checkSync(page, singleFileUrl(sync), singleFileUrl(`${sync}#display`));
+  for (const { search, label } of SYNC_MODES) {
+    test(`the two windows stay in sync${label}`, async ({ page }) => {
+      await checkSync(page, singleFileUrl(search), singleFileUrl(`${search}#display`));
     });
   }
 
@@ -15,7 +27,7 @@ test.describe('single file (raqaa.html)', () => {
   test('makes no network requests', async ({ page, requests }) => {
     await checkSync(page, singleFileUrl(), singleFileUrl('#display'));
     expect(requests.length).toBeGreaterThan(0);
-    expect(requests.filter((url) => !url.startsWith('file:') && !url.startsWith('data:'))).toEqual([]);
+    expect(outside(requests, 'file:')).toEqual([]);
   });
 
   test('is one self-contained page that forbids network access', () => {
@@ -26,13 +38,17 @@ test.describe('single file (raqaa.html)', () => {
     expect(html).toContain("connect-src 'none'");
   });
 
+  test('reads the questions file and starts, from the local file', async ({ page, requests }) => {
+    await createRoom(page, singleFileUrl());
+    await fillSetup(page);
+    await page.getByRole('button', { name: 'ابدأ' }).click();
+    await expect(page.getByRole('heading', { name: 'اليوم ١ من ١٢' })).toBeVisible();
+    expect(outside(requests, 'file:')).toEqual([]);
+  });
+
   test('has the fonts inside it', async ({ page }) => {
     await page.goto(singleFileUrl());
-    await expect(count(page)).toHaveText('٠');
-    const loaded = await page.evaluate(async () => {
-      const faces = await Promise.all(['400', '600', '900'].map((w) => document.fonts.load(`${w} 20px Alexandria`)));
-      return faces.map((list) => list.length > 0 && list.every((face) => face.status === 'loaded'));
-    });
-    expect(loaded).toEqual([true, true, true]);
+    await expect(page.getByRole('button', { name: 'إنشاء غرفة' })).toBeVisible();
+    expect(await fontsLoaded(page)).toEqual([true, true, true]);
   });
 });
