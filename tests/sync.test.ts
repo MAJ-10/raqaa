@@ -9,6 +9,7 @@ import { isNewer, pickTransports, type Snapshot } from '../src/state/sync.ts';
 import { memoryStorage } from './helpers.ts';
 
 const start: GameEvent = { type: 'game/start', at: 1000 };
+const kind: GameEvent = { type: 'question/kind', kind: 'individual', at: 1500 };
 const numbers: GameEvent = { type: 'numbers/show', at: 2000 };
 
 const cleanups: (() => void)[] = [];
@@ -50,10 +51,11 @@ describe('referee store', () => {
     const { store, storage } = referee();
     store.create(sampleSetup());
     store.dispatch(start);
+    store.dispatch(kind);
     store.dispatch(numbers);
-    expect(loadGame(storage)?.events).toEqual([start, numbers]);
+    expect(loadGame(storage)?.events).toEqual([start, kind, numbers]);
     store.undo();
-    expect(store.getView().events).toEqual([start]);
+    expect(store.getView().events).toEqual([start, kind]);
     expect(store.getView().state?.question.numbers).toBeNull();
   });
 
@@ -65,7 +67,7 @@ describe('referee store', () => {
   });
 
   it('resumes a saved competition by folding its events', () => {
-    const saved = { schema: 1, savedAt: 0, setup: sampleSetup(), events: [start, numbers] };
+    const saved = { schema: 1, savedAt: 0, setup: sampleSetup(), events: [start, kind, numbers] };
     const { store } = referee(saved);
     expect(store.getView().state).toMatchObject({ day: 1, step: 'question' });
     expect(store.getView().state?.question.numbers).not.toBeNull();
@@ -122,7 +124,8 @@ describe('window sync', () => {
     first.store.create(sampleSetup());
     const screen = display();
     first.store.dispatch(start);
-    await vi.waitFor(() => expect(screen.latest()?.state?.day).toBe(1));
+    first.store.dispatch(kind);
+    await vi.waitFor(() => expect(screen.latest()?.state?.question.kind).toBe('individual'));
     first.store.close();
     // The reopened referee resumes from the save and has a new session.
     const second = referee(loadGame<Setup, GameEvent>(storage), storage);

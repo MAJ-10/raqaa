@@ -119,6 +119,14 @@
   color: var(--white);
 }
 
+.segmented > button:disabled {
+  cursor: default;
+}
+
+.segmented > button:disabled:not([aria-checked='true']) {
+  opacity: 0.45;
+}
+
 /* Small tags: radius 6, never a full pill. */
 .chip {
   display: inline-flex;

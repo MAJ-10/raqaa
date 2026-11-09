@@ -61,7 +61,7 @@ export function initialState(setup: Setup): GameState {
     step: 'setup',
     day: 0,
     days: setup.days,
-    question: { kind: 'individual', index: null, numbers: null, outside: false },
+    question: { kind: null, index: null, numbers: null, outside: false },
     nextQuestion: 0,
     permits: [],
     order: [],
@@ -94,6 +94,9 @@ export function replay(setup: Setup, events: readonly GameEvent[]): GameState {
 
 const nextPlayer = (counter: number, players: number) => (counter % players) + 1;
 
+/** The question can go on screen: a group question, or an individual one whose numbers are shown. */
+const questionReady = (s: GameState) => s.question.kind === 'group' || s.question.numbers !== null;
+
 function takeQuestion(s: GameState): number | null {
   return s.nextQuestion < s.setup.questions.length ? s.nextQuestion++ : null;
 }
@@ -101,8 +104,7 @@ function takeQuestion(s: GameState): number | null {
 function startDay(s: GameState): void {
   s.day += 1;
   s.step = 'question';
-  // Individual and group questions alternate, starting with individual on day 1.
-  s.question = { kind: s.day % 2 === 1 ? 'individual' : 'group', index: takeQuestion(s), numbers: null, outside: false };
+  s.question = { kind: null, index: takeQuestion(s), numbers: null, outside: false };
   s.permits = [];
   s.order = [];
   s.turn = null;
@@ -215,6 +217,13 @@ function apply(s: GameState, e: GameEvent): void {
       startDay(s);
       return;
 
+    case 'question/kind':
+      // The referee chooses individual or group, until the numbers or the question are shown.
+      rule(s.step === 'question' && !s.question.numbers, 'The kind is chosen before the numbers and the question');
+      rule(e.kind === 'individual' || e.kind === 'group', 'Unknown question kind');
+      s.question.kind = e.kind;
+      return;
+
     case 'numbers/show': {
       rule(s.step === 'question' && s.question.kind === 'individual', 'Numbers come before an individual question');
       rule(!s.question.numbers, 'The numbers are already shown');
@@ -231,15 +240,16 @@ function apply(s: GameState, e: GameEvent): void {
     case 'question/show':
       rule(s.step === 'question', 'There is no question to show now');
       rule(s.question.index !== null, 'No questions left in the file');
-      rule(s.question.kind === 'group' || s.question.numbers, 'Show the numbers first');
+      rule(questionReady(s), 'Choose the kind, and show the numbers first for an individual question');
       s.step = 'asking';
       s.timer = { kind: 'question', startedAt: e.at };
       return;
 
     case 'question/outside':
-      // The referee asks a question of their own; the timer runs as usual. The only way on once the file runs out.
+      // Once the file runs out, the referee asks a question of their own; the timer runs as usual.
       rule(s.step === 'question', 'There is no question to ask now');
-      rule(s.question.kind === 'group' || s.question.numbers, 'Show the numbers first');
+      rule(s.question.index === null, 'The file still has a question for today');
+      rule(questionReady(s), 'Choose the kind, and show the numbers first for an individual question');
       s.question.outside = true;
       s.step = 'asking';
       s.timer = { kind: 'question', startedAt: e.at };
@@ -292,6 +302,8 @@ function apply(s: GameState, e: GameEvent): void {
         'Unknown team',
       );
       s.permits = TEAMS.filter((team) => e.teams.includes(team));
+      // An individual question gives one permit: the team with the fastest right answer.
+      rule(s.question.kind === 'group' || s.permits.length <= 1, 'An individual question gives one permit');
       s.order = buildOrder(s);
       for (const team of TEAMS) s.teams[team].moves = s.permits.includes(team) ? 1 : 0;
       s.step = 'build';

@@ -26,9 +26,6 @@ export function DayEndPanel({ state, act, today }: Props & { today: GameEvent[] 
   const builds = today.filter((e) => e.type === 'build').length;
   const auctions = state.auctions.filter((a) => a.day === state.day && a.status === 'done');
   const bidderWins = auctions.filter((a) => a.winner === a.bidder).length;
-  const endEarly = () => {
-    if (window.confirm('باقي أيام في المسابقة. تنهيها الحين وتنتقل للإعلان؟')) act({ type: 'game/end' });
-  };
 
   return (
     <section className="card panel">
@@ -55,12 +52,9 @@ export function DayEndPanel({ state, act, today }: Props & { today: GameEvent[] 
             الإعلان
           </Button>
         ) : (
-          <>
-            <Button variant="primary" onClick={() => act({ type: 'day/end' })}>
-              اليوم الجاي
-            </Button>
-            <Button onClick={endEarly}>إنهاء المسابقة</Button>
-          </>
+          <Button variant="primary" onClick={() => act({ type: 'day/end' })}>
+            اليوم الجاي
+          </Button>
         )}
       </footer>
     </section>

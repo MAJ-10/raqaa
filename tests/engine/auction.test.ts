@@ -120,7 +120,9 @@ describe('player counters (criterion 12)', () => {
     const coral: number[] = [];
     const blue: number[] = [];
     for (let day = 1; day <= 9; day++) {
-      if (play.state.question.kind === 'individual') {
+      const kind = day % 2 === 1 ? 'individual' : 'group';
+      play.do({ type: 'question/kind', kind });
+      if (kind === 'individual') {
         play.do({ type: 'numbers/show' });
         coral.push(play.state.question.numbers!.coral);
         blue.push(play.state.question.numbers!.blue);

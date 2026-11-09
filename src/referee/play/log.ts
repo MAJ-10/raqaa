@@ -17,6 +17,9 @@ export function logEntries(events: readonly GameEvent[], state: GameState): LogE
       case 'game/start':
         add(null, 'بدأت المسابقة');
         break;
+      case 'question/kind':
+        add(null, e.kind === 'individual' ? 'سؤال فردي' : 'سؤال جماعي');
+        break;
       case 'numbers/show':
         add(null, 'عرض الأرقام');
         break;

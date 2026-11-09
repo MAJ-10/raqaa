@@ -49,7 +49,6 @@ describe('the result (criterion 15)', () => {
     expect(() => play.do({ type: 'day/end' })).toThrow(RuleError); // last day: extend or announce
     play.do({ type: 'days/extend', count: 2 });
     expect(play.state).toMatchObject({ day: 6, days: 7, step: 'question' });
-    expect(play.state.question.kind).toBe('group');
     play.question([]).endDay();
     expect(play.state.day).toBe(7);
     expect(populationHidden(play.state)).toBe(true);

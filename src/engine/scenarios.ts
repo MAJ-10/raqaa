@@ -1,7 +1,7 @@
 // Ready-made competitions stopped at interesting moments. Tests use them, and so can the screens later.
 import { initialState, reduce } from './reduce.ts';
 import { nextAuction } from './select.ts';
-import type { EventInput, GameEvent, GameState, PlotId, Setup, Team } from './types.ts';
+import type { EventInput, GameEvent, GameState, PlotId, QuestionKind, Setup, Team } from './types.ts';
 
 /** One move in a team's turn: a plot id builds there. */
 export type Move =
@@ -28,9 +28,10 @@ export class Play {
     return this;
   }
 
-  /** The day's question, through to the permits. */
-  question(permits: Team[]): this {
-    if (this.state.question.kind === 'individual') this.do({ type: 'numbers/show' });
+  /** The day's question, through to the permits. One permit is an individual question, more a group one. */
+  question(permits: Team[], kind: QuestionKind = permits.length > 1 ? 'group' : 'individual'): this {
+    this.do({ type: 'question/kind', kind });
+    if (kind === 'individual') this.do({ type: 'numbers/show' });
     return this.do({ type: 'question/show' }).do({ type: 'answer/show' }).do({ type: 'permits/set', teams: permits });
   }
 

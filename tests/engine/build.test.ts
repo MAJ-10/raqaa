@@ -145,22 +145,41 @@ describe('what the screens offer', () => {
 });
 
 describe('the question', () => {
-  it('individual on odd days with numbers first; group on even days without them', () => {
+  it('the referee chooses individual or group each day; individual shows the numbers first', () => {
     const play = new Play(sampleSetup()).do({ type: 'game/start' });
-    expect(play.state.question.kind).toBe('individual');
+    expect(play.state.question.kind).toBeNull();
+    expect(() => play.do({ type: 'question/show' })).toThrow(RuleError);
+    expect(() => play.do({ type: 'numbers/show' })).toThrow(RuleError);
+    play.do({ type: 'question/kind', kind: 'group' }).do({ type: 'question/kind', kind: 'individual' });
     expect(() => play.do({ type: 'question/show' })).toThrow(RuleError);
     play.do({ type: 'numbers/show' });
     expect(play.state.question.numbers).toEqual({ coral: 1, blue: 1, green: 1, gold: 1 });
+    expect(() => play.do({ type: 'question/kind', kind: 'group' })).toThrow(RuleError); // fixed once the numbers are out
     play.do({ type: 'question/show' }).do({ type: 'answer/show' }).do({ type: 'permits/set', teams: [] }).endDay();
-    expect(play.state.question.kind).toBe('group');
+    expect(play.state.question.kind).toBeNull();
+    play.do({ type: 'question/kind', kind: 'group' });
     expect(() => play.do({ type: 'numbers/show' })).toThrow(RuleError);
     play.do({ type: 'question/show' });
     expect(play.state.step).toBe('asking');
+    expect(() => play.do({ type: 'question/kind', kind: 'individual' })).toThrow(RuleError);
   });
 
-  it('the referee can ask a question of their own, with the timer, even when the file has run out', () => {
+  it('an individual question gives one permit, a group question one to every right answer', () => {
+    const individual = new Play(sampleSetup()).do({ type: 'game/start' }).do({ type: 'question/kind', kind: 'individual' });
+    individual.do({ type: 'numbers/show' }).do({ type: 'question/show' }).do({ type: 'answer/show' });
+    expect(() => individual.do({ type: 'permits/set', teams: ['coral', 'blue'] })).toThrow(RuleError);
+    individual.do({ type: 'permits/set', teams: ['blue'] });
+    expect(individual.state.permits).toEqual(['blue']);
+
+    const group = new Play(sampleSetup()).do({ type: 'game/start' }).question(['coral', 'blue', 'gold'], 'group');
+    expect(group.state.permits).toEqual(['coral', 'blue', 'gold']);
+  });
+
+  it('once the file runs out, the referee asks a question of their own, with the timer', () => {
     const setup = { ...sampleSetup(), questions: [] };
-    const play = new Play(setup).do({ type: 'game/start' }).do({ type: 'numbers/show' });
+    const play = new Play(setup).do({ type: 'game/start' }).do({ type: 'question/kind', kind: 'individual' });
+    expect(() => play.do({ type: 'question/outside' })).toThrow(RuleError); // the numbers first
+    play.do({ type: 'numbers/show' });
     expect(() => play.do({ type: 'question/show' })).toThrow(RuleError);
     play.do({ type: 'question/outside' });
     expect(play.state).toMatchObject({ step: 'asking', question: { outside: true } });
@@ -170,8 +189,13 @@ describe('the question', () => {
     expect(play.state.step).toBe('build');
   });
 
+  it('while the file has a question, there is no question from outside', () => {
+    const play = new Play(sampleSetup()).do({ type: 'game/start' }).do({ type: 'question/kind', kind: 'group' });
+    expect(() => play.do({ type: 'question/outside' })).toThrow(RuleError);
+  });
+
   it('a reopened referee window restarts a running timer from the full time', () => {
-    const play = new Play(sampleSetup()).do({ type: 'game/start' }).do({ type: 'numbers/show' }).do({ type: 'question/show' });
+    const play = asking();
     const started = play.state.timer!.startedAt;
     play.do({ type: 'timer/restart' });
     expect(play.state.timer!.startedAt).toBeGreaterThan(started);
@@ -180,14 +204,17 @@ describe('the question', () => {
   });
 
   it('the timer running out shows the answer', () => {
-    const play = new Play(sampleSetup()).do({ type: 'game/start' }).do({ type: 'numbers/show' }).do({ type: 'question/show' });
+    const play = asking();
     expect(play.state.timer?.kind).toBe('question');
     play.do({ type: 'timer/end' });
     expect(play.state).toMatchObject({ step: 'answer', timer: null });
   });
 
   it('replace brings the next question with the same numbers, and questions never come back', () => {
-    const play = new Play(sampleSetup()).do({ type: 'game/start' }).do({ type: 'numbers/show' });
+    const play = new Play(sampleSetup())
+      .do({ type: 'game/start' })
+      .do({ type: 'question/kind', kind: 'individual' })
+      .do({ type: 'numbers/show' });
     const numbers = play.state.question.numbers;
     expect(currentQuestion(play.state)?.text).toBe('كم عدد أيام الأسبوع؟');
     play.do({ type: 'question/replace' });
@@ -197,3 +224,12 @@ describe('the question', () => {
     expect(currentQuestion(play.state)?.text).toBe('كم ضلعاً للمثلث؟');
   });
 });
+
+/** Day 1, an individual question on screen with its timer running. */
+function asking(): Play {
+  return new Play(sampleSetup())
+    .do({ type: 'game/start' })
+    .do({ type: 'question/kind', kind: 'individual' })
+    .do({ type: 'numbers/show' })
+    .do({ type: 'question/show' });
+}

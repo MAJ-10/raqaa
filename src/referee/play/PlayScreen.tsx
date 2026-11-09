@@ -14,7 +14,7 @@ import { AnnouncePanel, DayEndPanel } from './EndPanels.tsx';
 import { FlatMap } from './FlatMap.tsx';
 import { logEntries, todaysEvents } from './log.ts';
 import './play.css';
-import { PermitsPanel, QuestionCard, QuestionPanel } from './QuestionPanels.tsx';
+import { RequestPanels } from './QuestionPanels.tsx';
 import { TeamBar } from './TeamBar.tsx';
 import { useTimerEnd } from './use-timer-end.ts';
 
@@ -51,15 +51,20 @@ export function PlayScreen({ store, state, events }: Props) {
   );
   useTimerEnd(state, act);
 
+  // «إنهاء المسابقة» works at the end of a day; before the last day it asks first.
+  const endGame = () => {
+    if (state.day < state.days && !window.confirm('باقي أيام في المسابقة. تنهيها الحين وتنتقل للإعلان؟')) return;
+    act({ type: 'game/end' });
+  };
+
   const { choices, chooser, onPick } = mapChoices(state, bridge, picked, setPicked, act);
 
   const panel = (() => {
     switch (state.step) {
       case 'question':
       case 'asking':
-        return <QuestionPanel state={state} act={act} />;
       case 'answer':
-        return <PermitsPanel state={state} act={act} />;
+        return <RequestPanels state={state} act={act} />;
       case 'build':
         return <BuildPanel state={state} act={act} bridge={bridge} setBridge={setBridge} planPicked={picked} />;
       case 'auctions':
@@ -90,6 +95,11 @@ export function PlayScreen({ store, state, events }: Props) {
           </nav>
         ) : null}
         <div className="top-bar-actions">
+          {state.step !== 'announce' ? (
+            <Button icon="flag" disabled={state.step !== 'dayEnd'} onClick={endGame}>
+              إنهاء المسابقة
+            </Button>
+          ) : null}
           <Button icon="tv" aria-label="فتح شاشة العرض" onClick={openDisplayWindow} />
           <Button icon="log" aria-pressed={logOpen} onClick={() => setLogOpen(!logOpen)}>
             السجل
@@ -101,10 +111,7 @@ export function PlayScreen({ store, state, events }: Props) {
       </header>
 
       <main className="play-body">
-        <aside className="play-side">
-          {state.step === 'question' || state.step === 'asking' || state.step === 'answer' ? <QuestionCard state={state} /> : null}
-          {panel}
-        </aside>
+        <aside className="play-side">{panel}</aside>
         <section className="play-board">
           <TeamBar state={state} act={act} />
           <FlatMap state={state} choices={choices} chooser={chooser} picked={new Set(picked)} onPick={onPick} />

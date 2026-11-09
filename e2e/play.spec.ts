@@ -7,36 +7,45 @@ const heading = (page: import('@playwright/test').Page, name: string) => page.ge
 const button = (page: import('@playwright/test').Page, name: string | RegExp) => page.getByRole('button', { name });
 
 test.describe('play', () => {
-  test('a whole day: question, permits, building, day end, undo', async ({ page }) => {
+  test('a whole day: an individual question, one permit, building, day end, undo', async ({ page }) => {
     await createRoom(page, '/');
     await fillSetup(page);
     const display = await openDisplay(page);
     await button(page, 'ابدأ').click();
+    const plain = display.getByTestId('display-plain');
 
+    // The referee chooses the kind first; «إنهاء المسابقة» waits for the end of the day.
+    await expect(button(page, 'إنهاء المسابقة')).toBeDisabled();
+    await expect(button(page, 'عرض السؤال')).toBeDisabled();
+    await expect(button(page, 'سؤال من خارج الملف')).toHaveCount(0);
+    await page.getByRole('radio', { name: 'فردي' }).click();
     await button(page, 'عرض الأرقام').click();
     await expect(page.locator('.numbers-grid')).toContainText('رقم ١');
-    await expect(display.getByTestId('display-plain')).not.toContainText('أضلاع');
+    await expect(page.getByRole('radio', { name: 'جماعي' })).toBeDisabled();
+    await expect(plain).not.toContainText('أضلاع');
     await button(page, 'عرض السؤال').click();
-    await expect(display.getByTestId('display-plain')).toContainText('كم عدد أضلاع الشكل السداسي؟');
-    await expect(display.getByTestId('display-plain')).not.toContainText('٦');
-    await button(page, 'عرض الإجابة').click();
-    await expect(display.getByTestId('display-plain')).toContainText('٦');
+    await expect(plain).toContainText('كم عدد أضلاع الشكل السداسي؟');
+    await expect(plain).not.toContainText('٦');
 
-    await page.locator('.permit-grid').getByRole('button', { name: 'الرواد' }).click();
-    await page.locator('.permit-grid').getByRole('button', { name: 'النجوم' }).click();
+    // One permit: pressing a second team moves it there. Confirmed once the answer is out.
+    const permits = page.locator('.permit-grid');
+    await permits.getByRole('button', { name: 'الرواد' }).click();
+    await permits.getByRole('button', { name: 'النجوم' }).click();
+    await expect(permits.getByRole('button', { name: 'الرواد' })).toHaveAttribute('aria-pressed', 'false');
+    await expect(button(page, 'تأكيد التصاريح')).toBeDisabled();
+    await button(page, 'عرض الإجابة').click();
+    await expect(plain).toContainText('٦');
     await button(page, 'تأكيد التصاريح').click();
 
-    // Coral moves first (day 1 order), then blue: each presses one of its dashed plots.
-    await expect(page.locator('.build-row[data-status="turn"]')).toContainText('الرواد');
-    await page.locator('.plot[data-choice]').first().click();
     await expect(page.locator('.build-row[data-status="turn"]')).toContainText('النجوم');
     await page.locator('.plot[data-choice]').first().click();
 
     await expect(heading(page, 'نهاية اليوم ١')).toBeVisible();
-    await expect(page.getByText('مبنيان جديدان')).toBeVisible();
+    await expect(page.locator('.summary-line').first()).toHaveText('مبنى جديد');
+    await expect(button(page, 'إنهاء المسابقة')).toBeEnabled();
     await button(page, 'اليوم الجاي').click();
     await expect(heading(page, 'اليوم ٢ من ١٢')).toBeVisible();
-    await expect(page.locator('.chip', { hasText: 'جماعي' })).toBeVisible();
+    await expect(page.getByRole('radio', { name: 'فردي' })).toHaveAttribute('aria-checked', 'false');
 
     await button(page, 'تراجع').click();
     await expect(heading(page, 'نهاية اليوم ١')).toBeVisible();
@@ -44,24 +53,55 @@ test.describe('play', () => {
     await expect(page.locator('.log-list li').first()).toContainText('النجوم بنى');
   });
 
-  test('the timer runs out by itself and the answer shows', async ({ page }) => {
-    await page.clock.install();
-    const fresh = new Play(sampleSetup()).do({ type: 'game/start' }).do({ type: 'numbers/show' });
+  test('a group question gives a permit to every right answer', async ({ page }) => {
+    const fresh = new Play(sampleSetup()).do({ type: 'game/start' });
     await seedGame(page, '/', fresh.state.setup, fresh.events);
+    await page.getByRole('radio', { name: 'جماعي' }).click();
+    await expect(button(page, 'عرض الأرقام')).toHaveCount(0);
     await button(page, 'عرض السؤال').click();
-    await page.clock.fastForward(46_000);
-    await expect(heading(page, 'التصاريح')).toBeVisible();
+    await button(page, 'عرض الإجابة').click();
+    const permits = page.locator('.permit-grid');
+    await permits.getByRole('button', { name: 'الرواد' }).click();
+    await permits.getByRole('button', { name: 'النجوم' }).click();
+    await button(page, 'تأكيد التصاريح').click();
+    await expect(page.locator('.build-row', { hasText: 'بدون تصريح' })).toHaveCount(2);
   });
 
-  test('a question from outside the file', async ({ page }) => {
-    const fresh = new Play(sampleSetup()).do({ type: 'game/start' }).do({ type: 'numbers/show' });
+  test('the timer runs out by itself and the answer shows', async ({ page }) => {
+    await page.clock.install();
+    const fresh = new Play(sampleSetup())
+      .do({ type: 'game/start' })
+      .do({ type: 'question/kind', kind: 'individual' })
+      .do({ type: 'numbers/show' });
+    await seedGame(page, '/', fresh.state.setup, fresh.events);
+    await button(page, 'عرض السؤال').click();
+    await expect(button(page, 'تأكيد التصاريح')).toBeDisabled();
+    await page.clock.fastForward(46_000);
+    await expect(button(page, 'تأكيد التصاريح')).toBeEnabled();
+  });
+
+  test('once the file runs out, a question from outside it', async ({ page }) => {
+    const fresh = new Play({ ...sampleSetup(), questions: [] }).do({ type: 'game/start' });
     await seedGame(page, '/', fresh.state.setup, fresh.events);
     const display = await openDisplay(page);
+    await expect(page.locator('.question-text')).toHaveText('خلصت أسئلة الملف');
+    await expect(button(page, 'سؤال من خارج الملف')).toBeDisabled(); // the kind first
+    await page.getByRole('radio', { name: 'جماعي' }).click();
     await button(page, 'سؤال من خارج الملف').click();
     await expect(page.locator('.question-text')).toHaveText('سؤال من خارج الملف');
     await expect(display.getByTestId('display-plain')).toContainText('سؤال من الحكم');
     await button(page, 'عرض الإجابة').click();
-    await expect(heading(page, 'التصاريح')).toBeVisible();
+    await expect(button(page, 'تأكيد التصاريح')).toBeEnabled();
+  });
+
+  test('ending before the last day asks first, then goes to the announcement', async ({ page }) => {
+    const day = new Play(sampleSetup()).do({ type: 'game/start' }).question(['coral']).build({ coral: ['1-2'] });
+    await seedGame(page, '/', day.state.setup, day.events);
+    await expect(heading(page, 'نهاية اليوم ١')).toBeVisible();
+    page.once('dialog', (dialog) => dialog.accept());
+    await button(page, 'إنهاء المسابقة').click();
+    await expect(page.locator('.announce-title')).toHaveText('سكان الخريطة');
+    await expect(button(page, 'إنهاء المسابقة')).toHaveCount(0);
   });
 
   test('the fence cancels an auction at once', async ({ page }) => {
@@ -113,7 +153,10 @@ test.describe('play', () => {
   });
 
   test('reopening the referee window restarts a running timer', async ({ page }) => {
-    const asking = new Play(sampleSetup()).do({ type: 'game/start' }).do({ type: 'numbers/show' }).do({ type: 'question/show' });
+    const asking = new Play(sampleSetup())
+      .do({ type: 'game/start' })
+      .do({ type: 'question/kind', kind: 'group' })
+      .do({ type: 'question/show' });
     await seedGame(page, '/', asking.state.setup, asking.events);
     await button(page, 'السجل').click();
     await expect(page.locator('.log-list li').first()).toContainText('بدأ المؤقت من أوله');

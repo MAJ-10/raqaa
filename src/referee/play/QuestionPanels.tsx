@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { currentQuestion, questionsLeft } from '../../engine/select.ts';
-import { TEAMS, type EventInput, type GameState, type Team } from '../../engine/types.ts';
+import { TEAMS, type EventInput, type GameState, type QuestionKind, type Team } from '../../engine/types.ts';
 import { Button } from '../../ui/Button.tsx';
+import { Segmented } from '../../ui/fields.tsx';
 import { countOf, QUESTION_NOUN } from '../../ui/names.ts';
 import { formatNumber, toArabicDigits } from '../../ui/number.ts';
 import { TeamBadge, TeamSymbol } from '../../ui/TeamBadge.tsx';
@@ -9,41 +10,37 @@ import { Timer } from '../../ui/Timer.tsx';
 
 type Props = { state: GameState; act: (event: EventInput) => void };
 
-/** The question and its answer, for the referee only, above the panel. */
-export function QuestionCard({ state }: { state: GameState }) {
-  const question = currentQuestion(state);
+const KINDS: { value: QuestionKind; label: string }[] = [
+  { value: 'individual', label: 'فردي' },
+  { value: 'group', label: 'جماعي' },
+];
+
+/** R03–R05: the build request, the question and the permits, one card under the other. */
+export function RequestPanels(props: Props) {
   return (
-    <section className="card question-card">
-      {question ? (
-        <>
-          <p className="question-text">{toArabicDigits(question.text)}</p>
-          <p className="question-answer">
-            <span>الإجابة</span>
-            <strong>{toArabicDigits(question.answer)}</strong>
-          </p>
-        </>
-      ) : (
-        <p className="question-text">{state.question.outside ? 'سؤال من خارج الملف' : 'خلصت أسئلة الملف'}</p>
-      )}
-    </section>
+    <>
+      <RequestCard {...props} />
+      <QuestionCard {...props} />
+      <PermitsCard {...props} />
+    </>
   );
 }
 
-/** R03–R04: numbers, then the question with its timer, then the answer. */
-export function QuestionPanel({ state, act }: Props) {
+/** The referee chooses individual or group; an individual question shows each team's player number first. */
+function RequestCard({ state, act }: Props) {
   const { question, step } = state;
-  const left = questionsLeft(state);
-  const needNumbers = question.kind === 'individual' && !question.numbers;
-  const fromFile = currentQuestion(state) !== null;
-
   return (
     <section className="card panel">
       <header className="panel-head">
         <h2>طلب البناء</h2>
-        <span className="chip">{question.kind === 'individual' ? 'فردي' : 'جماعي'}</span>
-        {state.timer ? <Timer startedAt={state.timer.startedAt} /> : null}
+        <Segmented
+          label="نوع السؤال"
+          options={KINDS}
+          value={question.kind}
+          disabled={step !== 'question' || question.numbers !== null}
+          onChange={(kind) => act({ type: 'question/kind', kind })}
+        />
       </header>
-      {left <= 5 ? <p className="panel-warning">باقي في الملف {countOf(left, QUESTION_NOUN)}</p> : null}
       {question.numbers ? (
         <div className="numbers-grid">
           {TEAMS.map((team) => (
@@ -53,48 +50,78 @@ export function QuestionPanel({ state, act }: Props) {
             </span>
           ))}
         </div>
-      ) : null}
-      <footer className="panel-actions">
-        {step === 'question' && needNumbers ? (
+      ) : question.kind === 'individual' ? (
+        <footer className="panel-actions">
           <Button variant="primary" onClick={() => act({ type: 'numbers/show' })}>
             عرض الأرقام
           </Button>
-        ) : null}
-        {step === 'question' && !needNumbers ? (
-          <>
-            {fromFile ? (
-              <Button variant="primary" onClick={() => act({ type: 'question/show' })}>
-                عرض السؤال
-              </Button>
-            ) : null}
-            <Button onClick={() => act({ type: 'question/outside' })}>سؤال من خارج الملف</Button>
-          </>
-        ) : null}
-        {step === 'asking' ? (
-          <Button variant="primary" onClick={() => act({ type: 'answer/show' })}>
-            عرض الإجابة
-          </Button>
-        ) : null}
-        {(step === 'question' || step === 'asking') && left > 0 ? (
-          <Button icon="swap" onClick={() => act({ type: 'question/replace' })}>
-            تبديل
-          </Button>
-        ) : null}
-      </footer>
+        </footer>
+      ) : null}
     </section>
   );
 }
 
-/** R05: the referee marks the teams that answered right. */
-export function PermitsPanel({ state, act }: Props) {
-  const [right, setRight] = useState<Set<Team>>(new Set());
+/** The question and its answer, for the referee only, then on screen when the referee shows it. */
+function QuestionCard({ state, act }: Props) {
+  const { question, step } = state;
+  const shown = currentQuestion(state);
+  const left = questionsLeft(state);
+  const fromFile = question.index !== null;
+  const ready = question.kind === 'group' || question.numbers !== null;
+
+  return (
+    <section className="card panel question-card">
+      <div className="question-top">
+        <p className="question-text">
+          {shown ? toArabicDigits(shown.text) : question.outside ? 'سؤال من خارج الملف' : 'خلصت أسئلة الملف'}
+        </p>
+        {state.timer ? <Timer startedAt={state.timer.startedAt} /> : null}
+      </div>
+      {shown ? (
+        <p className="question-answer">
+          <span>الإجابة</span>
+          <strong>{toArabicDigits(shown.answer)}</strong>
+        </p>
+      ) : null}
+      {fromFile && left <= 5 ? <p className="panel-warning">باقي في الملف {countOf(left, QUESTION_NOUN)}</p> : null}
+      {step === 'answer' ? null : (
+        <footer className="panel-actions">
+          {step === 'question' && fromFile ? (
+            <Button variant="primary" disabled={!ready} onClick={() => act({ type: 'question/show' })}>
+              عرض السؤال
+            </Button>
+          ) : null}
+          {step === 'question' && !fromFile ? (
+            <Button variant="primary" disabled={!ready} onClick={() => act({ type: 'question/outside' })}>
+              سؤال من خارج الملف
+            </Button>
+          ) : null}
+          {step === 'asking' ? (
+            <Button variant="primary" onClick={() => act({ type: 'answer/show' })}>
+              عرض الإجابة
+            </Button>
+          ) : null}
+          {fromFile && left > 0 ? (
+            <Button icon="swap" onClick={() => act({ type: 'question/replace' })}>
+              تبديل
+            </Button>
+          ) : null}
+        </footer>
+      )}
+    </section>
+  );
+}
+
+/**
+ * The referee marks the teams that answered right, from the moment the question is on screen. An
+ * individual question gives one permit, to the fastest right answer. Confirmed once the answer is shown.
+ */
+function PermitsCard({ state, act }: Props) {
+  const [right, setRight] = useState<Team[]>([]);
+  const single = state.question.kind === 'individual';
+  const marking = state.step === 'asking' || state.step === 'answer';
   const toggle = (team: Team) =>
-    setRight((now) => {
-      const next = new Set(now);
-      if (next.has(team)) next.delete(team);
-      else next.add(team);
-      return next;
-    });
+    setRight((now) => (now.includes(team) ? now.filter((t) => t !== team) : single ? [team] : [...now, team]));
 
   return (
     <section className="card panel">
@@ -108,7 +135,8 @@ export function PermitsPanel({ state, act }: Props) {
             type="button"
             className="permit"
             data-team={team}
-            aria-pressed={right.has(team)}
+            aria-pressed={right.includes(team)}
+            disabled={!marking}
             onClick={() => toggle(team)}
           >
             <TeamBadge team={team} name={state.setup.teams[team].name} size={30} />
@@ -116,7 +144,11 @@ export function PermitsPanel({ state, act }: Props) {
         ))}
       </div>
       <footer className="panel-actions">
-        <Button variant="primary" onClick={() => act({ type: 'permits/set', teams: [...right] })}>
+        <Button
+          variant="primary"
+          disabled={state.step !== 'answer'}
+          onClick={() => act({ type: 'permits/set', teams: right })}
+        >
           تأكيد التصاريح
         </Button>
       </footer>

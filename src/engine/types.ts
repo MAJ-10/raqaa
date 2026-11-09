@@ -29,6 +29,9 @@ export type ChallengeType = (typeof CHALLENGES)[number];
 
 export type Question = { text: string; answer: string };
 
+/** The referee chooses each day: individual (one player per team, one permit) or group. */
+export type QuestionKind = 'individual' | 'group';
+
 export type TeamSetup = { name: string; players: number; missions: Mission[] };
 
 /** Where the questions came from. Only a file today; a built-in bank may come later. */
@@ -56,6 +59,7 @@ export type ChallengeContent =
 /** Every event carries the time it happened, in milliseconds. */
 export type GameEvent = { at: number } & (
   | { type: 'game/start' }
+  | { type: 'question/kind'; kind: QuestionKind }
   | { type: 'numbers/show' }
   | { type: 'question/show' }
   | { type: 'question/replace' }
@@ -166,7 +170,8 @@ export type GameState = {
   /** Total days; grows with extensions. */
   days: number;
   question: {
-    kind: 'individual' | 'group';
+    /** Null until the referee chooses. */
+    kind: QuestionKind | null;
     /** Index into setup.questions, or null when the file ran out. */
     index: number | null;
     /** Player numbers for an individual question, once shown. */

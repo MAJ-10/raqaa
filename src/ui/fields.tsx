@@ -26,13 +26,15 @@ export function Stepper({ value, min, max, onChange, label }: StepperProps) {
 
 type SegmentedProps<T extends string | number> = {
   options: { value: T; label: string }[];
-  value: T;
+  /** Null while nothing is chosen yet. */
+  value: T | null;
   onChange: (value: T) => void;
   label: string;
+  disabled?: boolean;
 };
 
-/** A choice between a few options, one always selected. */
-export function Segmented<T extends string | number>({ options, value, onChange, label }: SegmentedProps<T>) {
+/** A choice between a few options. Choosing the one already chosen does nothing. */
+export function Segmented<T extends string | number>({ options, value, onChange, label, disabled }: SegmentedProps<T>) {
   return (
     <div className="segmented" role="radiogroup" aria-label={label}>
       {options.map((option) => (
@@ -41,7 +43,10 @@ export function Segmented<T extends string | number>({ options, value, onChange,
           type="button"
           role="radio"
           aria-checked={option.value === value}
-          onClick={() => onChange(option.value)}
+          disabled={disabled}
+          onClick={() => {
+            if (option.value !== value) onChange(option.value);
+          }}
         >
           {option.label}
         </button>
