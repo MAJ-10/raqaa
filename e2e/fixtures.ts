@@ -1,8 +1,9 @@
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { test as base, expect, type Page } from '@playwright/test';
-import type { Team } from '../src/engine/types.ts';
-import { TEAM_COLOUR } from '../src/ui/names.ts';
+import type { GameEvent, Setup, Team } from '../src/engine/types.ts';
+import { SCHEMA_VERSION } from '../src/state/persist.ts';
+import { TEAM_COLOUR } from '../src/ui/team-colour.ts';
 
 export { expect };
 
@@ -62,6 +63,18 @@ export const nameField = (page: Page, team: Team) => page.getByLabel(`اسم ا�
 
 /** The team names on the display. */
 export const displayTeams = (page: Page) => page.getByTestId('display-teams');
+
+/** Opens the referee window on a saved competition made of these events (as a ready-made scenario). */
+export async function seedGame(page: Page, home: string, setup: Setup, events: GameEvent[]): Promise<void> {
+  await page.goto(home);
+  await page.evaluate((game) => localStorage.setItem('raqaa.game', JSON.stringify(game)), {
+    schema: SCHEMA_VERSION,
+    savedAt: 0,
+    setup,
+    events,
+  });
+  await page.reload();
+}
 
 /** Opens the intro page and creates a new competition. */
 export async function createRoom(referee: Page, home: string): Promise<void> {

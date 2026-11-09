@@ -59,8 +59,10 @@ export type GameEvent = { at: number } & (
   | { type: 'numbers/show' }
   | { type: 'question/show' }
   | { type: 'question/replace' }
+  | { type: 'question/outside' }
   | { type: 'answer/show' }
   | { type: 'timer/end' }
+  | { type: 'timer/restart' }
   | { type: 'permits/set'; teams: Team[] }
   | { type: 'build'; team: Team; plot: PlotId; via?: 'bridge' }
   | { type: 'auction/declare'; team: Team; plot: PlotId }
@@ -81,6 +83,11 @@ export type GameEvent = { at: number } & (
   | { type: 'announce/next' }
 );
 
+
+type WithoutTime<E> = E extends unknown ? Omit<E, 'at'> : never;
+
+/** An event before it gets its time: the referee window stamps it when it happens. */
+export type EventInput = WithoutTime<GameEvent>;
 
 /** Where the day stands. */
 export type Step =
@@ -164,6 +171,8 @@ export type GameState = {
     index: number | null;
     /** Player numbers for an individual question, once shown. */
     numbers: Record<Team, number> | null;
+    /** The referee asks a question of their own instead of the file's. */
+    outside: boolean;
   };
   /** Next unused question. Shown or replaced questions never come back. */
   nextQuestion: number;

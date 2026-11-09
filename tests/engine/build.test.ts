@@ -158,6 +158,27 @@ describe('the question', () => {
     expect(play.state.step).toBe('asking');
   });
 
+  it('the referee can ask a question of their own, with the timer, even when the file has run out', () => {
+    const setup = { ...sampleSetup(), questions: [] };
+    const play = new Play(setup).do({ type: 'game/start' }).do({ type: 'numbers/show' });
+    expect(() => play.do({ type: 'question/show' })).toThrow(RuleError);
+    play.do({ type: 'question/outside' });
+    expect(play.state).toMatchObject({ step: 'asking', question: { outside: true } });
+    expect(play.state.timer?.kind).toBe('question');
+    expect(currentQuestion(play.state)).toBeNull();
+    play.do({ type: 'answer/show' }).do({ type: 'permits/set', teams: ['coral'] });
+    expect(play.state.step).toBe('build');
+  });
+
+  it('a reopened referee window restarts a running timer from the full time', () => {
+    const play = new Play(sampleSetup()).do({ type: 'game/start' }).do({ type: 'numbers/show' }).do({ type: 'question/show' });
+    const started = play.state.timer!.startedAt;
+    play.do({ type: 'timer/restart' });
+    expect(play.state.timer!.startedAt).toBeGreaterThan(started);
+    play.do({ type: 'answer/show' });
+    expect(() => play.do({ type: 'timer/restart' })).toThrow(RuleError);
+  });
+
   it('the timer running out shows the answer', () => {
     const play = new Play(sampleSetup()).do({ type: 'game/start' }).do({ type: 'numbers/show' }).do({ type: 'question/show' });
     expect(play.state.timer?.kind).toBe('question');

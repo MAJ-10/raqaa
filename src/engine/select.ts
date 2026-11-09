@@ -92,8 +92,10 @@ export function buildOrder(s: GameState): Team[] {
   );
 }
 
+/** The day's question from the file, or null when the referee asks their own or the file ran out. */
 export function currentQuestion(s: GameState): Question | null {
-  return s.question.index === null ? null : (s.setup.questions[s.question.index] ?? null);
+  if (s.question.outside || s.question.index === null) return null;
+  return s.setup.questions[s.question.index] ?? null;
 }
 
 export function questionsLeft(s: GameState): number {

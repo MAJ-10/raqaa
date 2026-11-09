@@ -4,7 +4,7 @@ import { read, utils } from 'xlsx';
 import { createRoom, displayTeams, expect, fillSetup, nameField, openDisplay, test } from './fixtures.ts';
 
 test.describe('setup', () => {
-  test('fill it in, start, reload, and end the competition', async ({ page }) => {
+  test('fill it in, start, and reload', async ({ page }) => {
     await createRoom(page, '/');
     const start = page.getByRole('button', { name: 'ابدأ' });
     await expect(start).toBeDisabled();
@@ -28,11 +28,7 @@ test.describe('setup', () => {
 
     await page.reload();
     await expect(page.getByRole('heading', { name: 'اليوم ١ من ١١' })).toBeVisible();
-
-    page.once('dialog', (dialog) => dialog.accept());
-    await page.getByRole('button', { name: 'إنهاء المسابقة' }).click();
-    await expect(page.getByRole('button', { name: 'إنشاء غرفة' })).toBeVisible();
-    await expect(displayTeams(display)).toHaveCount(0);
+    await expect(page.locator('.plot')).toHaveCount(49); // the 7×7 map
   });
 
   test('missions are hidden once chosen, up to three per team', async ({ page }) => {

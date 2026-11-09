@@ -61,7 +61,7 @@ export function initialState(setup: Setup): GameState {
     step: 'setup',
     day: 0,
     days: setup.days,
-    question: { kind: 'individual', index: null, numbers: null },
+    question: { kind: 'individual', index: null, numbers: null, outside: false },
     nextQuestion: 0,
     permits: [],
     order: [],
@@ -102,7 +102,7 @@ function startDay(s: GameState): void {
   s.day += 1;
   s.step = 'question';
   // Individual and group questions alternate, starting with individual on day 1.
-  s.question = { kind: s.day % 2 === 1 ? 'individual' : 'group', index: takeQuestion(s), numbers: null };
+  s.question = { kind: s.day % 2 === 1 ? 'individual' : 'group', index: takeQuestion(s), numbers: null, outside: false };
   s.permits = [];
   s.order = [];
   s.turn = null;
@@ -236,11 +236,21 @@ function apply(s: GameState, e: GameEvent): void {
       s.timer = { kind: 'question', startedAt: e.at };
       return;
 
+    case 'question/outside':
+      // The referee asks a question of their own; the timer runs as usual. The only way on once the file runs out.
+      rule(s.step === 'question', 'There is no question to ask now');
+      rule(s.question.kind === 'group' || s.question.numbers, 'Show the numbers first');
+      s.question.outside = true;
+      s.step = 'asking';
+      s.timer = { kind: 'question', startedAt: e.at };
+      return;
+
     case 'question/replace':
       // The next question takes its place, with the same kind and numbers.
       rule(s.step === 'question' || s.step === 'asking', 'There is no question to replace');
       rule(s.nextQuestion < s.setup.questions.length, 'No questions left to replace it with');
       s.question.index = takeQuestion(s);
+      s.question.outside = false;
       if (s.step === 'asking') s.timer = { kind: 'question', startedAt: e.at };
       return;
 
@@ -262,6 +272,16 @@ function apply(s: GameState, e: GameEvent): void {
       rule(challenge && !challenge.stopped && s.timer?.kind === 'challenge', 'No timer is running');
       challenge.stopped = true;
       s.timer = null;
+      return;
+    }
+
+    case 'timer/restart': {
+      // The referee window reopened while a timer ran: it starts again from the full time.
+      rule(s.timer, 'No timer is running');
+      s.timer.startedAt = e.at;
+      const auction = openAuction(s);
+      const challenge = auction && currentChallenge(auction);
+      if (s.timer.kind === 'challenge' && challenge) challenge.startedAt = e.at;
       return;
     }
 

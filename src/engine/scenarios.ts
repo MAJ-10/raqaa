@@ -1,10 +1,7 @@
 // Ready-made competitions stopped at interesting moments. Tests use them, and so can the screens later.
 import { initialState, reduce } from './reduce.ts';
 import { nextAuction } from './select.ts';
-import type { GameEvent, GameState, PlotId, Setup, Team } from './types.ts';
-
-type WithoutTime<E> = E extends unknown ? Omit<E, 'at'> : never;
-export type EventInput = WithoutTime<GameEvent>;
+import type { EventInput, GameEvent, GameState, PlotId, Setup, Team } from './types.ts';
 
 /** One move in a team's turn: a plot id builds there. */
 export type Move =
