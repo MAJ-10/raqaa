@@ -19,16 +19,18 @@ type Props = {
   picked?: PlotId[];
   /** The plot an auction is about, with its bidder: it stands out and the rest of the map steps back. */
   focus?: { plot: PlotId; bidder: Team } | null;
+  /** The numbers the display shows on the plots the team in turn can build on, for the leader to call out. */
+  numbers?: Map<PlotId, number>;
   onPick: (id: PlotId) => void;
 };
 
 /**
  * The flat map on the referee screen, on the ground plate of the identity. Empty plots show their value
- * by their shade; plots the team in turn can use have a dashed border in its colour, and every other plot
- * does nothing. Marks show bases, cards, plans (referee only), declared auctions, and plots built or taken
+ * by their shade; plots the team in turn can use have a dashed border in its colour (the ones it can build
+ * on carry the number the display shows, which its leader calls out), and every other plot does nothing. Marks show bases, cards, plans (referee only), declared auctions, and plots built or taken
  * today or yesterday. A plot a team gains settles into place, with its population in a bubble above it.
  */
-export function FlatMap({ state, choices, chooser, bridges, picked, focus, onPick }: Props) {
+export function FlatMap({ state, choices, chooser, bridges, picked, focus, numbers, onPick }: Props) {
   const board = getBoard(state.setup.size);
   const names = state.setup.teams;
   const declared = new Set(state.auctions.filter((a) => a.day === state.day).map((a) => a.plot));
@@ -78,6 +80,7 @@ export function FlatMap({ state, choices, chooser, bridges, picked, focus, onPic
           const fresh = plot.since !== null && plot.since >= state.day - 1;
           const focused = focus?.plot === id;
           const pickedAt = picked ? picked.indexOf(id) : -1;
+          const number = choices.has(id) ? numbers?.get(id) : undefined;
           // The tip: whose plot it is (or the card on it), then the population it is worth.
           const tip = centre
             ? 'برج الرقعة'
@@ -109,6 +112,7 @@ export function FlatMap({ state, choices, chooser, bridges, picked, focus, onPic
                   <Icon name="gavel" size={null} />
                 </span>
               ) : null}
+              {number ? <span className="plot-number">{formatNumber(number)}</span> : null}
               {pickedAt >= 0 ? (
                 <span className="plot-picked">
                   <Icon name="plan" size={null} />

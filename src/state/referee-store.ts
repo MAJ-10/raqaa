@@ -113,6 +113,7 @@ export class RefereeStore {
       seq: ++this.seq,
       state: this.view.state,
       last,
+      latest: this.view.events.at(-1) ?? null,
     };
     this.link.send({ type: 'snapshot', snapshot });
   }

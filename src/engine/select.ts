@@ -64,6 +64,11 @@ export function options(s: GameState, team: Team): Options {
   };
 }
 
+/** The team that plays now: the build is on and nothing waits to be settled first. */
+export function teamInTurn(s: GameState): Team | null {
+  return s.step === 'build' && !s.pending && s.turn ? s.turn : null;
+}
+
 function hasMove(s: GameState, team: Team, withBridge: boolean): boolean {
   return boardOf(s).ids.some(
     (id) => canBuild(s, team, id) || canAuction(s, team, id) || (withBridge && canBridge(s, team, id)),

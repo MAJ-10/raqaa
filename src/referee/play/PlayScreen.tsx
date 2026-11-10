@@ -10,6 +10,8 @@ import { formatNumber } from '../../ui/number.ts';
 import { TeamSymbol } from '../../ui/TeamBadge.tsx';
 import { Toolbar, TopBar } from '../../ui/TopBar.tsx';
 import { openDisplayWindow } from '../open-display.ts';
+import { ScreenNote } from '../ScreenNote.tsx';
+import { plotNumbers } from '../../ui/plot-numbers.ts';
 import { DayTrack } from './DayTrack.tsx';
 import { bannerFor } from './banner.ts';
 import { EventBanner } from './EventBanner.tsx';
@@ -91,6 +93,7 @@ export function PlayScreen({ store, state, events }: Props) {
           </>
         }
       >
+        <ScreenNote />
         <Toolbar>
           <Button variant="quiet" icon="tv" aria-label="فتح شاشة العرض" onClick={openDisplayWindow}>
             شاشة العرض
@@ -132,6 +135,7 @@ export function PlayScreen({ store, state, events }: Props) {
               bridges={bridges}
               picked={picked}
               focus={focus}
+              numbers={plotNumbers(state)}
               onPick={onPick}
             />
             <div className="corner-row">

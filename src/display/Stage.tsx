@@ -16,20 +16,24 @@ function enterFullscreen(): void {
 }
 
 /**
- * The display is drawn on a fixed 1280×720 stage, scaled to fit the screen, with the sky colour around it.
- * The first click on the display makes it fullscreen.
+ * The display is drawn on a fixed 1280×720 stage, scaled to fit the screen, with the sky's colour around
+ * it (the night's, in the announcement). The first click or key on the display makes it fullscreen.
  */
-export function Stage({ children }: { children: ReactNode }) {
+export function Stage({ night = false, children }: { night?: boolean; children: ReactNode }) {
   const [scale, setScale] = useState(() => stageScale(innerWidth, innerHeight));
 
   useEffect(() => {
     const update = () => setScale(stageScale(innerWidth, innerHeight));
     addEventListener('resize', update);
-    return () => removeEventListener('resize', update);
+    addEventListener('keydown', enterFullscreen);
+    return () => {
+      removeEventListener('resize', update);
+      removeEventListener('keydown', enterFullscreen);
+    };
   }, []);
 
   return (
-    <div className="stage-viewport" onPointerDown={enterFullscreen}>
+    <div className="stage-viewport" data-night={night || undefined} onPointerDown={enterFullscreen}>
       <div className="stage" data-testid="stage" style={{ transform: `translate(-50%, -50%) scale(${scale})` }}>
         {children}
       </div>

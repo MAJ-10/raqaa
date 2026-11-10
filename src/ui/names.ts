@@ -1,7 +1,7 @@
 // Arabic names shown on screen. Code uses the glossary names (team, plot, mission…).
 import cards from '../../assets/cards/cards.json';
 import type { Level } from '../engine/missions.ts';
-import type { Card, ChallengeType, Mission, PlotId, QuestionKind } from '../engine/types.ts';
+import type { Card, ChallengeType, MathOp, Mission, PlotId, QuestionKind } from '../engine/types.ts';
 import { formatNumber } from './number.ts';
 
 type Noun = { one: string; two: string; plural: string; accusative: string; genitive: string };
@@ -53,6 +53,19 @@ export const MISSION_NAMES: Record<Mission, string> = {
   neighbourOfAll: 'جار الجميع',
 };
 
+/** What each mission asks, as the requirements word it, with the changes in docs/decisions.md. */
+export const MISSION_TEXT: Record<Mission, string> = {
+  innerStreet: '٤ قطع متتالية في صف أو عمود، وكلها بعيدة عن حافة الخريطة',
+  block: '٤ قطع على شكل مربع ٢×٢، ما فيها البلدية',
+  collector: 'خذ بطاقتين من الخريطة',
+  everyRing: 'قطعة في الحلقة الأولى، وقطعة في الثانية، وقطعة في الخارجية',
+  twoTeams: 'خذ قطعة من حيين مختلفين، بمزاد أو بمخطط سري',
+  successfulBidder: 'اكسب مزادين وأنت المزايد',
+  tower: 'امتلك برج الرقعة',
+  heart: '٣ قطع من الحلقة الأولى',
+  neighbourOfAll: 'أرضك تلاصق أرض الأحياء الثلاثة',
+};
+
 export const LEVEL_NAMES: Record<Level, string> = { easy: 'سهلة', medium: 'متوسطة', hard: 'صعبة' };
 
 export const CARD_NAMES: Record<Card, string> = {
@@ -61,6 +74,15 @@ export const CARD_NAMES: Record<Card, string> = {
   bridge: cards.bridge.name,
   plan: cards.plan.name,
   inspector: cards.inspector.name,
+};
+
+/** A card's name inside a sentence, with the article: «كسب الرافعة». */
+export const CARD_THE: Record<Card, string> = {
+  fence: 'السياج',
+  crane: 'الرافعة',
+  bridge: 'الجسر',
+  plan: 'المخطط السري',
+  inspector: 'مفتش البلدية',
 };
 
 /** When each card is used. */
@@ -80,6 +102,9 @@ export const CHALLENGE_NAMES: Record<ChallengeType, string> = {
   precision: 'دقة',
   building: 'بناء',
 };
+
+/** The signs of the mental maths challenge, as people write them. */
+export const MATH_OPS: Record<MathOp, string> = { '+': '+', '-': '−', '*': '×', '/': '÷' };
 
 /** What each challenge is, in one line, for the referee who runs it. */
 export const CHALLENGE_HINTS: Record<ChallengeType, string> = {

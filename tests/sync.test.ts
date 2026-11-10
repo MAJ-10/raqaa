@@ -96,6 +96,8 @@ describe('window sync', () => {
     const screen = display();
     await vi.waitFor(() => expect(screen.latest()?.state?.day).toBe(1));
     expect(screen.latest()?.last).toBeNull();
+    // It still learns the last event in the log, which some of what it shows depends on.
+    expect(screen.latest()?.latest).toEqual(start);
   });
 
   it('tells the display when there is no competition', async () => {
@@ -116,6 +118,7 @@ describe('window sync', () => {
     store.undo();
     await vi.waitFor(() => expect(screen.latest()?.state?.step).toBe('setup'));
     expect(screen.latest()?.last).toBeNull();
+    expect(screen.latest()?.latest).toBeNull();
   });
 
   it('lets a display follow a referee window that reopens', async () => {
@@ -135,7 +138,7 @@ describe('window sync', () => {
 });
 
 describe('snapshot order', () => {
-  const snap = (session: string, seq: number): Snapshot<number, null> => ({ schema: 2, session, seq, state: seq, last: null });
+  const snap = (session: string, seq: number): Snapshot<number, null> => ({ schema: 2, session, seq, state: seq, last: null, latest: null });
 
   it('accepts the first snapshot, newer ones, and any from a new referee session', () => {
     expect(isNewer(snap('a', 1), null)).toBe(true);

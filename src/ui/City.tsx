@@ -1,3 +1,5 @@
+import type { CSSProperties } from 'react';
+
 // The identity's city: the skyline and the clouds behind the display's map (screen D01), in the
 // coordinates of its 1280-wide stage. The referee's map stands on the same city.
 
@@ -45,10 +47,10 @@ export function Skyline({ className }: { className?: string }) {
   );
 }
 
-/** One of the identity's clouds: four rounds on a rounded base. CSS gives it its width and place. */
-export function Cloud({ className }: { className?: string }) {
+/** One of the identity's clouds: four rounds on a rounded base. CSS (or a style) gives it its width and place. */
+export function Cloud({ className, style }: { className?: string; style?: CSSProperties }) {
   return (
-    <svg className={className} viewBox="-33 -27 89 46" aria-hidden="true" focusable="false">
+    <svg className={className} style={style} viewBox="-33 -27 89 46" aria-hidden="true" focusable="false">
       <g fill="var(--white)">
         <circle cx={0} cy={0} r={23} />
         <circle cx={22} cy={-8} r={19} />

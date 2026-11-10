@@ -2,11 +2,11 @@ import { useState, type ReactNode } from 'react';
 import { MEMORY_IMAGES, MEMORY_WORDS, ORDERING, SPELLING, sentenceWords, BANKS } from '../../content/index.ts';
 import { makeContent, newChallenge, type MadeContent } from '../../engine/content.ts';
 import { currentChallenge, nextAuction, openAuction, TIMER_SECONDS, timerSeconds, todaysAuctions, wins } from '../../engine/select.ts';
-import type { Auction, Challenge, ChallengeContent, EventInput, GameState, MathOp, Team } from '../../engine/types.ts';
+import type { Auction, Challenge, ChallengeContent, EventInput, GameState, Team } from '../../engine/types.ts';
 import { Button } from '../../ui/Button.tsx';
 import { Icon } from '../../ui/Icon.tsx';
 import { Stepper } from '../../ui/fields.tsx';
-import { CHALLENGE_HINTS, CHALLENGE_NAMES, plotName } from '../../ui/names.ts';
+import { CHALLENGE_HINTS, CHALLENGE_NAMES, MATH_OPS, plotName } from '../../ui/names.ts';
 import { formatNumber } from '../../ui/number.ts';
 import { TeamName, TeamSymbol } from '../../ui/TeamBadge.tsx';
 import { TeamTile, TeamTileButton } from '../../ui/TeamTile.tsx';
@@ -215,8 +215,6 @@ type SectionsProps = {
   clock: ReactNode;
 };
 
-const OPS: Record<MathOp, string> = { '+': '+', '-': '−', '*': '×', '/': '÷' };
-
 /**
  * The challenge as the referee runs it, in sections: its name and what it is; what the display shows,
  * with the clock; and the answer. Each type keeps only the sections it needs.
@@ -239,7 +237,7 @@ function ChallengeSections({ content, sides, state, recycled, clock }: SectionsP
           <li>{formatNumber(content.start)}</li>
           {content.steps.map((s, i) => (
             <li key={i}>
-              {OPS[s.op]} {formatNumber(s.n)}
+              {MATH_OPS[s.op]} {formatNumber(s.n)}
             </li>
           ))}
         </ol>,

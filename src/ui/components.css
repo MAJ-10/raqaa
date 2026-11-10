@@ -488,6 +488,27 @@
   margin-inline-start: auto;
 }
 
+/* A word in the bar when the TV mirrors the laptop instead of extending it, with a dot in the warning colour. */
+.screen-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: var(--fs-label);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.screen-note::before {
+  content: '';
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--warn);
+}
+
 /* Tools in one white group, split by hairlines; the one that is open stays framed in ink. */
 .toolbar {
   display: flex;

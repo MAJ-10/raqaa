@@ -19,6 +19,11 @@ export type Snapshot<State, Event> = {
   state: State;
   /** The event that made this snapshot, or null when nothing new happened (an answer to "hello", undo). */
   last: Event | null;
+  /**
+   * The last event in the log, whatever made this snapshot: what the screen shows can depend on it (the
+   * answer stays until the first move), so a display that reopens shows the same thing.
+   */
+  latest: Event | null;
 };
 
 export type SyncMessage<State, Event> =

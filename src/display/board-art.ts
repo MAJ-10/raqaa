@@ -1,0 +1,136 @@
+// What the display's iso map shows, worked out from the state: pure data for IsoMap to draw.
+import tokens from '../../assets/tokens.json';
+import { getBoard } from '../engine/board.ts';
+import { teamInTurn } from '../engine/select.ts';
+import type { Card, GameState, PlotId, Team } from '../engine/types.ts';
+import { iconSvg } from '../ui/icons.ts';
+import { plotNumbers } from '../ui/plot-numbers.ts';
+import {
+  box,
+  decal,
+  GAP,
+  MAP_STEP,
+  MAP_VIEW,
+  MARGIN,
+  path,
+  planOf,
+  PLATE_R,
+  PLATE_TH,
+  project,
+  R_TILE,
+  roundedPlan,
+  TH,
+  type BoxShape,
+  type Palette,
+  type View,
+} from './iso.ts';
+
+const teamPalette = (team: Team): Palette => {
+  const t = tokens.team[team];
+  return [t.main, t.side, t.side2];
+};
+
+/** A palette from the tokens: top, left face, right face. */
+export const tones = (colours: readonly string[]): Palette => [colours[0]!, colours[1]!, colours[2]!];
+
+/** An icon's drawing without its outer <svg>, to lay inside a transformed group. */
+export const iconInside = (name: string) => (iconSvg(name) ?? '').replace(/^<svg[^>]*>/, '').replace(/<\/svg>\s*$/, '');
+
+/** What one plot shows, and the height it should stand at. */
+export type PlotLook = {
+  id: PlotId;
+  /** Back to front: plots are drawn in this order. */
+  order: number;
+  /** Where the plot sits in plan. */
+  i: number;
+  j: number;
+  /** In plot units: a tile, or a building that rises with the plot's value. */
+  height: number;
+  palette: Palette;
+  symbol?: Team;
+  symbolSize: number;
+  /** A building of another team, sunk to the ground while a team plays: its symbol fades. */
+  faded?: boolean;
+  /** A secret plan that has struck here: shown on the roof from then on, in place of the symbol. */
+  plan?: boolean;
+  card?: Card;
+  /** A plot the team in turn can build on: raised to the building it would be, edged in the team's colour. */
+  open?: Team;
+  /** The number the leader of the team in turn calls out to build or bid there, as on the referee's map. */
+  number?: number;
+};
+
+/**
+ * Every plot, back to front, with what it shows. A building rises with its plot's value (a base counts
+ * as 1, the tower as 5); a plot no one has built lies flat, with its card on it; the tower is flat until
+ * a team takes it. While a team plays, the other teams' buildings sink to the ground, and the plots it can
+ * build on rise to the building they would be.
+ */
+export function boardLooks(state: GameState, night: boolean, step = MAP_STEP): PlotLook[] {
+  const board = getBoard(state.setup.size);
+  const n = board.size;
+  const pal = night ? tokens.map.night : tokens.map.day;
+  const focus = teamInTurn(state);
+  // The plots the team in turn can build on or bid for, with the numbers its leader calls out.
+  const open = plotNumbers(state);
+
+  const looks = board.ids.map((id): PlotLook => {
+    const info = board.plots[id]!;
+    const plot = state.plots[id]!;
+    const { i, j } = planOf(info.row, info.col, n);
+    const centre = id === board.centre;
+    const building = TH + (centre ? 5 : info.value) * step;
+    const at = { id, order: i + j, i, j, symbolSize: centre ? 0.42 : 0.4 };
+
+    if (plot.owner) {
+      const sunk = focus !== null && plot.owner !== focus;
+      return {
+        ...at,
+        height: sunk ? TH : building,
+        palette: teamPalette(plot.owner),
+        symbol: plot.owner,
+        faded: sunk || undefined,
+        plan: plot.planShown || undefined,
+        number: open.get(id),
+      };
+    }
+    const palette = tones(centre ? pal.tower : info.value >= 4 ? pal.v4 : info.value === 3 ? pal.v3 : pal.v2);
+    const card = plot.card ?? undefined;
+    if (focus && open.has(id)) return { ...at, height: building, palette, card, open: focus, number: open.get(id) };
+    return { ...at, height: TH, palette, card };
+  });
+  return looks.sort((a, b) => a.order - b.order);
+}
+
+export type PlotShape = {
+  shape: BoxShape;
+  /** Transforms that lay the team symbol, or the card, flat on the plot's top. */
+  symbol?: string;
+  card?: string;
+  /** The dashed edge on top of a plot the team in turn can build on. */
+  edge?: string;
+};
+
+/** A plot drawn at a height (which moves while the map changes): its box, and what lies on its top. */
+export function plotShape(look: PlotLook, height: number, s: number, n: number, view: View = MAP_VIEW): PlotShape {
+  const g = GAP / 2;
+  const [x0, y0, x1, y1] = [look.i + g, look.j + g, look.i + 1 - g, look.j + 1 - g];
+  const cx = look.i + 0.5;
+  const cy = look.j + 0.5;
+  const inset = 0.08;
+  return {
+    shape: box([x0, y0, x1, y1], 0, height, R_TILE, s, n, view),
+    symbol: look.symbol ? decal(cx, cy, height, look.symbolSize, s, n, view) : undefined,
+    card: look.card ? decal(cx, cy, height, 0.56, s, n, view) : undefined,
+    edge: look.open
+      ? path(
+          roundedPlan(x0 + inset, y0 + inset, x1 - inset, y1 - inset, R_TILE * 0.7).map(([a, b]) => project(a, b, height, s, n, view)),
+        )
+      : undefined,
+  };
+}
+
+/** The ground plate under the whole board. */
+export function plateShape(s: number, n: number, view: View = MAP_VIEW): BoxShape {
+  return box([-MARGIN, -MARGIN, n + MARGIN, n + MARGIN], -PLATE_TH, 0, PLATE_R, s, n, view);
+}

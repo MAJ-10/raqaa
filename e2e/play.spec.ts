@@ -16,7 +16,8 @@ test.describe('play', () => {
     await fillSetup(page);
     const display = await openDisplay(page);
     await button(page, 'ابدأ').click();
-    const plain = display.getByTestId('display-plain');
+    // The window over the game on the display: the numbers, then the question, then the answer.
+    const shown = display.locator('[data-window]');
 
     // The referee chooses the kind first, and only then sees the question; «إنهاء المسابقة» waits for
     // the end of the day.
@@ -34,17 +35,18 @@ test.describe('play', () => {
     // The kind is fixed once the numbers are out: the choice gives way to a label by the step's title.
     await expect(page.getByRole('radio', { name: 'جماعي' })).toHaveCount(0);
     await expect(page.locator('.track-step:nth-child(1) .track-summary')).toHaveText('فردي');
-    await expect(plain).not.toContainText('أضلاع');
+    await expect(shown).toHaveAttribute('data-window', 'numbers');
+    await expect(shown).not.toContainText('أضلاع');
     await button(page, 'عرض السؤال').click();
-    await expect(plain).toContainText('كم عدد أضلاع الشكل السداسي؟');
-    await expect(plain).not.toContainText('٦');
+    await expect(shown).toContainText('كم عدد أضلاع الشكل السداسي؟');
+    await expect(shown).not.toContainText('٦');
 
     // The permits wait, dimmed, for the answer. Then one permit: pressing a second team moves it there.
     const permits = page.locator('.permit-grid');
     await expect(permits.getByRole('button', { name: 'الرواد' })).toBeDisabled();
     await expect(button(page, 'تأكيد التصاريح')).toBeDisabled();
     await button(page, 'عرض الإجابة').click();
-    await expect(plain).toContainText('٦');
+    await expect(shown).toContainText('٦');
     await expect(page.locator('.question-answer')).toHaveText('الإجابة: ٦');
     await permits.getByRole('button', { name: 'الرواد' }).click();
     await permits.getByRole('button', { name: 'النجوم' }).click();
@@ -115,7 +117,7 @@ test.describe('play', () => {
     await expect(page.locator('.question-text')).toHaveText('انتهت أسئلة الملف');
     await button(page, 'سؤال من خارج الملف').click();
     await expect(page.locator('.question-text')).toHaveText('سؤال من خارج الملف');
-    await expect(display.getByTestId('display-plain')).toContainText('سؤال من الحكم');
+    await expect(display.locator('[data-window="question"]')).toContainText('سؤال من الحكم');
     await button(page, 'عرض الإجابة').click();
     await expect(button(page, 'تأكيد التصاريح')).toBeEnabled();
   });

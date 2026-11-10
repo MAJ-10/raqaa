@@ -11,6 +11,7 @@ import { TeamTile } from '../ui/TeamTile.tsx';
 import { Toolbar, TopBar } from '../ui/TopBar.tsx';
 import { MissionPicker } from './MissionPicker.tsx';
 import { openDisplayWindow } from './open-display.ts';
+import { ScreenNote } from './ScreenNote.tsx';
 import { QuestionsCard } from './QuestionsCard.tsx';
 import './setup.css';
 
@@ -48,6 +49,7 @@ export function SetupScreen({ store, setup }: { store: RefereeStore; setup: Setu
   return (
     <div className="setup">
       <TopBar title="إعداد المسابقة">
+        <ScreenNote />
         <Toolbar>
           <Button variant="quiet" icon="tv" aria-label="فتح شاشة العرض" onClick={openDisplayWindow}>
             شاشة العرض

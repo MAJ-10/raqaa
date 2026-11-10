@@ -371,6 +371,24 @@
   outline-style: solid;
 }
 
+/* The number the display shows on a plot the team can build on: its leader calls it out. */
+.plot-number {
+  position: absolute;
+  top: 6cqi;
+  inset-inline-start: 6cqi;
+  display: grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 5px;
+  border-radius: 11px;
+  background: var(--ink);
+  color: var(--white);
+  font-size: var(--fs-small);
+  font-weight: 900;
+  line-height: 1;
+}
+
 /* A plot picked for the plan: framed in ink, wearing the plan and its number. */
 .plot[data-choice][aria-pressed='true'] {
   outline: 4px solid var(--ink);
