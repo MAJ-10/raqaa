@@ -35,7 +35,7 @@ function seeded(seed: number): Random {
 
 const any = <T>(list: readonly T[], random: Random): T => list[Math.floor(random() * list.length)]!;
 
-/** What the referee screen offers now, apart from the inspector and ending early (picked less often). */
+/** What the referee screen offers now, apart from ending early (picked less often). */
 function offered(s: GameState, random: Random): EventInput[] {
   const list: EventInput[] = [];
   const q = s.question;
@@ -56,7 +56,8 @@ function offered(s: GameState, random: Random): EventInput[] {
       break;
     }
     case 'asking':
-      list.push({ type: 'answer/show' }, { type: 'timer/end' });
+      list.push({ type: 'answer/show' });
+      if (s.timer) list.push({ type: 'timer/end' }); // a group question; an individual one has no timer
       if (q.index !== null && questionsLeft(s) > 0) list.push({ type: 'question/replace' });
       break;
     case 'answer': {
@@ -68,6 +69,11 @@ function offered(s: GameState, random: Random): EventInput[] {
       const pending = s.pending;
       if (pending?.kind === 'fence') {
         list.push({ type: 'card/fence', auction: pending.auction }, { type: 'fence/skip', auction: pending.auction });
+      } else if (pending?.kind === 'inspector') {
+        // The inspector is used as soon as it is taken: the referee picks whose missions to show.
+        for (const target of TEAMS.filter((t) => t !== pending.team)) {
+          list.push({ type: 'card/inspector', team: pending.team, target });
+        }
       } else if (pending?.kind === 'plan') {
         const board = getBoard(s.setup.size);
         const own = board.ids.filter(
@@ -194,14 +200,6 @@ function playOne(setup: Setup, random: Random): Result {
     }
 
     let choices = offered(s, random);
-    // The inspector, from a team's inventory, as the team bar offers it.
-    const inspectors =
-      s.pending || s.step === 'setup' || s.step === 'announce'
-        ? []
-      : TEAMS.filter((team) => canUseCard(s, team, 'inspector')).flatMap((team) =>
-          TEAMS.filter((target) => target !== team).map((target): EventInput => ({ type: 'card/inspector', team, target })),
-        );
-    if (inspectors.length > 0 && random() < 0.1) choices = inspectors;
     if (s.step === 'dayEnd' && s.day < s.days && random() < 0.02) choices = [{ type: 'game/end' }];
 
     if (choices.length === 0) {

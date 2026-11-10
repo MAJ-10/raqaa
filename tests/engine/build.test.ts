@@ -2,7 +2,8 @@
 import { describe, expect, it } from 'vitest';
 import { RuleError } from '../../src/engine/reduce.ts';
 import { Play, sampleSetup } from '../../src/engine/scenarios.ts';
-import { buildOrder, canBridge, canBuild, currentQuestion, options, questionsLeft } from '../../src/engine/select.ts';
+import { buildOrder, canBridge, canBuild, currentQuestion, options, questionsLeft, timerSeconds } from '../../src/engine/select.ts';
+import type { QuestionKind } from '../../src/engine/types.ts';
 import { arrange, give, startWith } from './helpers.ts';
 
 describe('building (criterion 2)', () => {
@@ -175,15 +176,14 @@ describe('the question', () => {
     expect(group.state.permits).toEqual(['coral', 'blue', 'gold']);
   });
 
-  it('once the file runs out, the referee asks a question of their own, with the timer', () => {
+  it('once the file runs out, the referee asks a question of their own', () => {
     const setup = { ...sampleSetup(), questions: [] };
     const play = new Play(setup).do({ type: 'game/start' }).do({ type: 'question/kind', kind: 'individual' });
     expect(() => play.do({ type: 'question/outside' })).toThrow(RuleError); // the numbers first
     play.do({ type: 'numbers/show' });
     expect(() => play.do({ type: 'question/show' })).toThrow(RuleError);
     play.do({ type: 'question/outside' });
-    expect(play.state).toMatchObject({ step: 'asking', question: { outside: true } });
-    expect(play.state.timer?.kind).toBe('question');
+    expect(play.state).toMatchObject({ step: 'asking', question: { outside: true }, timer: null });
     expect(currentQuestion(play.state)).toBeNull();
     play.do({ type: 'answer/show' }).do({ type: 'permits/set', teams: ['coral'] });
     expect(play.state.step).toBe('build');
@@ -210,6 +210,18 @@ describe('the question', () => {
     expect(play.state).toMatchObject({ step: 'answer', timer: null });
   });
 
+  it('a group question has a 20-second timer; an individual question has none', () => {
+    expect(timerSeconds(asking().state)).toBe(20);
+    const individual = asking('individual');
+    expect(individual.state).toMatchObject({ step: 'asking', timer: null });
+    expect(timerSeconds(individual.state)).toBeNull();
+    expect(() => individual.do({ type: 'timer/end' })).toThrow(RuleError);
+    individual.do({ type: 'question/replace' });
+    expect(individual.state.timer).toBeNull();
+    individual.do({ type: 'answer/show' });
+    expect(individual.state.step).toBe('answer');
+  });
+
   it('replace brings the next question with the same numbers, and questions never come back', () => {
     const play = new Play(sampleSetup())
       .do({ type: 'game/start' })
@@ -225,11 +237,9 @@ describe('the question', () => {
   });
 });
 
-/** Day 1, an individual question on screen with its timer running. */
-function asking(): Play {
-  return new Play(sampleSetup())
-    .do({ type: 'game/start' })
-    .do({ type: 'question/kind', kind: 'individual' })
-    .do({ type: 'numbers/show' })
-    .do({ type: 'question/show' });
+/** Day 1, a question on screen: a group question with its timer running, or an individual one with no timer. */
+function asking(kind: QuestionKind = 'group'): Play {
+  const play = new Play(sampleSetup()).do({ type: 'game/start' }).do({ type: 'question/kind', kind });
+  if (kind === 'individual') play.do({ type: 'numbers/show' });
+  return play.do({ type: 'question/show' });
 }

@@ -39,7 +39,7 @@ describe('one card a day (criterion 8)', () => {
     play.state = give(play.state, 'coral', ['crane', 'bridge']);
     play.question(['coral']).do({ type: 'card/crane', team: 'coral' });
     expect(() => play.do({ type: 'build', team: 'coral', plot: '5-7', via: 'bridge' })).toThrow(RuleError);
-    play.build({ coral: ['5-6', '6-6'] }).endDay();
+    play.build({ coral: [{ build: '5-6', inspect: 'blue' }, '6-6'] }).endDay(); // the inspector on 5-6 is not the day’s card
     play.question(['coral']).build({ coral: [{ build: '7-5', bridge: true }] });
     expect(play.state.plots['7-5']?.owner).toBe('coral');
   });
@@ -63,13 +63,19 @@ describe('one card a day (criterion 8)', () => {
     expect(() => play.do({ type: 'card/crane', team: 'blue' })).toThrow(RuleError);
   });
 
-  it('the inspector can be used at any moment of the day, on another team', () => {
-    const play = startWith();
-    play.state = give(play.state, 'gold', ['inspector']);
+  it('the inspector is used as soon as it is taken, on another team, and is not the day’s card', () => {
+    const play = startWith({ gold: ['5-3'] });
+    play.state = give(play.state, 'gold', ['crane']);
+    play.question(['gold']).do({ type: 'build', team: 'gold', plot: '5-4' }); // the inspector on 5-4
+    expect(play.state.pending).toEqual({ kind: 'inspector', team: 'gold' });
+    expect(() => play.do({ type: 'card/crane', team: 'gold' })).toThrow(RuleError); // the inspector comes first
     expect(() => play.do({ type: 'card/inspector', team: 'gold', target: 'gold' })).toThrow(RuleError);
     play.do({ type: 'card/inspector', team: 'gold', target: 'coral' });
     expect(play.state.inspections).toEqual([{ team: 'gold', target: 'coral', day: 1 }]);
-    expect(play.state.teams.gold).toMatchObject({ cards: [], cardUsedToday: true });
+    expect(play.state.teams.gold).toMatchObject({ cards: ['crane'], cardsTaken: 1, cardUsedToday: false });
+    expect(play.state.pending).toBeNull();
+    play.do({ type: 'card/crane', team: 'gold' }); // still free to use the day's card
+    expect(() => play.do({ type: 'card/inspector', team: 'gold', target: 'blue' })).toThrow(RuleError); // used up
   });
 });
 

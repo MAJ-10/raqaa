@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react';
+import { timerSeconds } from '../../engine/select.ts';
 import type { EventInput, GameState } from '../../engine/types.ts';
-
-const TIMER_MS = 45_000;
 
 /**
  * When the question or challenge timer reaches zero, the referee window records timer/end once.
@@ -10,12 +9,13 @@ const TIMER_MS = 45_000;
  */
 export function useTimerEnd(state: GameState, act: (event: EventInput) => void): void {
   const startedAt = state.timer?.startedAt ?? null;
+  const length = (timerSeconds(state) ?? 0) * 1000;
   const live = useRef(new Set<number>());
   const fired = useRef(new Set<number>());
 
   useEffect(() => {
     if (startedAt === null) return;
-    const left = startedAt + TIMER_MS - Date.now();
+    const left = startedAt + length - Date.now();
     if (left > 0) live.current.add(startedAt);
     if (!live.current.has(startedAt)) return;
     const id = setTimeout(() => {
@@ -24,5 +24,5 @@ export function useTimerEnd(state: GameState, act: (event: EventInput) => void):
       act({ type: 'timer/end' });
     }, Math.max(0, left));
     return () => clearTimeout(id);
-  }, [startedAt, act]);
+  }, [startedAt, length, act]);
 }

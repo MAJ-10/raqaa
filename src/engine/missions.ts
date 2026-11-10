@@ -18,7 +18,7 @@ export const MISSION_LEVEL: Record<Mission, Level> = {
 };
 
 /** Points for success and for failure. */
-const REWARD: Record<Level, { done: number; failed: number }> = {
+export const MISSION_REWARD: Record<Level, { done: number; failed: number }> = {
   easy: { done: 4, failed: -2 },
   medium: { done: 8, failed: -4 },
   hard: { done: 12, failed: -6 },
@@ -79,7 +79,8 @@ export function missionResults(s: GameState, team: Team): MissionResult[] {
   return s.setup.teams[team].missions.map((mission) => {
     const level = MISSION_LEVEL[mission];
     const done = missionDone(s, team, mission);
-    return { mission, level, done, points: done ? REWARD[level].done : REWARD[level].failed };
+    const reward = MISSION_REWARD[level];
+    return { mission, level, done, points: done ? reward.done : reward.failed };
   });
 }
 

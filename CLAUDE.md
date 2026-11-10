@@ -53,10 +53,14 @@ Read these before any work. They are in Arabic.
   - Team names are set in setup and change between competitions, so never hard-code them.
 - **Turn on the display:** never show build-order numbers. The «دوره», «يبني» or «يزايد» arrow marks the active team. The referee screen keeps the order list.
 - **Colours:** use the tokens in `assets/tokens.css` and `assets/tokens.json`. Ask before adding a colour.
+  - Each colour has one meaning on the referee screen: ink is text, the frame and marker of the current step, a chosen option and the primary button's border; ground blue is a step done; a team's colour is that team only; red frames a confirmation. Buttons are white (the primary framed in ink), and a disabled button is plainly grey. No yellow in buttons or steps.
+- **Teams on screen:** show a team with the team tile (`src/ui/TeamTile.tsx`): its colour fills the start of the tile, holds its symbol and ends in a soft curve (a rounded top sweeping down to the bottom: not a full circle, not a wave); filled, the colour sweeps across the tile (the team is chosen, or it is its turn).
 - **Shapes**
   - Use fully rounded pills only for the population bubble and the referee's status. Other tags and chips get radius 6 to 8.
   - Cards that need emphasis use a white background with a coloured border, not a tinted fill.
-- **Text:** don't add captions or helper text unless they are strictly needed. Elements should explain themselves.
+- **Text:** don't add captions or helper text unless they are strictly needed. Elements should explain themselves. Write UI text in short, plain Modern Standard Arabic («اليوم التالي», not «اليوم الجاي»).
+- **Type on the referee screen:** the identity's control sizes only (22, 17, 16, 15 and 13, as `--fs-*` in `src/ui/base.css`), and three sizes at most in one area.
+- **Confirmations:** ask in the page (`src/ui/Confirm.tsx`), never with a browser dialog.
 - **Accessibility:** touch targets are at least 44px and the focus ring is 3px.
 - **Sizes**
   - The referee screen supports 1280×720 and up, and was designed at 1440×900.
@@ -95,7 +99,7 @@ Read these before any work. They are in Arabic.
 ```
 src/engine     rules, reducer, selectors (pure, tested); scenarios.ts has ready-made games
 src/state      events, persistence, window sync
-src/ui         shared components: TeamBadge, Sign, Timer, Board, Button
+src/ui         shared components: TeamTile, TeamBadge, TopBar, Sign, Timer, Board, Button, City, CardArt, MissionArt
 src/referee    referee screens (R01–R13)
 src/display    display stage and states (D01–D21)
 src/content    built-in banks (spelling, ordering, memory) as JSON + SVG

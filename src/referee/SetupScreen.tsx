@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import mark from '../../assets/brand/mark.svg';
+import { useRef, useState } from 'react';
 import { TEAMS, type Setup, type Team, type TeamSetup } from '../engine/types.ts';
 import type { RefereeStore } from '../state/referee-store.ts';
 import { isReady, LIMITS } from '../state/setup.ts';
@@ -8,7 +7,8 @@ import { Segmented, Stepper } from '../ui/fields.tsx';
 import { Icon } from '../ui/Icon.tsx';
 import { countOf, MISSION_NAMES, MISSION_NOUN, TEAM_COLOUR } from '../ui/names.ts';
 import { formatNumber } from '../ui/number.ts';
-import { TeamSymbol } from '../ui/TeamBadge.tsx';
+import { TeamTile } from '../ui/TeamTile.tsx';
+import { Toolbar, TopBar } from '../ui/TopBar.tsx';
 import { MissionPicker } from './MissionPicker.tsx';
 import { openDisplayWindow } from './open-display.ts';
 import { QuestionsCard } from './QuestionsCard.tsx';
@@ -18,6 +18,16 @@ import './setup.css';
 export function SetupScreen({ store, setup }: { store: RefereeStore; setup: Setup }) {
   const [picking, setPicking] = useState<Team | null>(null);
   const [shown, setShown] = useState<Set<Team>>(new Set());
+  const nameFields = useRef<Partial<Record<Team, HTMLInputElement | null>>>({});
+
+  /** Enter moves on to the next team's name, with the caret at its end; on the last name it closes the field. */
+  const nextName = (team: Team, field: HTMLInputElement) => {
+    const after = TEAMS[TEAMS.indexOf(team) + 1];
+    const next = after ? nameFields.current[after] : null;
+    if (!next) return field.blur();
+    next.focus();
+    next.setSelectionRange(next.value.length, next.value.length);
+  };
 
   // Changes build on the store's setup, not this render's copy: reading the questions file takes a moment,
   // and anything typed meanwhile must not be lost.
@@ -37,24 +47,21 @@ export function SetupScreen({ store, setup }: { store: RefereeStore; setup: Setu
 
   return (
     <div className="setup">
-      <header className="top-bar">
-        <h1 className="top-bar-title">
-          <img src={mark} alt="" />
-          إعداد المسابقة
-        </h1>
-        <div className="top-bar-actions">
-          <Button icon="tv" onClick={openDisplayWindow}>
-            فتح شاشة العرض
+      <TopBar title="إعداد المسابقة">
+        <Toolbar>
+          <Button variant="quiet" icon="tv" aria-label="فتح شاشة العرض" onClick={openDisplayWindow}>
+            شاشة العرض
           </Button>
-          <Button
-            variant="primary"
-            disabled={!isReady(setup)}
-            onClick={() => store.dispatch({ type: 'game/start', at: Date.now() })}
-          >
-            ابدأ
-          </Button>
-        </div>
-      </header>
+        </Toolbar>
+        <Button
+          variant="primary"
+          icon="play"
+          disabled={!isReady(setup)}
+          onClick={() => store.dispatch({ type: 'game/start', at: Date.now() })}
+        >
+          ابدأ
+        </Button>
+      </TopBar>
 
       <main className="setup-body">
         <section className="card setup-teams">
@@ -70,14 +77,28 @@ export function SetupScreen({ store, setup }: { store: RefereeStore; setup: Setu
               const t = setup.teams[team];
               const colour = TEAM_COLOUR[team];
               return (
-                <div className="setup-team-row" key={team}>
-                  <TeamSymbol team={team} size={44} />
+                <TeamTile
+                  key={team}
+                  team={team}
+                  height={64}
+                  className="setup-team"
+                  mark={<span className="setup-team-colour">{colour}</span>}
+                >
                   <input
+                    ref={(field) => {
+                      nameFields.current[team] = field;
+                    }}
                     className="text-input"
                     value={t.name}
                     maxLength={LIMITS.name}
+                    enterKeyHint={team === TEAMS[TEAMS.length - 1] ? 'done' : 'next'}
                     aria-label={`اسم الحي ${colour}`}
                     onChange={(e) => updateTeam(team, { name: e.target.value })}
+                    onKeyDown={(e) => {
+                      if (e.key !== 'Enter' || e.nativeEvent.isComposing) return;
+                      e.preventDefault();
+                      nextName(team, e.currentTarget);
+                    }}
                   />
                   <Stepper
                     label={`لاعبو الحي ${colour}`}
@@ -116,7 +137,7 @@ export function SetupScreen({ store, setup }: { store: RefereeStore; setup: Setu
                       المشاريع
                     </button>
                   </div>
-                </div>
+                </TeamTile>
               );
             })}
           </div>

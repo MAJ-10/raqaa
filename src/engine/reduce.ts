@@ -7,6 +7,7 @@ import {
   canAuction,
   canBridge,
   canBuild,
+  canChooseKind,
   canStillAct,
   canUseCard,
   currentChallenge,
@@ -151,12 +152,21 @@ function spendCard(s: GameState, team: Team, card: Card): void {
   t.cardUsedToday = true;
 }
 
-/** The first team to build on a card's plot takes the card. A plan is placed straight away. */
+/** An individual question has no timer: the fastest right answer takes the permit. A group question has one. */
+function questionTimer(s: GameState, at: number): GameState['timer'] {
+  return s.question.kind === 'group' ? { kind: 'question', startedAt: at } : null;
+}
+
+/**
+ * The first team to build on a card's plot takes the card. A plan is placed straight away, and the
+ * inspector is used straight away; the other cards go to the team's inventory.
+ */
 function takeCard(s: GameState, team: Team, id: PlotId): void {
   const plot = s.plots[id]!;
   if (!plot.card) return;
   s.teams[team].cardsTaken += 1;
   if (plot.card === 'plan') s.pending = { kind: 'plan', team };
+  else if (plot.card === 'inspector') s.pending = { kind: 'inspector', team };
   else s.teams[team].cards.push(plot.card);
   plot.card = null;
 }
@@ -219,7 +229,7 @@ function apply(s: GameState, e: GameEvent): void {
 
     case 'question/kind':
       // The referee chooses individual or group, until the numbers or the question are shown.
-      rule(s.step === 'question' && !s.question.numbers, 'The kind is chosen before the numbers and the question');
+      rule(canChooseKind(s), 'The kind is chosen before the numbers and the question');
       rule(e.kind === 'individual' || e.kind === 'group', 'Unknown question kind');
       s.question.kind = e.kind;
       return;
@@ -242,17 +252,17 @@ function apply(s: GameState, e: GameEvent): void {
       rule(s.question.index !== null, 'No questions left in the file');
       rule(questionReady(s), 'Choose the kind, and show the numbers first for an individual question');
       s.step = 'asking';
-      s.timer = { kind: 'question', startedAt: e.at };
+      s.timer = questionTimer(s, e.at);
       return;
 
     case 'question/outside':
-      // Once the file runs out, the referee asks a question of their own; the timer runs as usual.
+      // Once the file runs out, the referee asks a question of their own; a group question has its timer as usual.
       rule(s.step === 'question', 'There is no question to ask now');
       rule(s.question.index === null, 'The file still has a question for today');
       rule(questionReady(s), 'Choose the kind, and show the numbers first for an individual question');
       s.question.outside = true;
       s.step = 'asking';
-      s.timer = { kind: 'question', startedAt: e.at };
+      s.timer = questionTimer(s, e.at);
       return;
 
     case 'question/replace':
@@ -261,7 +271,7 @@ function apply(s: GameState, e: GameEvent): void {
       rule(s.nextQuestion < s.setup.questions.length, 'No questions left to replace it with');
       s.question.index = takeQuestion(s);
       s.question.outside = false;
-      if (s.step === 'asking') s.timer = { kind: 'question', startedAt: e.at };
+      if (s.step === 'asking') s.timer = questionTimer(s, e.at);
       return;
 
     case 'answer/show':
@@ -273,6 +283,7 @@ function apply(s: GameState, e: GameEvent): void {
     case 'timer/end': {
       // The question timer shows the answer; the challenge timer stops the challenge and shows its answer.
       if (s.step === 'asking') {
+        rule(s.timer?.kind === 'question', 'An individual question has no timer');
         s.step = 'answer';
         s.timer = null;
         return;
@@ -404,10 +415,12 @@ function apply(s: GameState, e: GameEvent): void {
     }
 
     case 'card/inspector':
-      rule(s.step !== 'setup' && s.step !== 'announce' && !s.pending, 'The inspector is used during the days');
+      // Used as soon as it is taken, like placing a plan, so it is not the day's card.
+      rule(s.pending?.kind === 'inspector' && s.pending.team === e.team, 'No inspector is waiting to be used');
       rule(e.team !== e.target && TEAMS.includes(e.target), 'The inspector looks at another team');
-      spendCard(s, e.team, 'inspector');
       s.inspections.push({ team: e.team, target: e.target, day: s.day });
+      s.pending = null;
+      settleTurn(s);
       return;
 
     case 'auction/open': {

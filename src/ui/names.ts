@@ -1,7 +1,7 @@
 // Arabic names shown on screen. Code uses the glossary names (team, plot, mission…).
 import cards from '../../assets/cards/cards.json';
 import type { Level } from '../engine/missions.ts';
-import type { Card, ChallengeType, Mission, PlotId } from '../engine/types.ts';
+import type { Card, ChallengeType, Mission, PlotId, QuestionKind } from '../engine/types.ts';
 import { formatNumber } from './number.ts';
 
 type Noun = { one: string; two: string; plural: string; accusative: string; genitive: string };
@@ -69,7 +69,7 @@ export const CARD_WHEN: Record<Card, string> = {
   crane: 'في الدور',
   bridge: 'في الدور',
   plan: 'عند الأخذ',
-  inspector: 'أي وقت',
+  inspector: 'عند الأخذ',
 };
 
 export const CHALLENGE_NAMES: Record<ChallengeType, string> = {
@@ -79,6 +79,16 @@ export const CHALLENGE_NAMES: Record<ChallengeType, string> = {
   ordering: 'ترتيب',
   precision: 'دقة',
   building: 'بناء',
+};
+
+/** What each challenge is, in one line, for the referee who runs it. */
+export const CHALLENGE_HINTS: Record<ChallengeType, string> = {
+  math: 'عدد ثم عمليات تظهر وحدة كل ٣ ثوانٍ. أول إجابة صحيحة تفوز.',
+  spelling: 'اقرأ الكلمة بصوتك، وأول كتابة صحيحة تفوز.',
+  memory: 'العناصر تظهر ٢٠ ثانية ثم تختفي، ويكتبون أسماءها على السبورة. الأكثر صحيحاً يفوز.',
+  ordering: 'كلمات جملة مبعثرة على الشاشة، وأول ترتيب صحيح يفوز.',
+  precision: 'لكل لاعب ٣ محاولات تصويب، والأكثر إصابات يفوز.',
+  building: 'كل طرف يبني برجاً في ٤٥ ثانية، والأطول يفوز.',
 };
 
 /** A plot as people read it: (row، column). */
@@ -94,6 +104,24 @@ export const MOVE_NOUN: Noun = {
   accusative: 'حركة',
   genitive: 'حركة',
 };
+
+export const BUILDING_NOUN: Noun = {
+  one: 'مبنى واحد',
+  two: 'مبنيان',
+  plural: 'مبانٍ',
+  accusative: 'مبنى',
+  genitive: 'مبنى',
+};
+
+export const AUCTION_NOUN: Noun = {
+  one: 'مزاد واحد',
+  two: 'مزادان',
+  plural: 'مزادات',
+  accusative: 'مزاداً',
+  genitive: 'مزاد',
+};
+
+export const KIND_NAMES: Record<QuestionKind, string> = { individual: 'فردي', group: 'جماعي' };
 
 export const DAY_NOUN: Noun = {
   one: 'يوم واحد',

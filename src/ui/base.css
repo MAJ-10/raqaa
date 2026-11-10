@@ -4,6 +4,17 @@
   box-sizing: border-box;
 }
 
+/* The referee's type scale, from the identity (control-*). One area uses three sizes at most. */
+:root {
+  --fs-title: 22px;
+  --fs-heading: 17px;
+  --fs-body: 16px;
+  --fs-label: 15px;
+  --fs-small: 13px;
+  scrollbar-color: var(--line-strong) transparent;
+  scrollbar-width: thin;
+}
+
 html,
 body,
 #root {
@@ -15,9 +26,15 @@ body {
   background: var(--sky);
   color: var(--ink);
   font-family: 'Alexandria', sans-serif;
+  font-size: var(--fs-body);
   font-weight: 400;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--ink);
+  color: var(--white);
 }
 
 button {
@@ -58,38 +75,105 @@ svg {
   height: 100%;
 }
 
+/*
+ * Buttons: one primary at a time, secondary with a line, quiet for tools. All are white: the primary is
+ * framed in ink, like the step in hand, and a button that can't be pressed yet is plainly grey.
+ */
 .button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  min-height: 44px;
-  padding: 12px 24px;
+  gap: 8px;
+  min-height: 46px;
+  padding: 0 18px;
   border: 1px solid var(--line-strong);
-  border-radius: var(--r-control);
+  border-radius: var(--r-tile);
   background: var(--white);
   color: var(--ink);
-  font-size: 20px;
+  font-size: var(--fs-label);
   font-weight: 600;
   line-height: 1.2;
+  white-space: nowrap;
   cursor: pointer;
+  transition:
+    background-color 150ms ease-out,
+    border-color 150ms ease-out,
+    color 150ms ease-out,
+    transform 100ms ease-out;
 }
 
 .button:hover:not(:disabled) {
   border-color: var(--ink);
 }
 
-.button-primary {
+.button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.button[aria-pressed='true'] {
   border-color: var(--ink);
-  background: var(--ink);
-  color: var(--white);
+  background: var(--sky);
+}
+
+/* The primary action: white, framed in ink. */
+.button-primary {
+  border: 2px solid var(--ink);
+  background: var(--white);
+  color: var(--ink);
 }
 
 .button-primary:hover:not(:disabled) {
-  background: var(--ink-soft);
+  background: var(--sky);
+}
+
+.button-quiet {
+  border-color: transparent;
+  background: transparent;
+  color: var(--ink-soft);
+}
+
+.button-quiet:hover:not(:disabled) {
+  border-color: transparent;
+  background: var(--sky);
+  color: var(--ink);
+}
+
+.button-quiet[aria-pressed='true'] {
+  border-color: transparent;
+  background: var(--sky);
+  color: var(--ink);
 }
 
 .button:disabled {
-  opacity: 0.45;
+  border-color: transparent;
+  background: var(--line);
+  color: var(--ink-soft);
   cursor: default;
+}
+
+.button-quiet:disabled {
+  background: transparent;
+  opacity: 0.4;
+}
+
+/* A small action in words, for things that matter less than the buttons around them. */
+.text-button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  color: var(--ink-soft);
+  font-size: var(--fs-small);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+
+.text-button:hover {
+  color: var(--ink);
+  text-decoration-color: var(--ink);
 }

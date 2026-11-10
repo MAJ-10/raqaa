@@ -62,8 +62,9 @@ describe('the fence (criterion 9)', () => {
 
   it('is not offered to a defender who used a card today', () => {
     const play = startWith({ coral: ['4-4'], blue: ['4-5'] });
-    play.state = give(play.state, 'blue', ['fence', 'inspector']);
-    play.question(['coral']).do({ type: 'card/inspector', team: 'blue', target: 'gold' });
+    play.state = give(play.state, 'blue', ['fence']);
+    play.question(['coral']);
+    play.state.teams.blue.cardUsedToday = true; // as after a crane in its turn earlier today
     play.do({ type: 'auction/declare', team: 'coral', plot: '4-5' });
     expect(play.state.pending).toBeNull();
   });

@@ -39,7 +39,7 @@ export function logEntries(events: readonly GameEvent[], state: GameState): LogE
         add(null, 'انتهى المؤقت');
         break;
       case 'timer/restart':
-        add(null, 'بدأ المؤقت من أوله');
+        add(null, 'بدأ المؤقت من جديد');
         break;
       case 'permits/set':
         add(null, e.teams.length > 0 ? `التصاريح: ${e.teams.map(name).join('، ')}` : 'بدون تصاريح');
@@ -54,7 +54,7 @@ export function logEntries(events: readonly GameEvent[], state: GameState): LogE
         if (auction) add(auction.defender, `${name(auction.defender)} استخدم ${CARD_NAMES.fence}`);
         break;
       case 'fence/skip':
-        if (auction) add(auction.defender, `${name(auction.defender)} ما استخدم ${CARD_NAMES.fence}`);
+        if (auction) add(auction.defender, `${name(auction.defender)} لم يستخدم ${CARD_NAMES.fence}`);
         break;
       case 'card/crane':
         add(e.team, `${name(e.team)} استخدم ${CARD_NAMES.crane}`);
@@ -75,7 +75,7 @@ export function logEntries(events: readonly GameEvent[], state: GameState): LogE
         add(null, `التحدي: ${CHALLENGE_NAMES[e.content.type]}`);
         break;
       case 'challenge/replay':
-        add(null, 'تعادل، والتحدي ينعاد');
+        add(null, 'تعادل، ويُعاد التحدي');
         break;
       case 'challenge/result':
         add(e.winner, `${name(e.winner)} فاز بالتحدي`);

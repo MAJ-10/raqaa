@@ -1,42 +1,47 @@
-import { useCallback, useState } from 'react';
-import mark from '../../../assets/brand/mark.svg';
+import { useCallback, useMemo, useState } from 'react';
 import { getBoard } from '../../engine/board.ts';
-import { options, planTargets } from '../../engine/select.ts';
-import type { EventInput, GameEvent, GameState, PlotId, Step, Team } from '../../engine/types.ts';
+import { replay } from '../../engine/reduce.ts';
+import { openAuction, options, planTargets, population } from '../../engine/select.ts';
+import { TEAMS, type EventInput, type GameEvent, type GameState, type PlotId, type Team } from '../../engine/types.ts';
 import type { RefereeStore } from '../../state/referee-store.ts';
 import { Button } from '../../ui/Button.tsx';
-import { TeamSymbol } from '../../ui/TeamBadge.tsx';
+import { Cloud, Skyline } from '../../ui/City.tsx';
 import { formatNumber } from '../../ui/number.ts';
+import { TeamSymbol } from '../../ui/TeamBadge.tsx';
+import { Toolbar, TopBar } from '../../ui/TopBar.tsx';
 import { openDisplayWindow } from '../open-display.ts';
-import { AuctionPanel } from './AuctionPanel.tsx';
-import { BuildPanel } from './BuildPanel.tsx';
-import { AnnouncePanel, DayEndPanel } from './EndPanels.tsx';
+import { DayTrack } from './DayTrack.tsx';
+import { bannerFor } from './banner.ts';
+import { EventBanner } from './EventBanner.tsx';
+import { InspectionReveal } from './InspectionReveal.tsx';
+import { AnnouncePanel } from './EndPanels.tsx';
 import { FlatMap } from './FlatMap.tsx';
 import { logEntries, todaysEvents } from './log.ts';
 import './play.css';
-import { RequestPanels } from './QuestionPanels.tsx';
-import { TeamBar } from './TeamBar.tsx';
+import { TeamCorner } from './TeamCorner.tsx';
 import { useTimerEnd } from './use-timer-end.ts';
-
-const STEPS: { label: string; steps: Step[] }[] = [
-  { label: 'طلب البناء', steps: ['question', 'asking'] },
-  { label: 'التصاريح', steps: ['answer'] },
-  { label: 'البناء', steps: ['build'] },
-  { label: 'المزادات', steps: ['auctions', 'dayEnd'] },
-];
 
 type Props = { store: RefereeStore; state: GameState; events: readonly GameEvent[] };
 
-/** The referee's play screen (R03–R13): top bar, teams, the flat map, and one panel for the step. */
+/** Where each team's card sits: at the corner of its base on the map (coral's base is top right). */
+const CORNERS = { top: ['coral', 'blue'], bottom: ['green', 'gold'] } as const satisfies Record<string, readonly Team[]>;
+
+/**
+ * The referee's play screen (R03–R13): a quiet top bar, the day's steps on one track at the side, and
+ * the map as the stage, with each team's card at the corner of its base.
+ */
 export function PlayScreen({ store, state, events }: Props) {
-  // What the referee is picking (bridge mode, plan plots) belongs to one turn or decision:
-  // when the step, the turn or the pending decision changes, it starts afresh.
-  const modeKey = `${state.step}|${state.turn}|${state.pending?.kind ?? ''}`;
-  const [mode, setMode] = useState({ key: modeKey, bridge: false, picked: [] as PlotId[] });
-  const { bridge, picked } = mode.key === modeKey ? mode : { bridge: false, picked: [] as PlotId[] };
-  const setBridge = (on: boolean) => setMode({ key: modeKey, bridge: on, picked });
-  const setPicked = (plots: PlotId[]) => setMode({ key: modeKey, bridge, picked: plots });
+  // The plots picked for a plan belong to that one decision: when it changes, the pick starts afresh.
+  const pickKey = `${state.step}|${state.turn}|${state.pending?.kind ?? ''}`;
+  const [pick, setPick] = useState({ key: pickKey, plots: [] as PlotId[] });
+  const picked = pick.key === pickKey ? pick.plots : [];
+  const setPicked = (plots: PlotId[]) => setPick({ key: pickKey, plots });
   const [logOpen, setLogOpen] = useState(false);
+  const [inventory, setInventory] = useState<Team | null>(null);
+  // The inspector's window stays until the referee closes it, or does the next thing.
+  const [seen, setSeen] = useState<number | null>(null);
+  const last = events.at(-1);
+  const reveal = last?.type === 'card/inspector' && seen !== last.at ? last : null;
 
   const act = useCallback(
     (event: EventInput) => {
@@ -51,80 +56,102 @@ export function PlayScreen({ store, state, events }: Props) {
   );
   useTimerEnd(state, act);
 
-  // «إنهاء المسابقة» works at the end of a day; before the last day it asks first.
-  const endGame = () => {
-    if (state.day < state.days && !window.confirm('باقي أيام في المسابقة. تنهيها الحين وتنتقل للإعلان؟')) return;
-    act({ type: 'game/end' });
-  };
-
-  const { choices, chooser, onPick } = mapChoices(state, bridge, picked, setPicked, act);
-
-  const panel = (() => {
-    switch (state.step) {
-      case 'question':
-      case 'asking':
-      case 'answer':
-        return <RequestPanels state={state} act={act} />;
-      case 'build':
-        return <BuildPanel state={state} act={act} bridge={bridge} setBridge={setBridge} planPicked={picked} />;
-      case 'auctions':
-        return <AuctionPanel state={state} act={act} />;
-      case 'dayEnd':
-        return <DayEndPanel state={state} act={act} today={todaysEvents(events)} />;
-      case 'announce':
-        return <AnnouncePanel state={state} act={act} onNew={() => store.end()} />;
-      default:
-        return null;
-    }
-  })();
+  const { choices, chooser, bridges, onPick } = mapChoices(state, picked, setPicked, act);
+  const focus = auctionFocus(state);
+  const banner = bannerFor(state, events);
+  const today = todaysEvents(events);
+  // At the end of the day: what each team gained today, against the map as the day began.
+  const gains = useMemo(() => {
+    if (state.step !== 'dayEnd') return null;
+    const before = replay(state.setup, events.slice(0, events.length - today.length));
+    return Object.fromEntries(TEAMS.map((team) => [team, population(state, team) - population(before, team)])) as Record<Team, number>;
+  }, [state, events, today.length]);
+  const corner = (team: Team, side: 'start' | 'end', place: 'top' | 'bottom') => (
+    <TeamCorner
+      key={team}
+      state={state}
+      team={team}
+      side={side}
+      place={place}
+      open={inventory === team}
+      onToggle={() => setInventory(inventory === team ? null : team)}
+    />
+  );
 
   return (
     <div className="play">
-      <header className="top-bar">
-        <h1 className="top-bar-title">
-          <img src={mark} alt="" />
-          اليوم {formatNumber(state.day)} من {formatNumber(state.days)}
-        </h1>
-        {state.step !== 'announce' ? (
-          <nav className="step-bar" aria-label="الخطوة">
-            {STEPS.map((s) => (
-              <span key={s.label} className="step" aria-current={s.steps.includes(state.step) ? 'step' : undefined}>
-                {s.label}
-              </span>
-            ))}
-          </nav>
-        ) : null}
-        <div className="top-bar-actions">
-          {state.step !== 'announce' ? (
-            <Button icon="flag" disabled={state.step !== 'dayEnd'} onClick={endGame}>
-              إنهاء المسابقة
-            </Button>
-          ) : null}
-          <Button icon="tv" aria-label="فتح شاشة العرض" onClick={openDisplayWindow} />
-          <Button icon="log" aria-pressed={logOpen} onClick={() => setLogOpen(!logOpen)}>
+      <TopBar
+        title={
+          <>
+            اليوم{' '}
+            <span key={state.day} className="top-bar-day">
+              {formatNumber(state.day)}
+            </span>{' '}
+            <span className="top-bar-of">من {formatNumber(state.days)}</span>
+          </>
+        }
+      >
+        <Toolbar>
+          <Button variant="quiet" icon="tv" aria-label="فتح شاشة العرض" onClick={openDisplayWindow}>
+            شاشة العرض
+          </Button>
+          <Button variant="quiet" icon="log" aria-pressed={logOpen} onClick={() => setLogOpen(!logOpen)}>
             السجل
           </Button>
-          <Button icon="undo" disabled={events.length === 0} onClick={() => store.undo()}>
+          <Button variant="quiet" icon="undo" disabled={events.length === 0} onClick={() => store.undo()}>
             تراجع
           </Button>
-        </div>
-      </header>
+        </Toolbar>
+      </TopBar>
 
       <main className="play-body">
-        <aside className="play-side">{panel}</aside>
-        <section className="play-board">
-          <TeamBar state={state} act={act} />
-          <FlatMap state={state} choices={choices} chooser={chooser} picked={new Set(picked)} onPick={onPick} />
+        <aside className="play-side">
+          {state.step === 'announce' ? (
+            <AnnouncePanel state={state} act={act} onNew={() => store.end()} />
+          ) : (
+            <DayTrack state={state} act={act} today={today} planPicked={picked} gains={gains} />
+          )}
+        </aside>
+        <section className="play-board" aria-label="الخريطة">
+          <div className="board-scenery">
+            <Cloud className="cloud cloud-1" />
+            <Cloud className="cloud cloud-2" />
+            <Cloud className="cloud cloud-3" />
+            <Cloud className="cloud cloud-4" />
+            <Skyline className="skyline" />
+          </div>
+          <div className="board-frame">
+            <div className="corner-row">
+              {corner(CORNERS.top[0], 'start', 'top')}
+              {corner(CORNERS.top[1], 'end', 'top')}
+            </div>
+            <FlatMap
+              state={state}
+              choices={choices}
+              chooser={chooser}
+              bridges={bridges}
+              picked={picked}
+              focus={focus}
+              onPick={onPick}
+            />
+            <div className="corner-row">
+              {corner(CORNERS.bottom[0], 'start', 'bottom')}
+              {corner(CORNERS.bottom[1], 'end', 'bottom')}
+            </div>
+          </div>
+          {banner ? <EventBanner key={banner.at} banner={banner} name={state.setup.teams[banner.team].name} /> : null}
         </section>
       </main>
 
+      {reveal ? (
+        <InspectionReveal key={reveal.at} state={state} team={reveal.team} target={reveal.target} onClose={() => setSeen(reveal.at)} />
+      ) : null}
+
       {logOpen ? (
         <aside className="log" aria-label="السجل">
-          <header className="panel-head">
+          <header className="log-head">
             <h2>السجل</h2>
-            <button type="button" className="link-button" onClick={() => setLogOpen(false)}>
-              إغلاق
-            </button>
+            <Button variant="quiet" icon="x" aria-label="إغلاق السجل" onClick={() => setLogOpen(false)} />
           </header>
           <ol className="log-list">
             {logEntries(events, state).map((entry, i) => (
@@ -141,17 +168,31 @@ export function PlayScreen({ store, state, events }: Props) {
   );
 }
 
-type MapChoices = { choices: Set<PlotId>; chooser: Team | null; onPick: (id: PlotId) => void };
+/** The plot the map spotlights: the open auction's, or the one whose fence is being decided. */
+function auctionFocus(state: GameState): { plot: PlotId; bidder: Team } | null {
+  const pending = state.pending;
+  const auction = pending?.kind === 'fence' ? state.auctions[pending.auction] : openAuction(state);
+  return auction ? { plot: auction.plot, bidder: auction.bidder } : null;
+}
 
-/** Which plots the referee can press now, and what pressing one does. */
+type MapChoices = {
+  choices: Set<PlotId>;
+  chooser: Team | null;
+  bridges: Set<PlotId>;
+  onPick: (id: PlotId) => void;
+};
+
+/**
+ * Which plots the referee can press now, and what pressing one does. In a team's turn these are the
+ * plots it can build on or bid for, and the plots its bridge reaches when it can use one.
+ */
 function mapChoices(
   state: GameState,
-  bridge: boolean,
   picked: PlotId[],
   setPicked: (plots: PlotId[]) => void,
   act: (event: EventInput) => void,
 ): MapChoices {
-  const none: MapChoices = { choices: new Set(), chooser: null, onPick: () => {} };
+  const none: MapChoices = { choices: new Set(), chooser: null, bridges: new Set(), onPick: () => {} };
   const pending = state.pending;
 
   if (pending?.kind === 'plan') {
@@ -161,6 +202,7 @@ function mapChoices(
       (id) => state.plots[id]?.owner === pending.team && !board.plots[id]?.base && !state.plots[id]?.plan,
     );
     return {
+      ...none,
       choices: new Set(own),
       chooser: pending.team,
       onPick: (id) =>
@@ -169,6 +211,7 @@ function mapChoices(
   }
   if (pending?.kind === 'planTake') {
     return {
+      ...none,
       choices: new Set(planTargets(state, pending.from, pending.plot)),
       chooser: pending.team,
       onPick: (id) => act({ type: 'plan/take', team: pending.team, plot: id }),
@@ -176,19 +219,21 @@ function mapChoices(
   }
   if (state.step !== 'build' || pending || !state.turn || state.teams[state.turn].moves === 0) return none;
 
+  // Bridge plots are empty and out of the team's reach, so they never overlap building or bidding.
   const team = state.turn;
   const o = options(state, team);
-  if (bridge) {
-    return {
-      choices: new Set(o.bridge),
-      chooser: team,
-      onPick: (id) => act({ type: 'build', team, plot: id, via: 'bridge' }),
-    };
-  }
+  const bridges = new Set(o.bridge);
   return {
-    choices: new Set([...o.build, ...o.auction]),
+    choices: new Set([...o.build, ...o.auction, ...o.bridge]),
     chooser: team,
+    bridges,
     onPick: (id) =>
-      act(o.build.includes(id) ? { type: 'build', team, plot: id } : { type: 'auction/declare', team, plot: id }),
+      act(
+        bridges.has(id)
+          ? { type: 'build', team, plot: id, via: 'bridge' }
+          : o.build.includes(id)
+            ? { type: 'build', team, plot: id }
+            : { type: 'auction/declare', team, plot: id },
+      ),
   };
 }

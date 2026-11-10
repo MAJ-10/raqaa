@@ -1,234 +1,126 @@
+/* The play screen: a quiet top bar, the day's steps on one track at the side, the map as the stage. */
 .play {
-  min-height: 100%;
-}
-
-.step-bar {
-  display: flex;
-  gap: 4px;
-  padding: 4px;
-  border-radius: var(--r-box);
-  background: var(--sky);
-}
-
-.step {
-  padding: 8px 16px;
-  border-radius: var(--r-control);
-  color: var(--ink-soft);
-  font-weight: 600;
-}
-
-.step[aria-current] {
-  background: var(--ink);
-  color: var(--white);
+  --top: 65px;
+  --side: clamp(360px, 28vw, 460px);
+  --card-h: 68px;
+  --zone-pad: 16px;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100vh;
 }
 
 .play-body {
   display: grid;
-  grid-template-columns: 420px minmax(0, 1fr);
-  align-items: start;
-  gap: 24px;
-  padding: 24px;
+  grid-template-columns: var(--side) minmax(0, 1fr);
+  min-height: 0;
 }
 
 .play-side {
-  position: sticky;
-  top: 24px;
-  display: grid;
-  gap: 16px;
+  min-height: 0;
+  overflow-y: auto;
+  border-inline-end: 1px solid var(--line);
+  background: var(--sky);
 }
 
 .play-board {
+  position: relative;
+  isolation: isolate;
   display: grid;
-  justify-items: center;
-  gap: 24px;
+  place-items: center;
+  min-height: 0;
+  padding: var(--zone-pad);
 }
 
-/* Panels */
-.panel {
+/* The identity's city behind the map: its skyline along the bottom, a few of its clouds at the sides. */
+.board-scenery {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.skyline {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.cloud {
+  position: absolute;
+  display: block;
+  height: auto;
+}
+
+.cloud-1 {
+  top: 15%;
+  left: 2.5%;
+  width: 150px;
+}
+
+.cloud-2 {
+  top: 8%;
+  right: 4%;
+  width: 96px;
+}
+
+.cloud-3 {
+  top: 46%;
+  right: 2%;
+  width: 128px;
+}
+
+.cloud-4 {
+  top: 62%;
+  left: 5%;
+  width: 84px;
+}
+
+/*
+ * The map grows and shrinks with the screen: as large as the space allows, but never smaller than 440px
+ * nor larger than 940px. Each team's card sits at the corner of its base; on a short screen the map gets
+ * small, so the cards may reach past its edges to keep room for the names.
+ */
+.board-frame {
+  --fit: min(
+    calc(100vh - var(--top) - 2 * var(--zone-pad) - 2 * (var(--card-h) + 12px)),
+    calc(100vw - var(--side) - 2 * var(--zone-pad))
+  );
+  --board: clamp(440px, var(--fit), 940px);
+  --row: max(var(--board), 560px);
   display: grid;
-  gap: 16px;
-}
-
-.panel-head {
-  display: flex;
-  align-items: center;
   gap: 12px;
+  width: var(--board);
 }
 
-.panel-head h2,
-.panel-head h3 {
-  flex: 1;
-  margin: 0;
-  font-size: 24px;
-  font-weight: 900;
-}
-
-.panel-head h3 {
-  font-size: 20px;
-}
-
-.panel-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-
-.panel-actions > .button-primary {
-  flex: 1;
-}
-
-.panel-text {
-  margin: 0;
-}
-
-.panel-warning {
-  margin: 0;
-  padding: 8px 12px;
-  border: 2px solid var(--warn);
-  border-radius: var(--r-control);
-  background: var(--white);
-  font-weight: 600;
-}
-
-/* Question */
-.question-top {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.question-text {
-  flex: 1;
-  margin: 0;
-  font-size: 22px;
-  font-weight: 900;
-}
-
-.question-answer {
+.corner-row {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin: 0;
-  padding-top: 12px;
-  border-top: 1px solid var(--line);
-  color: var(--ink-soft);
-}
-
-.question-answer strong {
-  color: var(--ink);
-  font-size: 28px;
-  font-weight: 900;
-}
-
-.numbers-grid,
-.permit-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-
-.number-cell {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  border-radius: var(--r-control);
-  background: var(--sky);
-  font-weight: 900;
-}
-
-.permit {
-  min-height: 56px;
-  padding: 8px 12px;
-  border: 2px solid var(--line);
-  border-radius: var(--r-box);
-  background: var(--white);
-  text-align: start;
-  cursor: pointer;
-}
-
-.permit[aria-pressed='true'] {
-  border-color: var(--ok);
-}
-
-.permit:disabled {
-  opacity: 0.45;
-  cursor: default;
-}
-
-/* Build order */
-.build-order {
-  display: grid;
-  gap: 8px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.build-row {
-  display: flex;
-  align-items: center;
   gap: 12px;
-  padding: 10px 14px;
-  border: 2px solid transparent;
-  border-radius: var(--r-box);
-  background: var(--sky);
+  width: var(--row);
+  margin-inline: calc((var(--board) - var(--row)) / 2);
 }
 
-.build-row[data-status='turn'] {
-  border-color: var(--team);
-  background: var(--white);
-}
-
-.build-index {
-  min-width: 1.5em;
-  color: var(--ink-soft);
-  font-weight: 600;
-}
-
-.build-done,
-.build-moves,
-.build-note {
-  margin-inline-start: auto;
-}
-
-.build-done {
-  color: var(--ok);
-}
-
-.build-note {
-  color: var(--ink-soft);
-  font-size: 14px;
-}
-
-/* Teams */
-.team-bar {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  width: 100%;
-}
-
-.team-card-wrap {
+/* Team cards: team tiles at the corners of the map; the team that acts now is filled with its colour. */
+.team-corner {
   position: relative;
+  width: calc((var(--row) - 12px) / 2);
 }
 
 .team-card {
-  display: flex;
-  align-items: center;
-  gap: 10px;
   width: 100%;
-  min-height: 64px;
-  padding: 10px 12px;
-  border: 2px solid transparent;
-  border-radius: var(--r-box);
-  background: var(--white);
-  text-align: start;
-  cursor: pointer;
+  height: var(--card-h);
 }
 
-.team-card[data-turn] {
-  border-color: var(--team);
+.team-card[aria-expanded='true'] {
+  box-shadow: inset 0 0 0 2px var(--ink);
+}
+
+.team-card .team-tile-body {
+  gap: 10px;
 }
 
 .team-card-text {
@@ -239,36 +131,85 @@
 
 .team-card-name {
   overflow: hidden;
+  font-size: var(--fs-heading);
   font-weight: 900;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.team-card-cards {
+.team-card-meta {
   display: flex;
-  gap: 4px;
-  min-height: 16px;
+  align-items: center;
+  gap: 6px;
+  min-height: 20px;
+  overflow: hidden;
   color: var(--ink-soft);
 }
 
+.team-card-meta:empty {
+  display: none;
+}
+
+.team-card[data-filled] .team-card-meta {
+  color: var(--ink);
+}
+
+/* «يزايد» or «يدافع» on a card already in its colour: white, so it stands out. */
+.team-role {
+  padding: 0 6px;
+  border-radius: var(--r-chip);
+  background: var(--white);
+  color: var(--ink);
+  font-size: var(--fs-small);
+  font-weight: 600;
+  line-height: 20px;
+  white-space: nowrap;
+}
+
 .team-card-population {
-  font-size: 20px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-title);
   font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+
+.team-card-population > .icon {
+  color: var(--ink-soft);
+}
+
+.team-card[data-filled] .team-card-population > .icon {
+  color: var(--ink);
 }
 
 .inventory {
   position: absolute;
-  top: calc(100% + 8px);
-  inset-inline-start: 0;
   z-index: 5;
   display: grid;
   gap: 12px;
-  width: 340px;
-  padding: 16px;
-  border: 1px solid var(--line);
-  border-radius: var(--r-card);
+  width: 320px;
+  padding: 14px 16px 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-box);
   background: var(--white);
-  box-shadow: 0 12px 32px color-mix(in srgb, var(--ink) 18%, transparent);
+  font-size: var(--fs-label);
+}
+
+.team-corner[data-place='top'] .inventory {
+  top: calc(100% + 8px);
+}
+
+.team-corner[data-place='bottom'] .inventory {
+  bottom: calc(100% + 8px);
+}
+
+.team-corner[data-side='start'] .inventory {
+  inset-inline-start: 0;
+}
+
+.team-corner[data-side='end'] .inventory {
+  inset-inline-end: 0;
 }
 
 .inventory-head {
@@ -284,57 +225,57 @@
 
 .inventory-cards {
   display: grid;
-  grid-template-columns: 1fr 1fr;
   gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
+/* A card the team holds: its picture, its name, and when it is used. */
 .inventory-card {
-  display: grid;
-  justify-items: start;
-  gap: 2px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
   min-height: 44px;
-  padding: 10px;
+  padding: 8px;
   border: 1px solid var(--line);
-  border-radius: var(--r-box);
-  background: var(--sky);
+  border-radius: var(--r-tile);
+  background: var(--white);
+  color: var(--ink);
   text-align: start;
 }
 
-.inventory-card:not(:disabled) {
-  border-color: var(--ink);
-  background: var(--white);
-  cursor: pointer;
+.inventory-card .card-art {
+  width: 52px;
+  height: 52px;
+  border-width: 2px;
+  border-radius: 9px;
 }
 
-.inventory-card span {
-  color: var(--ink-soft);
-  font-size: 13px;
-}
-
-.inventory-targets {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.inventory-missions {
+.inventory-card-text {
   display: grid;
-  gap: 8px;
+}
+
+.inventory-card strong {
+  font-weight: 600;
+}
+
+.inventory-card-text > span {
+  color: var(--ink-soft);
+  font-size: var(--fs-small);
+}
+
+/* The map, on the ground plate of the identity. */
+.board-plate {
+  position: relative;
   padding: 12px;
-  border: 2px solid var(--team);
-  border-radius: var(--r-box);
+  border-radius: 16px;
+  background: var(--plate);
 }
 
-.inventory-missions ul {
-  margin: 0;
-  padding-inline-start: 20px;
-}
-
-/* The flat map */
 .flat-map {
   display: grid;
-  gap: 4px;
-  width: min(100%, 620px);
+  gap: 5px;
 }
 
 .plot {
@@ -344,68 +285,755 @@
   aspect-ratio: 1;
   padding: 0;
   border: 0;
-  border-radius: var(--r-chip);
-  background: var(--white);
+  border-radius: 8px;
+  background: var(--plot-2);
   color: var(--ink);
+  container-type: inline-size;
 }
 
 .plot[data-value='3'] {
-  background: color-mix(in srgb, var(--line) 50%, var(--white));
+  background: var(--plot-3);
 }
 
 .plot[data-value='4'] {
-  background: var(--line);
+  background: var(--plot-4);
 }
 
 .plot[data-centre] {
-  background: var(--night-city);
-  color: var(--white);
+  background: var(--tower);
 }
 
 .plot[data-team] {
   background: var(--team);
-  color: var(--ink);
 }
 
-.plot[data-choice] {
-  outline: 3px dashed var(--chooser);
-  outline-offset: -3px;
-  cursor: pointer;
+.plot .team-glyph {
+  width: 42cqi;
+  height: 42cqi;
 }
 
-.plot[data-choice][aria-pressed='true'] {
-  outline-style: solid;
+.plot-card {
+  width: 46cqi;
+  height: 46cqi;
+  color: var(--ink-soft);
+}
+
+.plot[data-centre] .plot-card {
+  color: var(--plot-3);
 }
 
 .plot-mark {
   position: absolute;
   display: grid;
+  width: 24cqi;
+  height: 24cqi;
+}
+
+.plot-mark > .icon {
+  width: 100%;
+  height: 100%;
 }
 
 .plot-mark-top {
-  top: 3px;
-  inset-inline-end: 3px;
+  top: 8cqi;
+  inset-inline-end: 8cqi;
 }
 
 .plot-mark-bottom {
-  bottom: 3px;
-  inset-inline-start: 3px;
+  bottom: 8cqi;
+  inset-inline-start: 8cqi;
 }
 
 .plot-fresh {
   position: absolute;
-  bottom: 4px;
-  inset-inline-end: 4px;
-  width: 6px;
-  height: 6px;
+  bottom: 10cqi;
+  inset-inline-end: 10cqi;
+  width: 11cqi;
+  height: 11cqi;
   border-radius: 50%;
   background: var(--ink);
+}
+
+/* A plot the referee can press: a dashed line in the colour of the team that acts (ink on a team's plot). */
+.plot[data-choice] {
+  outline: 3px dashed var(--chooser);
+  outline-offset: -5px;
+  cursor: pointer;
+  transition: transform 100ms ease-out;
+}
+
+.plot[data-choice][data-team] {
+  outline-color: var(--ink);
+}
+
+.plot[data-choice]:hover,
+.plot[data-choice][aria-pressed='true'] {
+  outline-style: solid;
+}
+
+/* A plot picked for the plan: framed in ink, wearing the plan and its number. */
+.plot[data-choice][aria-pressed='true'] {
+  outline: 4px solid var(--ink);
+  outline-offset: -4px;
+}
+
+.plot-picked {
+  position: absolute;
+  top: -9px;
+  inset-inline-end: -9px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 26px;
+  padding: 0 6px;
+  border-radius: 8px;
+  background: var(--ink);
+  color: var(--white);
+  font-size: var(--fs-small);
+  font-weight: 900;
+}
+
+.plot-picked > .icon {
+  width: 14px;
+  height: 14px;
+}
+
+/* A plot's tip, when the pointer rests on it: whose it is (or its card), and the population it is worth. */
+.plot-tip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  z-index: 8;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: var(--ink);
+  color: var(--white);
+  font-size: var(--fs-small);
+  font-weight: 600;
+  line-height: 1.6;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 4px);
+  transition:
+    opacity 140ms ease-out,
+    transform 140ms ease-out;
+}
+
+.plot:hover .plot-tip {
+  opacity: 1;
+  transform: translate(-50%, 0);
+  transition-delay: 250ms;
+}
+
+.plot-tip-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.plot-tip-value > .icon {
+  width: 13px;
+  height: 13px;
+}
+
+/* The ring that spreads from a plot the moment a team gains it. */
+.plot-ring {
+  position: absolute;
+  border: 3px solid var(--team);
+  border-radius: 10px;
+  pointer-events: none;
+}
+
+.plot[data-choice]:active {
+  transform: scale(0.94);
+}
+
+.plot[data-choice]:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/*
+ * An auction in the spotlight: the rest of the map steps back, and the plot rises with a ring in the
+ * bidder's colour that breathes, and the bidder's pin on top.
+ */
+.flat-map[data-focus] .plot:not([data-focus]) {
+  opacity: 0.5;
+  transition: opacity 250ms ease-out;
+}
+
+.plot[data-focus] {
+  z-index: 2;
+  overflow: visible;
+  outline: 4px solid var(--bidder);
+  outline-offset: 2px;
+  transform: scale(1.12);
+  animation: contest 1.4s ease-in-out infinite alternate;
+}
+
+@keyframes contest {
+  from {
+    outline-offset: 1px;
+  }
+  to {
+    outline-offset: 6px;
+  }
+}
+
+.plot-pin {
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--white);
+  border-radius: 50%;
+  background: var(--bidder);
+  color: var(--ink);
+  transform: translateX(-50%);
+}
+
+.plot-pin > .icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* The identity's population bubble, over a plot a team just gained. */
+.bubble-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.pop-bubble {
+  position: absolute;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--white);
+  box-shadow: inset 0 0 0 3px var(--team);
+  color: var(--ink);
+  font-size: var(--fs-label);
+  font-weight: 900;
+  white-space: nowrap;
+  transform: translate(-50%, -125%);
+}
+
+.pop-bubble > .icon {
+  width: 16px;
+  height: 16px;
+  color: var(--ink-soft);
+}
+
+/*
+ * The identity's event banner over the map, for a short while after a moment that matters: ink, the
+ * picture of the card (or an icon on the team's colour), and what happened in large white type.
+ */
+.event-banner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  max-width: min(600px, calc(100% - 48px));
+  padding-block: 14px;
+  padding-inline: 14px 28px;
+  border-radius: var(--r-card);
+  background: var(--ink);
+  color: var(--white);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+
+.event-banner-picture {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  background: var(--team);
+  color: var(--ink);
+}
+
+.event-banner-picture[data-card] {
+  background: none;
+}
+
+.event-banner-picture .card-art {
+  width: 64px;
+  height: 64px;
+  border-color: var(--white);
+}
+
+.event-banner-text {
+  display: grid;
+  gap: 2px;
+  font-size: var(--fs-title);
+  line-height: 1.4;
+}
+
+.event-banner-text strong {
+  font-weight: 900;
+}
+
+.event-banner-more {
+  color: var(--plate);
+  font-size: var(--fs-label);
+  font-weight: 600;
+}
+
+/*
+ * The day track: five steps one under the other, each with its icon from the identity. The step in hand
+ * is the one white card on the sky, framed in ink; a step done is a line with its result; the rest wait.
+ * Blocks inside a step (the question, a decision) take the colour that sets them apart from it.
+ */
+.track {
+  padding: 20px 20px 28px;
+}
+
+.track-list {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.track-step {
+  --block: var(--white);
+  --block-line: var(--line);
+  padding: 3px 0;
+}
+
+.track-step[data-status='current'] {
+  --block: var(--sky);
+  --block-line: transparent;
+  margin: 8px 0 10px;
+  padding: 14px 16px 18px;
+  border: 2px solid var(--ink);
+  border-radius: 16px;
+  background: var(--white);
+}
+
+.track-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 32px;
+}
+
+.track-marker {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--white);
+  color: var(--ink-soft);
+}
+
+.track-step[data-status='done'] .track-marker {
+  border-color: var(--plate);
+  background: var(--plate);
+  color: var(--ink);
+}
+
+/* Where the day is now: in ink, like the frame of its card. */
+.track-step[data-status='current'] .track-marker {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--white);
+}
+
+.track-head h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--fs-label);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.track-step[data-status='next'] .track-head h2 {
+  color: var(--ink-soft);
+}
+
+.track-step[data-status='current'] .track-head h2 {
+  font-size: var(--fs-heading);
+  font-weight: 900;
+}
+
+/* A step's result, right after its title. */
+.track-summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ink-soft);
+  font-size: var(--fs-small);
+  white-space: nowrap;
+}
+
+.track-summary::before {
+  content: '';
+  flex: none;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--line-strong);
+}
+
+.track-teams {
+  display: flex;
+  gap: 4px;
+}
+
+.track-body {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.step-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.end-game {
+  justify-self: center;
+}
+
+.step-actions > .button-primary {
+  flex: 1;
+}
+
+/* A short note the referee should see, with a dot in the warning colour. */
+.step-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: var(--fs-small);
+  font-weight: 600;
+}
+
+.step-note::before {
+  content: '';
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--warn);
+}
+
+/* The build request: the kind across the card; the players' numbers as team tiles, two by two. */
+.track-body > .segmented {
+  display: flex;
+}
+
+.numbers-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.numbers-grid .team-tile {
+  width: 100%;
+  font-size: var(--fs-label);
+}
+
+.question {
+  display: grid;
+  gap: 12px;
+  padding: 16px 18px;
+  border-radius: var(--r-plate);
+  background: var(--block);
+  box-shadow: inset 0 0 0 1px var(--block-line);
+}
+
+.question-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.question-text {
+  flex: 1;
+  margin: 0;
+  font-size: var(--fs-heading);
+  font-weight: 600;
+  line-height: 1.6;
+}
+
+/* «الإجابة: ٧», read in one line from the start. */
+.question-answer {
+  margin: 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  color: var(--ink-soft);
+  font-size: var(--fs-label);
+  font-weight: 600;
+}
+
+.question-answer strong {
+  color: var(--ink);
+  font-size: var(--fs-heading);
+  font-weight: 900;
+}
+
+/* Permits: a team that earns its permit is filled with its colour. */
+.permit-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.permit {
+  width: 100%;
+  font-size: var(--fs-label);
+}
+
+/* Build order: team tiles; the team in turn is filled with its colour, the teams done fade. */
+.build-order {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.build-row .team-tile {
+  width: 100%;
+  font-size: var(--fs-label);
+}
+
+.build-row[data-status='done'] .team-tile {
+  opacity: 0.6;
+}
+
+.build-state {
+  font-size: var(--fs-small);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.build-row[data-status='done'] .build-state {
+  color: var(--ok);
+}
+
+.build-note {
+  color: var(--ink-soft);
+  font-weight: 400;
+}
+
+/* The plan's two plots: an empty slot is dashed; a slot filled is framed in ink, with the plot's place. */
+.plan-slots {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.plan-slot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 0 12px;
+  border: 1.5px dashed var(--line-strong);
+  border-radius: var(--r-tile);
+  color: var(--ink-soft);
+  font-size: var(--fs-label);
+}
+
+.plan-slot[data-filled] {
+  border: 2px solid var(--ink);
+  background: var(--white);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.plan-slot-number {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  background: var(--line);
+  color: var(--ink);
+  font-size: var(--fs-small);
+  font-weight: 900;
+}
+
+.plan-slot[data-filled] .plan-slot-number {
+  background: var(--ink);
+  color: var(--white);
+}
+
+.inspector-targets {
+  display: grid;
+  gap: 8px;
+}
+
+.inspector-targets .team-tile {
+  width: 100%;
+  font-size: var(--fs-label);
+}
+
+/*
+ * The inspector's reveal, in a window over the referee screen: the other team's missions with their
+ * pictures, framed in that team's colour.
+ */
+.reveal {
+  width: min(600px, calc(100vw - 48px));
+  padding: 24px;
+  border: 3px solid var(--team);
+  border-radius: var(--r-card);
+  background: var(--white);
+  color: var(--ink);
+}
+
+.reveal::backdrop {
+  background: color-mix(in srgb, var(--ink) 45%, transparent);
+}
+
+.reveal[open] {
+  display: grid;
+  gap: 20px;
+  animation: reveal-in 420ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes reveal-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.reveal-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.reveal-head .card-art {
+  width: 72px;
+  height: 72px;
+}
+
+.reveal-title h2 {
+  margin: 0;
+  font-size: var(--fs-title);
+  font-weight: 900;
+  line-height: 1.8;
+}
+
+.reveal-title p {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: var(--fs-label);
+  line-height: 2;
+}
+
+.reveal-missions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.reveal-missions li {
+  display: grid;
+  width: 168px;
+  justify-items: center;
+  gap: 8px;
+  padding: 14px 8px;
+  border-radius: var(--r-box);
+  box-shadow: inset 0 0 0 1px var(--line);
+  font-size: var(--fs-label);
+  font-weight: 600;
+  text-align: center;
+}
+
+.reveal-missions .mission-art {
+  --art: 72px;
+}
+
+.reveal-foot {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* A decision that comes before anything else (the fence, a plan): the card's picture by its words. */
+.decision {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px 12px 12px;
+  border-radius: var(--r-plate);
+  background: var(--block);
+  box-shadow: inset 0 0 0 1px var(--block-line);
+}
+
+.decision .card-art {
+  width: 76px;
+  height: 76px;
+}
+
+.decision-main {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.decision-title {
+  margin: 0;
+  font-size: var(--fs-label);
+  font-weight: 900;
+}
+
+.decision-text {
+  margin: 0;
+  font-size: var(--fs-label);
+  line-height: 1.9;
 }
 
 /* Auctions */
 .auction-list {
   display: grid;
-  gap: 6px;
+  gap: 4px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -415,110 +1043,351 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 12px;
-  border-radius: var(--r-box);
-  background: var(--sky);
-}
-
-.auction-row .chip {
-  margin-inline-start: auto;
-  background: var(--white);
+  min-height: 40px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: var(--r-control);
+  font-size: var(--fs-small);
 }
 
 .auction-row[data-status='open'] {
-  outline: 2px solid var(--ink);
-  background: var(--white);
+  border-color: var(--ink);
 }
 
-.auction-sides {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  gap: 8px;
-  padding: 16px;
-  border-radius: var(--r-box);
-  background: var(--sky);
-}
-
-.auction-side {
-  display: grid;
-  justify-items: center;
-  gap: 6px;
-}
-
-.auction-vs {
+.auction-row[data-status='fenced'],
+.auction-row[data-status='cancelled'] {
   color: var(--ink-soft);
+}
+
+.auction-plot {
+  color: var(--ink-soft);
+}
+
+.auction-status {
+  margin-inline-start: auto;
   font-weight: 600;
+}
+
+/* The two sides of the open auction, as team tiles with each player's number on the team's colour. */
+.duel {
+  display: grid;
+  gap: 8px;
+}
+
+.duel .team-tile {
+  width: 100%;
+}
+
+.duel-text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.duel-text .team-tile-name {
+  font-size: var(--fs-heading);
+  font-weight: 900;
+}
+
+.duel-part {
+  color: var(--ink-soft);
+  font-size: var(--fs-small);
 }
 
 .win-boxes {
   display: flex;
-  gap: 6px;
+  gap: 4px;
 }
 
 .win-box {
-  width: 20px;
-  height: 20px;
-  border-radius: var(--r-chip);
-  background: color-mix(in srgb, var(--team) 25%, var(--white));
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--team);
+  border-radius: 5px;
+  background: var(--white);
+  transition: background-color 300ms ease-out;
 }
 
 .win-box[data-won] {
   background: var(--team);
+  animation: box-won 440ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.challenge {
+@keyframes box-won {
+  from {
+    transform: scale(0.3);
+  }
+  to {
+    transform: none;
+  }
+}
+
+/* A section of the auction: a small label, the clock where the display shows something, then its body. */
+.auction-section {
   display: grid;
   gap: 8px;
-  padding: 16px;
-  border: 1px solid var(--line);
-  border-radius: var(--r-box);
+  padding: 10px 14px 12px;
+  border-radius: var(--r-plate);
+  background: var(--block);
+  box-shadow: inset 0 0 0 1px var(--block-line);
 }
 
-.challenge-main {
-  margin: 0;
-  font-size: 22px;
-  font-weight: 900;
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 24px;
 }
 
-.challenge-note {
+.section-label {
   margin: 0;
   color: var(--ink-soft);
-}
-
-.hit-counters {
-  display: flex;
-  gap: 12px;
-}
-
-.win-button {
-  flex: 1;
-  border-color: var(--team);
-  background: var(--team);
-  color: var(--ink);
-}
-
-/* Day end and announcement */
-.summary-line {
-  margin: 0;
-  padding: 10px 14px;
-  border-radius: var(--r-box);
-  background: var(--sky);
+  font-size: var(--fs-small);
   font-weight: 600;
 }
 
+.challenge-name {
+  margin: 0;
+  font-size: var(--fs-heading);
+  font-weight: 900;
+}
+
+.challenge-hint {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: var(--fs-small);
+  line-height: 1.7;
+}
+
+.section-answer {
+  margin: 0;
+  font-size: var(--fs-heading);
+  font-weight: 900;
+  line-height: 1.6;
+}
+
+.section-text {
+  margin: 0;
+  font-size: var(--fs-label);
+}
+
+.timer-length {
+  color: var(--ink-soft);
+  font-size: var(--fs-small);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* What the display shows, piece by piece: the numbers and operations, or the scattered words. */
+.math-steps,
+.word-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.math-steps li,
+.word-chips li {
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: var(--white);
+  box-shadow: inset 0 0 0 1px var(--line);
+  font-size: var(--fs-label);
+  font-weight: 600;
+}
+
+.math-steps li {
+  min-width: 44px;
+  font-size: var(--fs-heading);
+  font-weight: 900;
+  text-align: center;
+}
+
+.hit-counters {
+  display: grid;
+  gap: 8px;
+}
+
+.hit-counters .team-tile {
+  --rest: calc(var(--tile-h) * 0.85);
+  width: 100%;
+  font-size: var(--fs-label);
+}
+
+/* Memory: what the teams will write on the board, to check against. */
+.memory-items {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.memory-items li {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 8px 4px;
+  border-radius: var(--r-control);
+  background: var(--white);
+  font-size: var(--fs-small);
+  font-weight: 600;
+  text-align: center;
+}
+
+.memory-items[data-kind='words'] li {
+  padding: 10px 4px;
+}
+
+.memory-image {
+  width: 32px;
+  height: 32px;
+}
+
+.memory-image > svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* The end of a challenge: the swap above the two teams' buttons. */
+.win-actions {
+  display: grid;
+  gap: 8px;
+}
+
+/*
+ * The auction's buttons stay in sight at the foot of the panel, however long the challenge is: they hold
+ * to the bottom while the sections scroll under them.
+ */
+.auction-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+  margin-inline: -16px;
+  margin-bottom: -18px;
+  padding: 10px 16px 16px;
+  border-radius: 0 0 14px 14px;
+  background: var(--white);
+}
+
+.win-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.win-button {
+  width: 100%;
+  font-size: var(--fs-label);
+}
+
+/* The day's tally: what each team gained today, the most first. */
+.day-tally {
+  display: grid;
+  gap: 8px;
+}
+
+.tally-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tally-list .team-tile {
+  width: 100%;
+  font-size: var(--fs-label);
+}
+
+.tally-gain {
+  color: var(--ink-soft);
+  font-size: var(--fs-heading);
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+
+.tally-gain[data-sign='up'] {
+  color: var(--ok);
+}
+
+.tally-gain[data-sign='down'] {
+  color: var(--no);
+}
+
+.tally-same {
+  color: var(--ink-soft);
+  font-size: var(--fs-small);
+}
+
+/* Day end */
 .extend-row {
   display: flex;
   align-items: center;
+  gap: 8px;
+}
+
+.extend-label {
+  flex: 1;
+  font-size: var(--fs-label);
+  font-weight: 600;
+}
+
+/* The announcement: one part at a time, in the same white card, framed in ink, as the day's steps. */
+.announce {
+  display: grid;
   gap: 12px;
-  padding: 12px;
-  border: 1px solid var(--line);
-  border-radius: var(--r-box);
+  padding: 20px 20px 28px;
+}
+
+.announce-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.announce-head h2 {
+  margin: 0;
+  font-size: var(--fs-heading);
+  font-weight: 900;
+}
+
+.announce-count {
+  color: var(--ink-soft);
+  font-size: var(--fs-small);
+}
+
+.announce-card {
+  --block: var(--sky);
+  display: grid;
+  gap: 14px;
+  padding: 14px 16px 18px;
+  border: 2px solid var(--ink);
+  border-radius: 16px;
+  background: var(--white);
+}
+
+.announce-card .track-marker {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--white);
+}
+
+.announce-title {
+  margin: 0;
+  font-size: var(--fs-heading);
+  font-weight: 900;
 }
 
 .announce-list {
   display: grid;
-  gap: 8px;
+  gap: 4px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -527,49 +1396,97 @@
 .announce-list li {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
+  font-size: var(--fs-label);
 }
 
-.announce-title {
-  font-size: 18px;
+.announce-list .team-tile {
+  flex: 1;
+}
+
+.announce-list strong {
+  font-size: var(--fs-heading);
   font-weight: 900;
+  font-variant-numeric: tabular-nums;
 }
 
+.announce-rank {
+  width: 22px;
+  color: var(--ink-soft);
+  font-weight: 600;
+  text-align: center;
+}
+
+/* A mission's result: its picture in the team's colours, the team and the mission, and what it gave. */
 .announce-mission {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-plate);
+  background: var(--white);
+}
+
+.announce-mission .mission-art {
+  --art: 64px;
+}
+
+.announce-mission-main {
   display: grid;
-  gap: 8px;
-  padding: 16px;
-  border: 2px solid var(--team);
-  border-radius: var(--r-box);
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
 }
 
 .announce-mission p {
   margin: 0;
-  font-size: 20px;
+  font-size: var(--fs-label);
   font-weight: 600;
 }
 
 .announce-mission strong {
+  display: grid;
+  justify-items: center;
   color: var(--no);
-  font-size: 22px;
+  font-size: var(--fs-small);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.announce-mission strong > span {
+  font-size: var(--fs-heading);
+  font-weight: 900;
 }
 
 .announce-mission strong[data-done] {
   color: var(--ok);
 }
 
-/* Log */
+/* The log, over the map from the far side. */
 .log {
   position: fixed;
-  inset-block: 68px 0;
+  top: var(--top);
+  bottom: 0;
   inset-inline-end: 0;
   z-index: 10;
-  width: 400px;
-  padding: 24px;
-  overflow: auto;
+  width: 380px;
+  overflow-y: auto;
+  padding: 12px 20px 20px;
   border-inline-start: 1px solid var(--line-strong);
   background: var(--white);
+}
+
+.log-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.log-head h2 {
+  margin: 0;
+  font-size: var(--fs-heading);
+  font-weight: 900;
 }
 
 .log-list {
@@ -582,16 +1499,20 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 12px 0;
+  min-height: 44px;
+  padding: 6px 0;
   border-bottom: 1px solid var(--line);
+  font-size: var(--fs-label);
 }
 
 .log-day {
-  min-width: 56px;
+  flex: none;
+  min-width: 52px;
   color: var(--ink-soft);
-  font-size: 13px;
+  font-size: var(--fs-small);
 }
 
 .log-dot {
+  flex: none;
   width: 22px;
 }

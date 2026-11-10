@@ -25,16 +25,48 @@
   color: var(--ink);
 }
 
-.team-symbol > svg {
+.team-symbol > svg,
+.team-glyph > svg {
   width: 100%;
   height: 100%;
+}
+
+.team-glyph {
+  display: block;
+  color: var(--ink);
+}
+
+/* A team's name inside a sentence: on its colour, with its symbol. */
+.team-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 6px;
+  border-radius: var(--r-chip);
+  background: var(--team);
+  color: var(--ink);
+  font-weight: 600;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+
+.team-name > .team-glyph {
+  width: 0.75em;
+  height: 0.75em;
 }
 
 .team-badge {
   display: inline-flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  min-width: 0;
   font-weight: 600;
+}
+
+.team-badge-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Cards: white on the sky, with a soft line. */
@@ -47,8 +79,167 @@
 
 .card-title {
   margin: 0 0 16px;
-  font-size: 22px;
+  font-size: var(--fs-heading);
   font-weight: 900;
+}
+
+/*
+ * A team's tile, the one way the site shows a team: its colour fills the start of the tile (a quarter of
+ * it at least, and never too narrow for its symbol), holds the team's symbol, and ends in a soft curve:
+ * a rounded top that sweeps down to the bottom. Filled, the colour sweeps across the whole tile: the
+ * team is chosen, or it is its turn.
+ */
+.team-tile {
+  --tile-h: 52px;
+  --rest: max(25cqi, calc(var(--tile-h) * 0.8));
+  --curve: calc(var(--tile-h) * 0.6);
+  position: relative;
+  isolation: isolate;
+  container-type: inline-size;
+  display: flex;
+  align-items: center;
+  min-height: var(--tile-h);
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--r-tile);
+  background: var(--white);
+  box-shadow: inset 0 0 0 1px var(--line);
+  color: var(--ink);
+  font: inherit;
+  text-align: start;
+}
+
+.team-tile-paint {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  z-index: -1;
+  width: calc(100cqi + var(--curve));
+  background: var(--team);
+  mask:
+    linear-gradient(#000 0 0) right / calc(100% - var(--curve) + 1px) 100% no-repeat,
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath d='M100 0H54C24 0 0 16 0 35C0 71 45 100 100 100Z'/%3E%3C/svg%3E")
+      left / var(--curve) 100% no-repeat;
+  transform: translateX(calc(100cqi - var(--rest)));
+  transition: transform 560ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.team-tile[data-filled] .team-tile-paint {
+  transform: none;
+}
+
+.team-tile-mark {
+  position: relative;
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  align-self: stretch;
+  width: var(--rest);
+  color: var(--ink);
+}
+
+.team-tile-mark > .team-glyph {
+  width: calc(var(--tile-h) * 0.34);
+  height: calc(var(--tile-h) * 0.34);
+}
+
+/* A player's number on the team's colour, like a shirt, with the symbol small in the corner. */
+.team-tile-mark:has(.team-tile-number) > .team-glyph {
+  position: absolute;
+  top: 6px;
+  inset-inline-start: 7px;
+  width: 11px;
+  height: 11px;
+}
+
+.team-tile-number {
+  font-size: var(--fs-title);
+  font-weight: 900;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.team-tile-body {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding-inline: calc(var(--curve) + 4px) 12px;
+}
+
+.team-tile-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.team-tile-button {
+  cursor: pointer;
+  transition: transform 120ms ease-out;
+}
+
+.team-tile-button:hover:not(:disabled):not([data-filled]) .team-tile-paint {
+  transform: translateX(calc(100cqi - var(--rest) - 10cqi));
+}
+
+.team-tile-button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.team-tile-button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* An action card's picture, in the ink frame of the identity's action cards. CSS sets its size. */
+.card-art {
+  display: block;
+  flex: none;
+  width: 64px;
+  height: 64px;
+  border: 3px solid var(--ink);
+  border-radius: 12px;
+  background: var(--sky);
+}
+
+/* A secret mission's picture: a small map, or an icon on the sky. `--art` sets its size. */
+.mission-art {
+  --art: 56px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: var(--art);
+  height: var(--art);
+}
+
+.mission-art > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.mission-art[data-kind='icon'] {
+  border-radius: calc(var(--art) * 0.18);
+  background: var(--sky);
+}
+
+.mission-art[data-kind='icon'] > .icon {
+  width: 46%;
+  height: 46%;
+  color: var(--ink);
+}
+
+.mission-art-teams {
+  display: flex;
+  gap: 4px;
 }
 
 /* Fields */
@@ -61,13 +252,14 @@
   background: var(--white);
   color: var(--ink);
   font: inherit;
-  font-size: 18px;
+  font-size: var(--fs-body);
   font-weight: 600;
+  caret-color: var(--ink);
 }
 
 .stepper {
   display: inline-grid;
-  grid-template-columns: 44px minmax(48px, 1fr) 44px;
+  grid-template-columns: 44px minmax(44px, 1fr) 44px;
   align-items: center;
   min-height: 44px;
   border: 1px solid var(--line-strong);
@@ -79,7 +271,7 @@
   height: 100%;
   border: 0;
   background: none;
-  font-size: 22px;
+  font-size: 20px;
   cursor: pointer;
 }
 
@@ -90,33 +282,45 @@
 
 .stepper > output {
   text-align: center;
-  font-size: 20px;
+  font-size: var(--fs-heading);
   font-weight: 900;
 }
 
+/* A choice between a few options: the chosen one stands white, framed in ink, on the sky. */
 .segmented {
   display: inline-flex;
-  gap: 4px;
+  gap: 2px;
   padding: 4px;
-  border-radius: var(--r-box);
+  border-radius: var(--r-plate);
   background: var(--sky);
 }
 
 .segmented > button {
+  flex: 1;
   min-width: 64px;
-  min-height: 40px;
-  padding: 0 16px;
+  min-height: 44px;
+  padding: 0 14px;
   border: 0;
-  border-radius: var(--r-control);
+  border-radius: 9px;
   background: none;
-  font-size: 20px;
-  font-weight: 900;
+  color: var(--ink-soft);
+  font-size: var(--fs-label);
+  font-weight: 600;
   cursor: pointer;
+  transition:
+    background-color 150ms ease-out,
+    box-shadow 150ms ease-out,
+    color 150ms ease-out;
+}
+
+.segmented > button:hover:not(:disabled):not([aria-checked='true']) {
+  color: var(--ink);
 }
 
 .segmented > button[aria-checked='true'] {
-  background: var(--ink);
-  color: var(--white);
+  background: var(--white);
+  box-shadow: inset 0 0 0 2px var(--ink);
+  color: var(--ink);
 }
 
 .segmented > button:disabled {
@@ -132,11 +336,11 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 32px;
-  padding: 2px 10px;
+  min-height: 28px;
+  padding: 2px 8px;
   border-radius: var(--r-chip);
   background: var(--sky);
-  font-size: 15px;
+  font-size: var(--fs-small);
   font-weight: 600;
 }
 
@@ -149,14 +353,14 @@
   border: 0;
   background: none;
   color: var(--ink);
-  font-size: 17px;
+  font-size: var(--fs-label);
   font-weight: 600;
   cursor: pointer;
 }
 
 .error-text {
   margin: 0;
-  font-size: 20px;
+  font-size: var(--fs-label);
   font-weight: 600;
 }
 
@@ -164,6 +368,7 @@
 .timer {
   position: relative;
   display: inline-grid;
+  flex: none;
   place-items: center;
 }
 
@@ -193,37 +398,198 @@
 }
 
 .timer-number {
-  font-size: 20px;
+  font-size: var(--fs-label);
   font-weight: 900;
+  font-variant-numeric: tabular-nums;
 }
 
-/* The bar across the top of the referee screen. */
+/* A question asked in place, instead of a browser dialog. */
+/* It asks before something that can't be taken back easily, so it is framed in red. */
+.confirm {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border: 2px solid var(--no);
+  border-radius: var(--r-box);
+  background: var(--white);
+}
+
+.confirm p {
+  margin: 0;
+  font-size: var(--fs-label);
+}
+
+.confirm-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/*
+ * The bar across the top of the referee screen, on the same sky as the rest: the logo, then what is on
+ * now (the day, or the setup) after a hairline, then the tools as one group at the far side.
+ */
 .top-bar {
   display: flex;
   align-items: center;
-  gap: 16px;
-  min-height: 68px;
-  padding: 12px 24px;
-  border-bottom: 1px solid var(--line);
-  background: var(--white);
+  gap: 20px;
+  min-height: 64px;
+  padding: 0 24px;
+  background: var(--sky);
+}
+
+.top-bar-logo {
+  flex: none;
+  width: auto;
+  height: 34px;
 }
 
 .top-bar-title {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  align-items: baseline;
+  gap: 8px;
   margin: 0;
-  font-size: 24px;
+  padding-inline-start: 20px;
+  border-inline-start: 1px solid var(--line-strong);
+  color: var(--ink);
+  font-size: var(--fs-title);
   font-weight: 900;
+  line-height: 32px;
+  white-space: nowrap;
 }
 
-.top-bar-title img {
-  width: 44px;
-  height: auto;
+/* The day's number slides in when a new day starts. */
+.top-bar-day {
+  display: inline-block;
+  animation: day-in 560ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes day-in {
+  from {
+    opacity: 0;
+    transform: translateY(70%);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* «من ٨» after the day: quieter than the day itself. */
+.top-bar-of {
+  color: var(--ink-soft);
+  font-size: var(--fs-label);
+  font-weight: 600;
 }
 
 .top-bar-actions {
   display: flex;
+  align-items: center;
   gap: 12px;
   margin-inline-start: auto;
+}
+
+/* Tools in one white group, split by hairlines; the one that is open stays framed in ink. */
+.toolbar {
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  border-radius: var(--r-plate);
+  background: var(--white);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.toolbar > .button {
+  min-height: 44px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--ink);
+}
+
+.toolbar > .button + .button {
+  position: relative;
+}
+
+.toolbar > .button + .button::before {
+  content: '';
+  position: absolute;
+  inset-inline-start: -1px;
+  top: 12px;
+  bottom: 12px;
+  width: 1px;
+  background: var(--line);
+}
+
+.toolbar > .button:hover:not(:disabled) {
+  background: var(--sky);
+}
+
+.toolbar > .button[aria-pressed='true'] {
+  background: var(--white);
+  box-shadow: inset 0 0 0 2px var(--ink);
+}
+
+.toolbar > .button:disabled {
+  background: transparent;
+  color: var(--ink-soft);
+  opacity: 0.45;
+}
+
+/*
+ * The identity's opening page: the teams' tiles in from the four corners, heading for the middle, behind
+ * the content and never touching it. The tiles pop in from each corner outwards.
+ */
+.corner-tiles {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.corner {
+  position: absolute;
+  width: min(34vw, 500px);
+  height: auto;
+  overflow: visible;
+}
+
+.corner[data-at='top-left'] {
+  top: -16px;
+  left: -16px;
+}
+
+.corner[data-at='top-right'] {
+  top: -16px;
+  right: -16px;
+  transform: scaleX(-1);
+}
+
+.corner[data-at='bottom-left'] {
+  bottom: -16px;
+  left: -16px;
+  transform: scaleY(-1);
+}
+
+.corner[data-at='bottom-right'] {
+  right: -16px;
+  bottom: -16px;
+  transform: scale(-1, -1);
+}
+
+.corner-tile {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: tile-in 560ms cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+  animation-delay: calc(var(--i) * 55ms);
+}
+
+@keyframes tile-in {
+  from {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }

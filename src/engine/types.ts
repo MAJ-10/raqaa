@@ -161,6 +161,7 @@ export type Auction = {
 export type Pending =
   | { kind: 'fence'; auction: number } // the defender decides: use the fence or not
   | { kind: 'plan'; team: Team } // the team places the plan it just took
+  | { kind: 'inspector'; team: Team } // the team looks at another team's missions as soon as it takes the inspector
   | { kind: 'planTake'; team: Team; from: Team; plot: PlotId }; // the plan fired: pick a plot of the losing bidder
 
 export type GameState = {

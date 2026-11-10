@@ -47,15 +47,15 @@ describe('reading the questions file', () => {
   it('says which column is missing', () => {
     expect(parseQuestions(csv('سؤال,جواب\nأ,ب\n'))).toEqual({
       ok: false,
-      error: 'الصف الأول لازم يكون فيه عمودا «السؤال» و«الإجابة».',
+      error: 'يجب أن يكون في الصف الأول عمودا «السؤال» و«الإجابة».',
     });
   });
 
   it('gives the row of a question without an answer, as Excel numbers it', () => {
-    expect(parseQuestions(csv('السؤال,الإجابة\nأ,١\nب,\n'))).toEqual({ ok: false, error: 'السؤال في الصف 3 بدون إجابة.' });
+    expect(parseQuestions(csv('السؤال,الإجابة\nأ,١\nب,\n'))).toEqual({ ok: false, error: 'السؤال في الصف ٣ بلا إجابة.' });
   });
 
   it('refuses a file with no questions', () => {
-    expect(parseQuestions(csv('السؤال,الإجابة\n'))).toEqual({ ok: false, error: 'ما لقيت أي سؤال في الملف.' });
+    expect(parseQuestions(csv('السؤال,الإجابة\n'))).toEqual({ ok: false, error: 'لا توجد أسئلة في الملف.' });
   });
 });

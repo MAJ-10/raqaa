@@ -92,6 +92,11 @@ export function buildOrder(s: GameState): Team[] {
   );
 }
 
+/** The referee can still choose individual or group: until the numbers or the question are shown. */
+export function canChooseKind(s: GameState): boolean {
+  return s.step === 'question' && s.question.numbers === null;
+}
+
 /** The day's question from the file, or null when the referee asks their own or the file ran out. */
 export function currentQuestion(s: GameState): Question | null {
   if (s.question.outside || s.question.index === null) return null;
@@ -133,6 +138,18 @@ export function wins(auction: Auction, team: Team): number {
 export function currentChallenge(auction: Auction): Challenge | null {
   const last = auction.challenges.at(-1);
   return last && !last.winner ? last : null;
+}
+
+/** Timer lengths in seconds. An individual question has no timer. */
+export const TIMER_SECONDS = { question: 20, challenge: 45, memory: 20 } as const;
+
+/** How long the running timer lasts: a group question 20 seconds, a memory challenge 20, any other challenge 45. */
+export function timerSeconds(s: GameState): number | null {
+  if (!s.timer) return null;
+  if (s.timer.kind === 'question') return TIMER_SECONDS.question;
+  const auction = openAuction(s);
+  const challenge = auction ? currentChallenge(auction) : null;
+  return challenge?.content.type === 'memory' ? TIMER_SECONDS.memory : TIMER_SECONDS.challenge;
 }
 
 /** Where a fired plan can strike: the losing bidder's plots next to the plan plot, never a base. */

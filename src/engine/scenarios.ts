@@ -3,10 +3,10 @@ import { initialState, reduce } from './reduce.ts';
 import { nextAuction } from './select.ts';
 import type { EventInput, GameEvent, GameState, PlotId, QuestionKind, Setup, Team } from './types.ts';
 
-/** One move in a team's turn: a plot id builds there. */
+/** One move in a team's turn: a plot id builds there. A build that takes the inspector says whom it inspects. */
 export type Move =
   | PlotId
-  | { build: PlotId; bridge?: boolean; plan?: [PlotId, PlotId] }
+  | { build: PlotId; bridge?: boolean; plan?: [PlotId, PlotId]; inspect?: Team }
   | { auction: PlotId; fence?: boolean }
   | 'crane';
 
@@ -59,6 +59,10 @@ export class Play {
         if (this.state.pending?.kind === 'plan') {
           if (!('plan' in m) || !m.plan) throw new Error(`${team} took a plan: say where it goes`);
           this.do({ type: 'card/plan', team, plots: m.plan });
+        }
+        if (this.state.pending?.kind === 'inspector') {
+          if (!('inspect' in m) || !m.inspect) throw new Error(`${team} took the inspector: say whom it inspects`);
+          this.do({ type: 'card/inspector', team, target: m.inspect });
         }
       } else {
         this.do({ type: 'auction/declare', team, plot: move.auction });

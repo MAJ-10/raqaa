@@ -1,6 +1,6 @@
 import logo from '../../assets/brand/logo-horizontal.svg';
 import { announcement, ranking } from '../engine/missions.ts';
-import { currentChallenge, currentQuestion, openAuction, population, populationHidden, wins } from '../engine/select.ts';
+import { currentChallenge, currentQuestion, openAuction, population, populationHidden, timerSeconds, wins } from '../engine/select.ts';
 import { TEAMS, type GameEvent, type GameState } from '../engine/types.ts';
 import { CHALLENGE_NAMES, MISSION_NAMES } from '../ui/names.ts';
 import { formatNumber, toArabicDigits } from '../ui/number.ts';
@@ -57,7 +57,7 @@ function PlainState({ state }: { state: GameState }) {
           {state.step !== 'question' ? (
             <p className="display-question">{question ? toArabicDigits(question.text) : 'سؤال من الحكم'}</p>
           ) : null}
-          {state.step === 'asking' && state.timer ? <Timer startedAt={state.timer.startedAt} size={96} /> : null}
+          {state.step === 'asking' && state.timer ? <Timer startedAt={state.timer.startedAt} seconds={timerSeconds(state) ?? 0} size={96} /> : null}
           {state.step === 'answer' && question ? (
             <p className="display-answer">{toArabicDigits(question.answer)}</p>
           ) : null}
@@ -80,7 +80,7 @@ function PlainState({ state }: { state: GameState }) {
             {names[auction.defender].name}
           </p>
           {challenge ? <p>{CHALLENGE_NAMES[challenge.content.type]}</p> : null}
-          {state.timer ? <Timer startedAt={state.timer.startedAt} size={96} /> : null}
+          {state.timer ? <Timer startedAt={state.timer.startedAt} seconds={timerSeconds(state) ?? 0} size={96} /> : null}
         </div>
       );
     }

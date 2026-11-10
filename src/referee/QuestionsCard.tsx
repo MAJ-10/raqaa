@@ -30,7 +30,7 @@ export function QuestionsCard({ questions, source, onLoad }: Props) {
       }
     } catch {
       // For example a OneDrive file that is only online and can't be opened right now.
-      setError('ما قدرت أفتح الملف. تأكد إنه موجود على الجهاز وجرّب مرة ثانية.');
+      setError('تعذّر فتح الملف. تأكّد أنه موجود على الجهاز، ثم حاول مرة أخرى.');
     } finally {
       if (input.current) input.current.value = '';
     }

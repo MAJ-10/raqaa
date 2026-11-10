@@ -2,6 +2,7 @@
 // Where questions come from (a file today, maybe a built-in bank later) is kept apart from how a file is read.
 import { read, utils, writeFile, type WorkBook } from 'xlsx';
 import type { Question } from '../engine/types.ts';
+import { formatNumber } from '../ui/number.ts';
 
 export type ReadResult = { ok: true; questions: Question[] } | { ok: false; error: string };
 
@@ -31,17 +32,17 @@ export function parseQuestions(data: Uint8Array): ReadResult {
       ? read(data, { type: 'array', dense: true })
       : read(new TextDecoder('utf-8').decode(data), { type: 'string', dense: true });
   } catch {
-    return { ok: false, error: 'ما قدرت أقرأ الملف. استخدم ملف Excel أو CSV.' };
+    return { ok: false, error: 'تعذّرت قراءة الملف. استخدم ملف Excel أو CSV.' };
   }
   const sheet = book.Sheets[book.SheetNames[0] ?? ''];
-  if (!sheet) return { ok: false, error: 'الملف فاضي.' };
+  if (!sheet) return { ok: false, error: 'الملف فارغ.' };
 
   const rows = utils.sheet_to_json<unknown[]>(sheet, { header: 1, blankrows: true, defval: '', raw: false });
   const header = (rows[0] ?? []).map((value) => normalise(cell(value)));
   const q = header.indexOf(normalise(QUESTION));
   const a = header.indexOf(normalise(ANSWER));
   if (q < 0 || a < 0) {
-    return { ok: false, error: `الصف الأول لازم يكون فيه عمودا «${QUESTION}» و«${ANSWER}».` };
+    return { ok: false, error: `يجب أن يكون في الصف الأول عمودا «${QUESTION}» و«${ANSWER}».` };
   }
 
   const questions: Question[] = [];
@@ -51,11 +52,11 @@ export function parseQuestions(data: Uint8Array): ReadResult {
     const answer = cell(row[a]);
     if (!text && !answer) continue;
     const line = i + 1; // the row number as Excel shows it
-    if (!answer) return { ok: false, error: `السؤال في الصف ${line} بدون إجابة.` };
-    if (!text) return { ok: false, error: `الإجابة في الصف ${line} بدون سؤال.` };
+    if (!answer) return { ok: false, error: `السؤال في الصف ${formatNumber(line)} بلا إجابة.` };
+    if (!text) return { ok: false, error: `الإجابة في الصف ${formatNumber(line)} بلا سؤال.` };
     questions.push({ text, answer });
   }
-  if (questions.length === 0) return { ok: false, error: 'ما لقيت أي سؤال في الملف.' };
+  if (questions.length === 0) return { ok: false, error: 'لا توجد أسئلة في الملف.' };
   return { ok: true, questions };
 }
 

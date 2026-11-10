@@ -31,9 +31,26 @@ test.describe('setup', () => {
     await expect(page.locator('.plot')).toHaveCount(49); // the 7×7 map
   });
 
+  test('Enter moves on to the next name', async ({ page }) => {
+    await createRoom(page, '/');
+    await nameField(page, 'coral').fill('الرواد');
+    await nameField(page, 'coral').press('Enter');
+    await expect(nameField(page, 'blue')).toBeFocused();
+    await page.keyboard.type('النجوم');
+    await page.keyboard.press('Enter');
+    await expect(nameField(page, 'green')).toBeFocused();
+    await expect(nameField(page, 'blue')).toHaveValue('النجوم');
+    await nameField(page, 'gold').press('Enter'); // the last name closes the field
+    await expect(nameField(page, 'gold')).not.toBeFocused();
+  });
+
   test('missions are hidden once chosen, up to three per team', async ({ page }) => {
     await createRoom(page, '/');
     await page.getByRole('button', { name: 'مشاريع الحي المرجاني' }).click();
+    // Each level says what success adds to the population, and what failure takes away.
+    const rewards = page.locator('.mission-level').first().locator('.mission-reward');
+    await expect(rewards).toHaveText(['نجاح +٤٠٠', 'فشل −٢٠٠']);
+    await expect(page.locator('.mission-level').last().locator('.mission-reward')).toHaveText(['نجاح +١٬٢٠٠', 'فشل −٦٠٠']);
     for (const name of ['برج الرقعة', 'قلب المدينة', 'مربع سكني']) await page.getByRole('button', { name }).click();
     await expect(page.getByRole('button', { name: 'جار الجميع' })).toBeDisabled();
     await page.getByRole('button', { name: 'تم' }).click();
@@ -50,7 +67,7 @@ test.describe('setup', () => {
       mimeType: 'text/csv',
       buffer: Buffer.from('سؤال,جواب\nأ,ب\n'),
     });
-    await expect(page.getByRole('alert')).toHaveText('الصف الأول لازم يكون فيه عمودا «السؤال» و«الإجابة».');
+    await expect(page.getByRole('alert')).toHaveText('يجب أن يكون في الصف الأول عمودا «السؤال» و«الإجابة».');
   });
 
   test('the empty template downloads with the two columns', async ({ page }) => {
