@@ -1,0 +1,251 @@
+/* D11 to D17: the auction. The two sides and the plot between them, then the challenge. */
+.window-auction {
+  width: 940px;
+  gap: 0;
+}
+
+.duel-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto minmax(0, 1fr);
+  align-items: center;
+  gap: 20px;
+}
+
+.duel-side .team-tile-name {
+  font-size: 28px;
+  font-weight: 900;
+}
+
+.duel-boxes {
+  display: flex;
+  gap: 8px;
+}
+
+.duel-box {
+  width: 30px;
+  height: 30px;
+  border: 3px solid var(--team);
+  border-radius: 8px;
+  background: var(--white);
+}
+
+.duel-box[data-won] {
+  background: var(--team);
+  animation: duel-won 440ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes duel-won {
+  from {
+    scale: 0.3;
+  }
+  to {
+    scale: 1;
+  }
+}
+
+.duel-plot {
+  width: 116px;
+  height: 144px;
+  overflow: visible;
+}
+
+/* The challenge under the two sides, once it starts. */
+.challenge {
+  display: grid;
+  gap: 18px;
+  margin-top: 22px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+
+.challenge-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  min-height: 84px;
+}
+
+.challenge-title {
+  display: grid;
+}
+
+.challenge-number {
+  color: var(--ink-soft);
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.challenge-type {
+  margin: 0;
+  font-size: 42px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.challenge-text {
+  margin: 0;
+  font-size: 34px;
+  font-weight: 900;
+  text-align: center;
+}
+
+/* The answer once the challenge is over: in the light box of the question's answer. */
+.challenge-answer {
+  justify-self: center;
+  min-width: 300px;
+  margin: 0;
+  padding: 8px 40px 14px;
+  border-radius: var(--r-box);
+  background: var(--sky);
+  box-shadow: inset 0 0 0 2px var(--line-strong);
+  font-size: 56px;
+  font-weight: 900;
+  text-align: center;
+}
+
+.write-now {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+}
+
+.write-now > .icon {
+  box-sizing: content-box;
+  padding: 18px;
+  border-radius: 20px;
+  background: var(--sky);
+}
+
+.write-now p {
+  margin: 0;
+  font-size: 34px;
+  font-weight: 900;
+}
+
+/* D12: the maths steps in a row, the newest in ink, the question mark (then the answer) at the end. */
+.math-chain {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.math-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.math-box {
+  display: inline-grid;
+  place-items: center;
+  min-width: 80px;
+  height: 76px;
+  padding: 0 14px 4px;
+  border-radius: var(--r-box);
+  background: var(--sky);
+  box-shadow: inset 0 0 0 1px var(--line);
+  font-size: 38px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.math-box[data-new] {
+  background: var(--ink);
+  box-shadow: none;
+  color: var(--white);
+}
+
+.math-result {
+  background: var(--white);
+  box-shadow: inset 0 0 0 3px var(--ink);
+}
+
+.math-result[data-answer] {
+  min-width: 120px;
+  background: var(--sky);
+  box-shadow: inset 0 0 0 2px var(--line-strong);
+}
+
+.math-arrow {
+  color: var(--line-strong);
+  font-size: 30px;
+  font-weight: 900;
+}
+
+/* D11: the words to put in order, scattered; then the sentence in its order, in the answer's box. */
+.order-words {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.order-words li {
+  padding: 8px 22px 14px;
+  border-radius: var(--r-box);
+  background: var(--sky);
+  box-shadow: inset 0 0 0 1px var(--line);
+  font-size: 38px;
+  font-weight: 900;
+}
+
+.order-words[data-solved] {
+  padding: 16px;
+  border-radius: 18px;
+  background: var(--sky);
+  box-shadow: inset 0 0 0 2px var(--line-strong);
+}
+
+.order-words[data-solved] li {
+  background: var(--white);
+}
+
+/* D14 and D15: eight pictures or words. */
+.memory-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.memory-grid li {
+  display: grid;
+  place-items: center;
+  height: 88px;
+  border-radius: var(--r-box);
+  background: var(--sky);
+  box-shadow: inset 0 0 0 1px var(--line);
+  font-size: 36px;
+  font-weight: 900;
+}
+
+.memory-picture {
+  width: 66px;
+  height: 66px;
+}
+
+.memory-picture > svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* D17: a tower of cups for each side. */
+.cup-towers {
+  display: flex;
+  justify-content: space-around;
+}
+
+.cup-tower {
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+}

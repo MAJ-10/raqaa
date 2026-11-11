@@ -1,7 +1,6 @@
 // The referee's play screen on the website: a day through the UI, then auctions, cards and the end
 // from ready-made scenarios.
-import { lastDayScenario, openAuctionScenario, planScenario, Play, sampleSetup } from '../src/engine/scenarios.ts';
-import type { Team } from '../src/engine/types.ts';
+import { fourSmallDays, lastDayScenario, openAuctionScenario, planScenario, Play, sampleSetup } from '../src/engine/scenarios.ts';
 import { createRoom, expect, fillSetup, openDisplay, seedGame, test } from './fixtures.ts';
 
 const heading = (page: import('@playwright/test').Page, name: string) => page.getByRole('heading', { name });
@@ -227,7 +226,7 @@ test.describe('play', () => {
   test('the referee sees the next challenge, with what it is, before starting it', async ({ page }) => {
     const { setup, events } = openAuctionScenario();
     await seedGame(page, '/', setup, events.slice(0, -1)); // before the second challenge starts
-    const type = page.locator('.challenge h3');
+    const type = page.locator('.challenge-name');
     await expect(type).toHaveText(/حساب ذهني|تهجئة|ذاكرة|ترتيب|دقة|بناء/);
     const drawn = await type.textContent();
     await expect(page.locator('.challenge-hint')).not.toBeEmpty();
@@ -237,6 +236,7 @@ test.describe('play', () => {
     await button(page, 'ابدأ التحدي').click();
     await expect(type).toHaveText(drawn!); // the same challenge starts
     await expect(page.locator('.timer')).toBeVisible();
+    await expect(page.locator('.challenge-hint')).toHaveCount(0); // explained before it started
     await expect(button(page, 'فاز النجوم')).toBeVisible();
   });
 
@@ -275,22 +275,3 @@ test.describe('play', () => {
     await expect(page.locator('.timer-number')).toHaveText('٢٠');
   });
 });
-
-/** A 7×7 game four days in: coral reaches 2-4 (and holds the bridge), next to the plan on 3-4; blue reaches 3-5, next to the inspector on 4-5. */
-function fourSmallDays(): Play {
-  const two: Team[] = ['coral', 'blue'];
-  return new Play(sampleSetup(7, 8))
-    .do({ type: 'game/start' })
-    .question(two)
-    .build({ coral: ['1-2'], blue: ['1-6'] })
-    .endDay()
-    .question(two)
-    .build({ coral: ['1-3'], blue: ['1-5'] })
-    .endDay()
-    .question(two)
-    .build({ coral: ['1-4'], blue: ['2-5'] })
-    .endDay()
-    .question(two)
-    .build({ coral: ['2-4'], blue: ['3-5'] }) // coral takes the bridge on 2-4
-    .endDay();
-}

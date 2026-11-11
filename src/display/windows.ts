@@ -163,7 +163,7 @@ export function announcedPopulation(state: GameState, team: Team): number {
 }
 
 /** What a team's boards show: faded behind a window it has no part in, filled while it acts. */
-export type SignLook = {
+type SignLook = {
   faded: boolean;
   filled: boolean;
   /** The board under the name: the population, the player's number, or nothing but the cards. */

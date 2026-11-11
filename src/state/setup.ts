@@ -1,5 +1,6 @@
 // The competition setup the referee fills in before «ابدأ».
-import { TEAMS, type Setup, type Team, type TeamSetup } from '../engine/types.ts';
+import type { Random } from '../engine/content.ts';
+import { MISSIONS, TEAMS, type Question, type Setup, type Team, type TeamSetup } from '../engine/types.ts';
 
 export const LIMITS = {
   name: 14,
@@ -19,7 +20,35 @@ export function defaultSetup(): Setup {
   };
 }
 
-export type SetupProblem = { kind: 'name'; team: Team } | { kind: 'missions'; team: Team } | { kind: 'questions' };
+/** The made-up teams of a demo. A real competition's names come from the referee. */
+const DEMO_NAMES: Record<Team, string> = { coral: 'الرواد', blue: 'النجوم', green: 'الصقور', gold: 'الفرسان' };
+
+/**
+ * A demo competition, ready to start: made-up teams with two missions each, and sums for questions, so
+ * the published code carries no real question. Once started, the referee window plays it by itself.
+ */
+export function demoSetup(random: Random = Math.random): Setup {
+  const between = (min: number, max: number) => min + Math.floor(random() * (max - min + 1));
+  const sum = (): Question => {
+    const [a, b] = [between(3, 9), between(3, 9)];
+    return { text: `كم يساوي ${a} × ${b}؟`, answer: String(a * b) };
+  };
+  const team = (name: string): TeamSetup => {
+    const first = MISSIONS[between(0, MISSIONS.length - 1)]!;
+    const others = MISSIONS.filter((m) => m !== first);
+    return { name, players: between(3, 6), missions: [first, others[between(0, others.length - 1)]!] };
+  };
+  return {
+    size: 9,
+    days: 10,
+    teams: Object.fromEntries(TEAMS.map((t) => [t, team(DEMO_NAMES[t])])) as Record<Team, TeamSetup>,
+    questions: Array.from({ length: 30 }, sum),
+    questionSource: { kind: 'demo', name: 'أسئلة تجريبية' },
+    demo: true,
+  };
+}
+
+type SetupProblem = { kind: 'name'; team: Team } | { kind: 'missions'; team: Team } | { kind: 'questions' };
 
 /** What still stops the competition from starting. Empty when it is ready. */
 export function setupProblems(setup: Setup): SetupProblem[] {

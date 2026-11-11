@@ -4,7 +4,7 @@ import { clearGame, saveGame, SCHEMA_VERSION, type SavedGame } from './persist.t
 import { makeId, openSyncLink, type Snapshot, type SyncLink, type SyncMessage, type Transport } from './sync.ts';
 
 /** What the referee window holds: no competition (the intro page), or a competition and its events. */
-export type RefereeView = {
+type RefereeView = {
   readonly state: GameState | null;
   readonly events: readonly GameEvent[];
 };
@@ -13,7 +13,7 @@ export type RefereeView = {
 export type DisplaySnapshot = Snapshot<GameState | null, GameEvent>;
 type Message = SyncMessage<GameState | null, GameEvent>;
 
-export type RefereeStoreOptions = {
+type RefereeStoreOptions = {
   saved?: SavedGame<Setup, GameEvent> | null;
   storage?: Storage;
   transports?: Transport[];

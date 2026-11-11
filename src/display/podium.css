@@ -1,0 +1,82 @@
+/* D21: the podium. */
+.podium {
+  position: absolute;
+  inset: 0;
+}
+
+.podium-art {
+  position: absolute;
+  inset: 0;
+  width: 1280px;
+  height: 720px;
+}
+
+.podium-title {
+  position: absolute;
+  top: 26px;
+  right: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin: 0;
+  color: var(--white);
+  font-size: 40px;
+  font-weight: 900;
+}
+
+.podium-title img {
+  width: 64px;
+  height: auto;
+}
+
+.podium-bubble {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 48px;
+  padding: 0 20px 2px;
+  border-radius: 999px;
+  background: var(--white);
+  color: var(--ink);
+  font-size: 26px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  transform: translate(-50%, -100%);
+}
+
+.podium-crown {
+  position: absolute;
+  color: var(--crown);
+  transform: translateX(-50%);
+}
+
+.podium-plate {
+  position: absolute;
+  width: 236px;
+  transform: translateX(-50%);
+}
+
+.podium-plate .team-tile-name {
+  font-size: 26px;
+  font-weight: 900;
+}
+
+.podium-rank {
+  position: absolute;
+  top: -13px;
+  left: -13px;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--white);
+  box-shadow: 0 0 0 3px var(--ink);
+  color: var(--ink);
+  font-size: 18px;
+  font-weight: 900;
+}

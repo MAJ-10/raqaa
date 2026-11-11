@@ -46,6 +46,27 @@ test.describe('single file (raqaa.html)', () => {
     expect(outside(requests, 'file:')).toEqual([]);
   });
 
+  test('closing the file and opening it again brings the competition back as it was (criterion 17)', async ({ page, context }) => {
+    await createRoom(page, singleFileUrl());
+    await fillSetup(page);
+    await page.getByRole('button', { name: 'ابدأ' }).click();
+    await page.getByRole('radio', { name: 'جماعي' }).click();
+    await page.getByRole('button', { name: 'عرض السؤال' }).click();
+    await page.getByRole('button', { name: 'عرض الإجابة' }).click();
+    await page.locator('.permit-grid').getByRole('button', { name: 'الرواد' }).click();
+    await page.getByRole('button', { name: 'تأكيد التصاريح' }).click();
+    await page.locator('.plot[data-plot="1-2"]').click();
+    await expect(page.locator('.plot[data-plot="1-2"]')).toHaveAttribute('data-team', 'coral');
+    const step = await page.locator('.track-step[aria-current="step"] h2').textContent();
+
+    await page.close();
+    const again = await context.newPage();
+    await again.goto(singleFileUrl());
+    await expect(again.getByRole('heading', { name: 'اليوم ١ من ١٢' })).toBeVisible();
+    await expect(again.locator('.plot[data-plot="1-2"]')).toHaveAttribute('data-team', 'coral');
+    await expect(again.locator('.track-step[aria-current="step"] h2')).toHaveText(step!);
+  });
+
   test('has the fonts inside it', async ({ page }) => {
     await page.goto(singleFileUrl());
     await expect(page.getByRole('button', { name: 'إنشاء غرفة' })).toBeVisible();

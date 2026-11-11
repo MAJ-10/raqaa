@@ -1,8 +1,8 @@
-import { useLayoutEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, type ReactNode } from 'react';
 import { canChooseKind } from '../../engine/select.ts';
 import type { EventInput, GameEvent, GameState, PlotId, Step, Team } from '../../engine/types.ts';
 import { Icon } from '../../ui/Icon.tsx';
-import { animate } from '../../ui/motion.ts';
+import { animate, reducedMotion } from '../../ui/motion.ts';
 import { AUCTION_NOUN, BUILDING_NOUN, countOf, KIND_NAMES } from '../../ui/names.ts';
 import { TeamSymbol } from '../../ui/TeamBadge.tsx';
 import { AuctionsBody } from './AuctionPanel.tsx';
@@ -93,8 +93,8 @@ function TrackStep({ title, icon, status, summary, children }: StepProps) {
   const wasOpen = useRef(open);
   const wasStatus = useRef(status);
 
-  // A body that opens rises in. The step that becomes current settles in as the one card and comes into
-  // view; the step just finished pops its marker.
+  // A body that opens rises in. The step that becomes current settles in as the one card; the step just
+  // finished pops its marker.
   useLayoutEffect(() => {
     if (open && !wasOpen.current) {
       animate(
@@ -115,7 +115,6 @@ function TrackStep({ title, icon, status, summary, children }: StepProps) {
         ],
         380,
       );
-      step.current?.scrollIntoView({ block: 'nearest' });
     }
     if (status === 'done' && wasStatus.current === 'current') {
       animate(
@@ -131,6 +130,16 @@ function TrackStep({ title, icon, status, summary, children }: StepProps) {
     wasOpen.current = open;
     wasStatus.current = status;
   }, [open, status]);
+
+  // The step in hand stays in full view, and keeps to it as it grows (a challenge drawn, a decision): the
+  // steps done above slide up out of its way when the side is short.
+  useEffect(() => {
+    const card = step.current;
+    if (status !== 'current' || !card) return;
+    const keep = new ResizeObserver(() => card.scrollIntoView({ block: 'nearest', behavior: reducedMotion() ? 'auto' : 'smooth' }));
+    keep.observe(card);
+    return () => keep.disconnect();
+  }, [status]);
 
   return (
     <li ref={step} className="track-step" data-status={status} aria-current={status === 'current' ? 'step' : undefined}>

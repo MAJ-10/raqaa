@@ -84,7 +84,7 @@ export function missionResults(s: GameState, team: Team): MissionResult[] {
   });
 }
 
-export type Standing = {
+type Standing = {
   team: Team;
   mapPoints: number;
   missionPoints: number;
@@ -117,7 +117,7 @@ export function ranking(s: GameState): Standing[] {
   return rows.sort((a, b) => a.rank - b.rank || TEAMS.indexOf(a.team) - TEAMS.indexOf(b.team));
 }
 
-export type AnnounceStep =
+type AnnounceStep =
   | { kind: 'population' }
   | { kind: 'mission'; team: Team; result: MissionResult }
   | { kind: 'podium' };

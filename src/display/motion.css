@@ -1,0 +1,49 @@
+/* Motion: the box a window comes in and goes out with covers the stage; the window sits in it as before. */
+.window-motion {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.window-motion > * {
+  pointer-events: auto;
+}
+
+/* The day's sky, fading away as night falls at the start of the announcement. */
+.display-dusk {
+  position: absolute;
+  inset: 0;
+  background: var(--sky);
+}
+
+/* What moves from its own middle: the ring of a plot just gained, a plan stamped on a roof. */
+.land-ring,
+.map-stamp {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* The population a plot brought, in its bubble over the map. */
+.gain-text {
+  font-size: 17px;
+  font-weight: 900;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+/* A podium tower rises from its tile. */
+.tower-body {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+
+.duel-plot-box {
+  display: grid;
+  place-items: center;
+}
+
+/* Something that comes into a window when the moment brings it. */
+.appear {
+  display: grid;
+  justify-items: center;
+}

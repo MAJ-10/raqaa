@@ -65,7 +65,7 @@ export function setSoundMuted(value: boolean): void {
 }
 
 /** Whether the display can be heard now: after the first click, and not muted. */
-export const soundOn = (): boolean => !muted && context?.state === 'running';
+const soundOn = (): boolean => !muted && context?.state === 'running';
 
 /** Plays a sound now, or `delay` seconds from now. Silent until the first click, and when muted. */
 export function playSound(sound: Sound, delay = 0): void {

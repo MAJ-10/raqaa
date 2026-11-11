@@ -1,0 +1,176 @@
+/* The day's tally: what each team gained today, the most first. */
+.day-tally {
+  display: grid;
+  gap: 8px;
+}
+
+.tally-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tally-list .team-tile {
+  width: 100%;
+  font-size: var(--fs-label);
+}
+
+.tally-gain {
+  color: var(--ink-soft);
+  font-size: var(--fs-heading);
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+
+.tally-gain[data-sign='up'] {
+  color: var(--ok);
+}
+
+.tally-gain[data-sign='down'] {
+  color: var(--no);
+}
+
+.tally-same {
+  color: var(--ink-soft);
+  font-size: var(--fs-small);
+}
+
+/* Day end */
+.extend-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.extend-label {
+  flex: 1;
+  font-size: var(--fs-label);
+  font-weight: 600;
+}
+
+/* The announcement: one part at a time, in the same white card, framed in ink, as the day's steps. */
+.announce {
+  display: grid;
+  gap: 12px;
+  padding: 20px 20px 28px;
+}
+
+.announce-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.announce-head h2 {
+  margin: 0;
+  font-size: var(--fs-heading);
+  font-weight: 900;
+}
+
+.announce-count {
+  color: var(--ink-soft);
+  font-size: var(--fs-small);
+}
+
+.announce-card {
+  --block: var(--sky);
+  display: grid;
+  gap: 14px;
+  padding: 14px 16px 18px;
+  border: 2px solid var(--ink);
+  border-radius: 16px;
+  background: var(--white);
+}
+
+.announce-card .track-marker {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--white);
+}
+
+.announce-title {
+  margin: 0;
+  font-size: var(--fs-heading);
+  font-weight: 900;
+}
+
+.announce-list {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.announce-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--fs-label);
+}
+
+.announce-list .team-tile {
+  flex: 1;
+}
+
+.announce-list strong {
+  font-size: var(--fs-heading);
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+
+.announce-rank {
+  width: 22px;
+  color: var(--ink-soft);
+  font-weight: 600;
+  text-align: center;
+}
+
+/* A mission's result: its picture in the team's colours, the team and the mission, and what it gave. */
+.announce-mission {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-plate);
+  background: var(--white);
+}
+
+.announce-mission .mission-art {
+  --art: 64px;
+}
+
+.announce-mission-main {
+  display: grid;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.announce-mission p {
+  margin: 0;
+  font-size: var(--fs-label);
+  font-weight: 600;
+}
+
+.announce-mission strong {
+  display: grid;
+  justify-items: center;
+  color: var(--no);
+  font-size: var(--fs-small);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.announce-mission strong > span {
+  font-size: var(--fs-heading);
+  font-weight: 900;
+}
+
+.announce-mission strong[data-done] {
+  color: var(--ok);
+}

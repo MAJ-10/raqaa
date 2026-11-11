@@ -1,0 +1,413 @@
+/*
+ * The day track: five steps one under the other, each with its icon from the identity. The step in hand
+ * is the one white card on the sky, framed in ink; a step done is a line with its result; the rest wait.
+ * Blocks inside a step (the question, a decision) take the colour that sets them apart from it.
+ */
+.track {
+  padding: 20px 20px 28px;
+}
+
+.track-list {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.track-step {
+  --block: var(--white);
+  --block-line: var(--line);
+  padding: 3px 0;
+}
+
+.track-step[data-status='current'] {
+  --block: var(--sky);
+  --block-line: transparent;
+  margin: 8px 0 10px;
+  padding: 14px 16px 18px;
+  border: 2px solid var(--ink);
+  border-radius: 16px;
+  background: var(--white);
+}
+
+.track-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 32px;
+}
+
+.track-marker {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--white);
+  color: var(--ink-soft);
+}
+
+.track-step[data-status='done'] .track-marker {
+  border-color: var(--plate);
+  background: var(--plate);
+  color: var(--ink);
+}
+
+/* Where the day is now: in ink, like the frame of its card. */
+.track-step[data-status='current'] .track-marker {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--white);
+}
+
+.track-head h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--fs-label);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.track-step[data-status='next'] .track-head h2 {
+  color: var(--ink-soft);
+}
+
+.track-step[data-status='current'] .track-head h2 {
+  font-size: var(--fs-heading);
+  font-weight: 900;
+}
+
+/* A step's result, right after its title. */
+.track-summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ink-soft);
+  font-size: var(--fs-small);
+  white-space: nowrap;
+}
+
+.track-summary::before {
+  content: '';
+  flex: none;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--line-strong);
+}
+
+.track-teams {
+  display: flex;
+  gap: 4px;
+}
+
+.track-body {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.step-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.end-game {
+  justify-self: center;
+}
+
+.step-actions > .button-primary {
+  flex: 1;
+}
+
+/* The build request: the kind across the card; the players' numbers as team tiles, two by two. */
+.track-body > .segmented {
+  display: flex;
+}
+
+.numbers-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.numbers-grid .team-tile {
+  width: 100%;
+  font-size: var(--fs-label);
+}
+
+.question {
+  display: grid;
+  gap: 12px;
+  padding: 16px 18px;
+  border-radius: var(--r-plate);
+  background: var(--block);
+  box-shadow: inset 0 0 0 1px var(--block-line);
+}
+
+.question-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.question-text {
+  flex: 1;
+  margin: 0;
+  font-size: var(--fs-heading);
+  font-weight: 600;
+  line-height: 1.6;
+}
+
+/* «الإجابة: ٧», read in one line from the start. */
+.question-answer {
+  margin: 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  color: var(--ink-soft);
+  font-size: var(--fs-label);
+  font-weight: 600;
+}
+
+.question-answer strong {
+  color: var(--ink);
+  font-size: var(--fs-heading);
+  font-weight: 900;
+}
+
+/* Permits: a team that earns its permit is filled with its colour. */
+.permit-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.permit {
+  width: 100%;
+  font-size: var(--fs-label);
+}
+
+/* Build order: team tiles; the team in turn is filled with its colour, the teams done fade. */
+.build-order {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.build-row .team-tile {
+  width: 100%;
+  font-size: var(--fs-label);
+}
+
+.build-row[data-status='done'] .team-tile {
+  opacity: 0.6;
+}
+
+.build-state {
+  font-size: var(--fs-small);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.build-row[data-status='done'] .build-state {
+  color: var(--ok);
+}
+
+.build-note {
+  color: var(--ink-soft);
+  font-weight: 400;
+}
+
+/* The plan's two plots: an empty slot is dashed; a slot filled is framed in ink, with the plot's place. */
+.plan-slots {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.plan-slot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 0 12px;
+  border: 1.5px dashed var(--line-strong);
+  border-radius: var(--r-tile);
+  color: var(--ink-soft);
+  font-size: var(--fs-label);
+}
+
+.plan-slot[data-filled] {
+  border: 2px solid var(--ink);
+  background: var(--white);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.plan-slot-number {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  background: var(--line);
+  color: var(--ink);
+  font-size: var(--fs-small);
+  font-weight: 900;
+}
+
+.plan-slot[data-filled] .plan-slot-number {
+  background: var(--ink);
+  color: var(--white);
+}
+
+.inspector-targets {
+  display: grid;
+  gap: 8px;
+}
+
+.inspector-targets .team-tile {
+  width: 100%;
+  font-size: var(--fs-label);
+}
+
+/*
+ * The inspector's reveal, in a window over the referee screen: the other team's missions with their
+ * pictures, framed in that team's colour.
+ */
+.reveal {
+  width: min(600px, calc(100vw - 48px));
+  padding: 24px;
+  border: 3px solid var(--team);
+  border-radius: var(--r-card);
+  background: var(--white);
+  color: var(--ink);
+}
+
+.reveal::backdrop {
+  background: color-mix(in srgb, var(--ink) 45%, transparent);
+}
+
+.reveal[open] {
+  display: grid;
+  gap: 20px;
+  animation: reveal-in 420ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes reveal-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.reveal-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.reveal-head .card-art {
+  width: 72px;
+  height: 72px;
+}
+
+.reveal-title h2 {
+  margin: 0;
+  font-size: var(--fs-title);
+  font-weight: 900;
+  line-height: 1.8;
+}
+
+.reveal-title p {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: var(--fs-label);
+  line-height: 2;
+}
+
+.reveal-missions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.reveal-missions li {
+  display: grid;
+  width: 168px;
+  justify-items: center;
+  gap: 8px;
+  padding: 14px 8px;
+  border-radius: var(--r-box);
+  box-shadow: inset 0 0 0 1px var(--line);
+  font-size: var(--fs-label);
+  font-weight: 600;
+  text-align: center;
+}
+
+.reveal-missions .mission-art {
+  --art: 72px;
+}
+
+.reveal-foot {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* A decision that comes before anything else (the fence, a plan): the card's picture by its words. */
+.decision {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px 12px 12px;
+  border-radius: var(--r-plate);
+  background: var(--block);
+  box-shadow: inset 0 0 0 1px var(--block-line);
+}
+
+.decision .card-art {
+  width: 76px;
+  height: 76px;
+}
+
+.decision-main {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.decision-title {
+  margin: 0;
+  font-size: var(--fs-label);
+  font-weight: 900;
+}
+
+.decision-text {
+  margin: 0;
+  font-size: var(--fs-label);
+  line-height: 1.9;
+}

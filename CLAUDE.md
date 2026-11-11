@@ -22,15 +22,15 @@ Read these before any work. They are in Arabic.
 ## Stack and hard constraints
 
 - Vite, TypeScript and React. One build makes two outputs from the same code:
-  - the website, which installs as an app and works offline after the first visit (web app manifest and service worker). It is published on CranL (cranl.com) from the private GitHub repo, connected in the last phase;
+  - the website, which installs as an app and works offline after the first visit (web app manifest and service worker). It is published on CranL (cranl.com) from the private GitHub repo: every push to `main` builds the `Dockerfile`, which runs the unit tests and only then builds, and `tools/serve.ts` serves `dist`. A failing test stops the deploy;
   - `raqaa.html`, one self-contained file built with `vite-plugin-singlefile`. It opens by double-click (`file://`) as the offline backup.
 - Both run fully offline in Chrome or Edge on Windows. The app makes no network requests of its own: no CDN, no Google Fonts, no analytics. The only network use is the site loading and updating itself. Both builds carry a Content-Security-Policy that enforces this (`tools/pwa.ts`); `raqaa.html` allows no connections at all. Keep it, and widen it only on purpose.
 - An update never reloads a running competition: a new version applies the next time the app opens. Saved games carry a schema version.
-- Questions never ship inside the published code. They come from the referee's file.
+- Questions never ship inside the published code. They come from the referee's file. The demo competition (from the intro page) asks made-up sums instead.
 - Embed Alexandria 400/600/900 from `assets/fonts`, as WOFF2.
 - Two windows: the referee and the display (`#display`). They sync over `BroadcastChannel` and, as a fallback, `localStorage` "storage" events; every message goes over both and the display drops copies (`src/state/sync.ts`). Each works alone in Chrome and Edge, on the website and from `file://`; `?sync=broadcast` or `?sync=storage` keeps one, for tests. The display can be opened from its own link at any time. When it opens it shows the last snapshot kept in `localStorage` (so it works while the referee window is closed), and asks for the full state; only renders the state and the last event, and never changes anything. The referee window is the only writer.
 - The state is event-sourced. Every change is an event, and state is a pure fold of the events over the initial state. Undo removes the last event and recomputes. Generated content (math problems, scrambled sentences, memory items) and each event's time live in the event's payload. A timer running out is an event.
-- Save the setup and the events to `localStorage` after every event. On open, the referee goes straight back to the saved competition, with no "resume" prompt. Export and import a competition as a JSON file.
+- Save the setup and the events to `localStorage` after every event. On open, the referee goes straight back to the saved competition, with no "resume" prompt. The save lasts until the competition ends, and is dropped two days after its last event. There is no export or import.
 - The rules engine lives in `src/engine`: pure functions with no UI, supporting both map sizes. Use the event names from the requirements' events table, with the changes in `docs/decisions.md`.
 - Tests: Vitest, with at least one test per acceptance criterion. Playwright, on the installed Chrome and Edge, for two windows, reloads and offline use.
 - Read the question file (Excel or CSV) with SheetJS from its official distribution (the copy on the npm registry is outdated), bundled into the app.
@@ -97,7 +97,7 @@ Read these before any work. They are in Arabic.
 ## Target layout
 
 ```
-src/engine     rules, reducer, selectors (pure, tested); scenarios.ts has ready-made games
+src/engine     rules, reducer, selectors (pure, tested); scenarios.ts has ready-made games; autoplay.ts plays a game by itself (the demo, and the random games test)
 src/state      events, persistence, window sync
 src/ui         shared components: TeamTile, TeamBadge, TopBar, Sign, Timer, Board, Button, City, CardArt, MissionArt
 src/referee    referee screens (R01–R13)
@@ -105,6 +105,6 @@ src/display    display stage and states (D01–D21)
 src/content    built-in banks (spelling, ordering, memory) as JSON + SVG
 tests/         Vitest
 e2e/           Playwright
-tools/         build plugins (website and single file), service worker template, icon script
+tools/         build plugins (website and single file), service worker template, icon script, and the website server (serve.ts)
 public/        web app manifest and app icons (website only)
 ```

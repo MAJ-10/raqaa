@@ -136,7 +136,7 @@ export function struckPlan(state: GameState, e: GameEvent): PlotId | null {
   return struck ? auction.plot : null;
 }
 
-export type PlotShape = {
+type PlotShape = {
   shape: BoxShape;
   /** Transforms that lay the team symbol, the card, or a plan that struck, flat on the plot's top. */
   symbol?: string;

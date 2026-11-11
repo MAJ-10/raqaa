@@ -1,0 +1,160 @@
+/* Team cards: team tiles at the corners of the map; the team that acts now is filled with its colour. */
+.team-corner {
+  position: relative;
+  width: calc((var(--row) - 12px) / 2);
+}
+
+.team-card {
+  width: 100%;
+  height: var(--card-h);
+}
+
+.team-card[aria-expanded='true'] {
+  box-shadow: inset 0 0 0 2px var(--ink);
+}
+
+.team-card .team-tile-body {
+  gap: 10px;
+}
+
+.team-card-text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.team-card-name {
+  overflow: hidden;
+  font-size: var(--fs-heading);
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.team-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 20px;
+  overflow: hidden;
+  color: var(--ink-soft);
+}
+
+.team-card-meta:empty {
+  display: none;
+}
+
+.team-card[data-filled] .team-card-meta {
+  color: var(--ink);
+}
+
+/* «يزايد» or «يدافع» on a card already in its colour: white, so it stands out. */
+.team-role {
+  padding: 0 6px;
+  border-radius: var(--r-chip);
+  background: var(--white);
+  color: var(--ink);
+  font-size: var(--fs-small);
+  font-weight: 600;
+  line-height: 20px;
+  white-space: nowrap;
+}
+
+.team-card-population {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-title);
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+
+.team-card-population > .icon {
+  color: var(--ink-soft);
+}
+
+.team-card[data-filled] .team-card-population > .icon {
+  color: var(--ink);
+}
+
+.inventory {
+  position: absolute;
+  z-index: 5;
+  display: grid;
+  gap: 12px;
+  width: 320px;
+  padding: 14px 16px 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-box);
+  background: var(--white);
+  font-size: var(--fs-label);
+}
+
+.team-corner[data-place='top'] .inventory {
+  top: calc(100% + 8px);
+}
+
+.team-corner[data-place='bottom'] .inventory {
+  bottom: calc(100% + 8px);
+}
+
+.team-corner[data-side='start'] .inventory {
+  inset-inline-start: 0;
+}
+
+.team-corner[data-side='end'] .inventory {
+  inset-inline-end: 0;
+}
+
+.inventory-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.inventory-empty {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+.inventory-cards {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A card the team holds: its picture, its name, and when it is used. */
+.inventory-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-tile);
+  background: var(--white);
+  color: var(--ink);
+  text-align: start;
+}
+
+.inventory-card .card-art {
+  width: 52px;
+  height: 52px;
+  border-width: 2px;
+  border-radius: 9px;
+}
+
+.inventory-card-text {
+  display: grid;
+}
+
+.inventory-card strong {
+  font-weight: 600;
+}
+
+.inventory-card-text > span {
+  color: var(--ink-soft);
+  font-size: var(--fs-small);
+}

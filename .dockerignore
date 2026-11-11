@@ -1,0 +1,9 @@
+# What the CranL build leaves out: the build installs its own packages and makes its own dist.
+node_modules
+dist
+test-results
+playwright-report
+coverage
+.git
+*.log
+*.local

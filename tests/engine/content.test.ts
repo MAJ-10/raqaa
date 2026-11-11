@@ -5,7 +5,8 @@ import { makeContent, makeMath, newChallenge, pickFresh, scramble, solveMath, ty
 import { initialState, replay } from '../../src/engine/reduce.ts';
 import { openAuctionScenario, Play, sampleSetup } from '../../src/engine/scenarios.ts';
 import { CHALLENGES, type ChallengeContent } from '../../src/engine/types.ts';
-import { seeded, startWith } from './helpers.ts';
+import { seeded } from '../../src/engine/autoplay.ts';
+import { startWith } from './helpers.ts';
 
 const ids = (prefix: string, count: number) => Array.from({ length: count }, (_, i) => `${prefix}${i + 1}`);
 

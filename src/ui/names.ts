@@ -23,14 +23,6 @@ export const QUESTION_NOUN: Noun = {
   genitive: 'سؤال',
 };
 
-export const PLAYER_NOUN: Noun = {
-  one: 'لاعب واحد',
-  two: 'لاعبان',
-  plural: 'لاعبين',
-  accusative: 'لاعباً',
-  genitive: 'لاعب',
-};
-
 export const MISSION_NOUN: Noun = {
   one: 'مشروع واحد',
   two: 'مشروعان',

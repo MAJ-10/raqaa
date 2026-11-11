@@ -2,7 +2,7 @@
 import type { GameEvent, GameState, Team } from '../../engine/types.ts';
 import { CARD_NAMES, CHALLENGE_NAMES, countOf, DAY_NOUN, plotName } from '../../ui/names.ts';
 
-export type LogEntry = { day: number; team: Team | null; text: string };
+type LogEntry = { day: number; team: Team | null; text: string };
 
 /** The log, newest first. Auction numbers follow the order of declaration, as in the state. */
 export function logEntries(events: readonly GameEvent[], state: GameState): LogEntry[] {

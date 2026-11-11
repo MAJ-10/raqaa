@@ -24,7 +24,7 @@ export function ScreenNote() {
   const extended = useExtended();
   if (!opened || extended !== false) return null;
   return (
-    <p className="screen-note" role="status">
+    <p className="note screen-note" role="status">
       لو التلفزيون يكرر شاشة اللابتوب: Win + P ثم «توسيع» (Extend)
     </p>
   );

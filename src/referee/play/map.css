@@ -1,0 +1,349 @@
+/* The map, on the ground plate of the identity. */
+.board-plate {
+  position: relative;
+  padding: 12px;
+  border-radius: 16px;
+  background: var(--plate);
+}
+
+.flat-map {
+  display: grid;
+  gap: 5px;
+}
+
+.plot {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: var(--plot-2);
+  color: var(--ink);
+  container-type: inline-size;
+}
+
+.plot[data-value='3'] {
+  background: var(--plot-3);
+}
+
+.plot[data-value='4'] {
+  background: var(--plot-4);
+}
+
+.plot[data-centre] {
+  background: var(--tower);
+}
+
+.plot[data-team] {
+  background: var(--team);
+}
+
+.plot .team-glyph {
+  width: 42cqi;
+  height: 42cqi;
+}
+
+.plot-card {
+  width: 46cqi;
+  height: 46cqi;
+  color: var(--ink-soft);
+}
+
+.plot[data-centre] .plot-card {
+  color: var(--plot-3);
+}
+
+.plot-mark {
+  position: absolute;
+  display: grid;
+  width: 24cqi;
+  height: 24cqi;
+}
+
+.plot-mark > .icon {
+  width: 100%;
+  height: 100%;
+}
+
+.plot-mark-top {
+  top: 8cqi;
+  inset-inline-end: 8cqi;
+}
+
+.plot-mark-bottom {
+  bottom: 8cqi;
+  inset-inline-start: 8cqi;
+}
+
+.plot-fresh {
+  position: absolute;
+  bottom: 10cqi;
+  inset-inline-end: 10cqi;
+  width: 11cqi;
+  height: 11cqi;
+  border-radius: 50%;
+  background: var(--ink);
+}
+
+/* A plot the referee can press: a dashed line in the colour of the team that acts (ink on a team's plot). */
+.plot[data-choice] {
+  outline: 3px dashed var(--chooser);
+  outline-offset: -5px;
+  cursor: pointer;
+  transition: transform 100ms ease-out;
+}
+
+.plot[data-choice][data-team] {
+  outline-color: var(--ink);
+}
+
+.plot[data-choice]:hover,
+.plot[data-choice][aria-pressed='true'] {
+  outline-style: solid;
+}
+
+/* The number the display shows on a plot the team can build on: its leader calls it out. */
+.plot-number {
+  position: absolute;
+  top: 6cqi;
+  inset-inline-start: 6cqi;
+  display: grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 5px;
+  border-radius: 11px;
+  background: var(--ink);
+  color: var(--white);
+  font-size: var(--fs-small);
+  font-weight: 900;
+  line-height: 1;
+}
+
+/* A plot picked for the plan: framed in ink, wearing the plan and its number. */
+.plot[data-choice][aria-pressed='true'] {
+  outline: 4px solid var(--ink);
+  outline-offset: -4px;
+}
+
+.plot-picked {
+  position: absolute;
+  top: -9px;
+  inset-inline-end: -9px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 26px;
+  padding: 0 6px;
+  border-radius: 8px;
+  background: var(--ink);
+  color: var(--white);
+  font-size: var(--fs-small);
+  font-weight: 900;
+}
+
+.plot-picked > .icon {
+  width: 14px;
+  height: 14px;
+}
+
+/* A plot's tip, when the pointer rests on it: whose it is (or its card), and the population it is worth. */
+.plot-tip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  z-index: 8;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: var(--ink);
+  color: var(--white);
+  font-size: var(--fs-small);
+  font-weight: 600;
+  line-height: 1.6;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 4px);
+  transition:
+    opacity 140ms ease-out,
+    transform 140ms ease-out;
+}
+
+.plot:hover .plot-tip {
+  opacity: 1;
+  transform: translate(-50%, 0);
+  transition-delay: 250ms;
+}
+
+.plot-tip-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.plot-tip-value > .icon {
+  width: 13px;
+  height: 13px;
+}
+
+/* The ring that spreads from a plot the moment a team gains it. */
+.plot-ring {
+  position: absolute;
+  border: 3px solid var(--team);
+  border-radius: 10px;
+  pointer-events: none;
+}
+
+.plot[data-choice]:active {
+  transform: scale(0.94);
+}
+
+.plot[data-choice]:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/*
+ * An auction in the spotlight: the rest of the map steps back, and the plot rises with a ring in the
+ * bidder's colour that breathes, and the bidder's pin on top.
+ */
+.flat-map[data-focus] .plot:not([data-focus]) {
+  opacity: 0.5;
+  transition: opacity 250ms ease-out;
+}
+
+.plot[data-focus] {
+  z-index: 2;
+  overflow: visible;
+  outline: 4px solid var(--bidder);
+  outline-offset: 2px;
+  transform: scale(1.12);
+  animation: contest 1.4s ease-in-out infinite alternate;
+}
+
+@keyframes contest {
+  from {
+    outline-offset: 1px;
+  }
+  to {
+    outline-offset: 6px;
+  }
+}
+
+.plot-pin {
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--white);
+  border-radius: 50%;
+  background: var(--bidder);
+  color: var(--ink);
+  transform: translateX(-50%);
+}
+
+.plot-pin > .icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* The identity's population bubble, over a plot a team just gained. */
+.bubble-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.pop-bubble {
+  position: absolute;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--white);
+  box-shadow: inset 0 0 0 3px var(--team);
+  color: var(--ink);
+  font-size: var(--fs-label);
+  font-weight: 900;
+  white-space: nowrap;
+  transform: translate(-50%, -125%);
+}
+
+.pop-bubble > .icon {
+  width: 16px;
+  height: 16px;
+  color: var(--ink-soft);
+}
+
+/*
+ * The identity's event banner over the map, for a short while after a moment that matters: ink, the
+ * picture of the card (or an icon on the team's colour), and what happened in large white type. It stays
+ * above a plot's tip, which the pointer may still be raising on the plot just pressed.
+ */
+.event-banner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 9;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  max-width: min(600px, calc(100% - 48px));
+  padding-block: 14px;
+  padding-inline: 14px 28px;
+  border-radius: var(--r-card);
+  background: var(--ink);
+  color: var(--white);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+
+.event-banner-picture {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  background: var(--team);
+  color: var(--ink);
+}
+
+.event-banner-picture[data-card] {
+  background: none;
+}
+
+.event-banner-picture .card-art {
+  width: 64px;
+  height: 64px;
+  border-color: var(--white);
+}
+
+.event-banner-text {
+  display: grid;
+  gap: 2px;
+  font-size: var(--fs-title);
+  line-height: 1.4;
+}
+
+.event-banner-text strong {
+  font-weight: 900;
+}
+
+.event-banner-more {
+  color: var(--plate);
+  font-size: var(--fs-label);
+  font-weight: 600;
+}

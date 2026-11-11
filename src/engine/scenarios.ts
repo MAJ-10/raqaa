@@ -4,7 +4,7 @@ import { nextAuction } from './select.ts';
 import type { EventInput, GameEvent, GameState, PlotId, QuestionKind, Setup, Team } from './types.ts';
 
 /** One move in a team's turn: a plot id builds there. A build that takes the inspector says whom it inspects. */
-export type Move =
+type Move =
   | PlotId
   | { build: PlotId; bridge?: boolean; plan?: [PlotId, PlotId]; inspect?: Team }
   | { auction: PlotId; fence?: boolean }
@@ -105,7 +105,7 @@ export class Play {
   }
 }
 
-export type Scenario = { setup: Setup; events: GameEvent[]; state: GameState };
+type Scenario = { setup: Setup; events: GameEvent[]; state: GameState };
 
 const done = (play: Play): Scenario => ({ setup: play.state.setup, events: play.events, state: play.state });
 
@@ -137,8 +137,8 @@ export function sampleSetup(size: Setup['size'] = 9, days = 8): Setup {
   };
 }
 
-/** Four days on the 9×9 map: coral and blue meet along the top row. */
-function fourDays(setup: Setup): Play {
+/** Four days on the 9×9 map: coral and blue meet along the top row; blue holds a fence from day 4. */
+export function fourDays(setup: Setup = sampleSetup(9, 8)): Play {
   const all: Team[] = ['coral', 'blue', 'green', 'gold'];
   return new Play(setup)
     .do({ type: 'game/start' })
@@ -156,9 +156,31 @@ function fourDays(setup: Setup): Play {
     .endDay();
 }
 
+/**
+ * Four days on the 7×7 map: coral reaches 2-4 (and holds the bridge it took there), next to the plan on
+ * 3-4; blue reaches 3-5 (and holds the fence it took on 2-5), next to the inspector on 4-5.
+ */
+export function fourSmallDays(setup: Setup = sampleSetup(7, 8)): Play {
+  const two: Team[] = ['coral', 'blue'];
+  return new Play(setup)
+    .do({ type: 'game/start' })
+    .question(two)
+    .build({ coral: ['1-2'], blue: ['1-6'] })
+    .endDay()
+    .question(two)
+    .build({ coral: ['1-3'], blue: ['1-5'] })
+    .endDay()
+    .question(two)
+    .build({ coral: ['1-4'], blue: ['2-5'] })
+    .endDay()
+    .question(two)
+    .build({ coral: ['2-4'], blue: ['3-5'] })
+    .endDay();
+}
+
 /** Day 5: coral bids for blue's plot 1-6; the auction is open and coral won the first challenge. */
 export function openAuctionScenario(): Scenario {
-  const play = fourDays(sampleSetup(9, 8)).question(['coral', 'blue']).build({ coral: [{ auction: '1-6' }], blue: ['2-6'] });
+  const play = fourDays().question(['coral', 'blue']).build({ coral: [{ auction: '1-6' }], blue: ['2-6'] });
   const auction = nextAuction(play.state)!;
   play
     .do({ type: 'auction/open', auction: auction.id })
@@ -174,20 +196,7 @@ export function openAuctionScenario(): Scenario {
  */
 export function planScenario(): Scenario {
   const two: Team[] = ['coral', 'blue'];
-  const play = new Play(sampleSetup(7, 8))
-    .do({ type: 'game/start' })
-    .question(two)
-    .build({ coral: ['1-2'], blue: ['1-6'] })
-    .endDay()
-    .question(two)
-    .build({ coral: ['1-3'], blue: ['1-5'] })
-    .endDay()
-    .question(two)
-    .build({ coral: ['1-4'], blue: ['2-5'] }) // blue takes the fence on 2-5
-    .endDay()
-    .question(two)
-    .build({ coral: ['2-4'], blue: ['3-5'] }) // coral takes the bridge on 2-4
-    .endDay()
+  const play = fourSmallDays()
     .question(two)
     .build({ coral: [{ build: '3-4', plan: ['2-4', '3-4'] }], blue: ['3-6'] }) // coral takes a plan
     .endDay()

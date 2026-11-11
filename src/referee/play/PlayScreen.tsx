@@ -1,7 +1,6 @@
 import { useCallback, useMemo, useState, useSyncExternalStore } from 'react';
-import { getBoard } from '../../engine/board.ts';
 import { replay } from '../../engine/reduce.ts';
-import { openAuction, options, planTargets, population } from '../../engine/select.ts';
+import { openAuction, options, planPlots, planTargets, population } from '../../engine/select.ts';
 import { TEAMS, type EventInput, type GameEvent, type GameState, type PlotId, type Team } from '../../engine/types.ts';
 import type { RefereeStore } from '../../state/referee-store.ts';
 import { Button } from '../../ui/Button.tsx';
@@ -20,7 +19,13 @@ import { AnnouncePanel } from './EndPanels.tsx';
 import { FlatMap } from './FlatMap.tsx';
 import { logEntries, todaysEvents } from './log.ts';
 import './play.css';
+import './teams.css';
+import './map.css';
+import './track.css';
+import './auction.css';
+import './end.css';
 import { TeamCorner } from './TeamCorner.tsx';
+import { useDemo } from './use-demo.ts';
 import { useTimerEnd } from './use-timer-end.ts';
 
 type Props = { store: RefereeStore; state: GameState; events: readonly GameEvent[] };
@@ -58,6 +63,10 @@ export function PlayScreen({ store, state, events }: Props) {
     [store],
   );
   useTimerEnd(state, act);
+  // A demo plays as soon as it starts; reopened halfway through, it waits for «متابعة».
+  const demo = state.setup.demo === true;
+  const [playing, setPlaying] = useState(() => demo && events.length <= 1);
+  useDemo(playing, state, events, act);
 
   const { choices, chooser, bridges, onPick } = mapChoices(state, picked, setPicked, act);
   const focus = auctionFocus(state);
@@ -96,6 +105,16 @@ export function PlayScreen({ store, state, events }: Props) {
       >
         <ScreenNote />
         <Toolbar>
+          {demo ? (
+            <>
+              <Button variant="quiet" icon={playing ? 'pause' : 'play'} onClick={() => setPlaying(!playing)}>
+                {playing ? 'إيقاف' : 'متابعة'}
+              </Button>
+              <Button variant="quiet" icon="x" aria-label="إنهاء التجربة" onClick={() => store.end()}>
+                إنهاء
+              </Button>
+            </>
+          ) : null}
           <Button variant="quiet" icon="tv" aria-label="فتح شاشة العرض" onClick={openDisplayWindow}>
             شاشة العرض
           </Button>
@@ -205,13 +224,9 @@ function mapChoices(
 
   if (pending?.kind === 'plan') {
     // Placing a plan: two of the team's own plots, not its base, without a plan.
-    const board = getBoard(state.setup.size);
-    const own = board.ids.filter(
-      (id) => state.plots[id]?.owner === pending.team && !board.plots[id]?.base && !state.plots[id]?.plan,
-    );
     return {
       ...none,
-      choices: new Set(own),
+      choices: new Set(planPlots(state, pending.team)),
       chooser: pending.team,
       onPick: (id) =>
         setPicked(picked.includes(id) ? picked.filter((p) => p !== id) : [...picked, id].slice(-2)),

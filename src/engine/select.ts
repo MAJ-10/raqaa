@@ -52,7 +52,7 @@ export function canUseCard(s: GameState, team: Team, card: Card): boolean {
   return t.cards.includes(card) && !t.cardUsedToday;
 }
 
-export type Options = { build: PlotId[]; bridge: PlotId[]; auction: PlotId[] };
+type Options = { build: PlotId[]; bridge: PlotId[]; auction: PlotId[] };
 
 /** The plots a team can act on now. Bridge plots only when the team can use its bridge today. */
 export function options(s: GameState, team: Team): Options {
@@ -155,6 +155,12 @@ export function timerSeconds(s: GameState): number | null {
   const auction = openAuction(s);
   const challenge = auction ? currentChallenge(auction) : null;
   return challenge?.content.type === 'memory' ? TIMER_SECONDS.memory : TIMER_SECONDS.challenge;
+}
+
+/** Where a team can place a plan: its own plots, not its base, without a plan already. */
+export function planPlots(s: GameState, team: Team): PlotId[] {
+  const board = boardOf(s);
+  return board.ids.filter((id) => s.plots[id]?.owner === team && !board.plots[id]?.base && !s.plots[id]?.plan);
 }
 
 /** Where a fired plan can strike: the losing bidder's plots next to the plan plot, never a base. */

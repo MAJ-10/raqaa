@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { SCHEMA_VERSION, clearGame, loadGame, saveGame } from '../src/state/persist.ts';
+import { KEEP_FOR, SCHEMA_VERSION, clearGame, loadGame, saveGame } from '../src/state/persist.ts';
 import { memoryStorage } from './helpers.ts';
 
 const setup = { kind: 'demo' };
@@ -23,7 +23,15 @@ describe('saving the competition', () => {
   it('loads what it saved', () => {
     const storage = memoryStorage();
     saveGame({ setup, events }, storage, 5000);
-    expect(loadGame(storage)).toEqual({ schema: SCHEMA_VERSION, savedAt: 5000, setup, events });
+    expect(loadGame(storage, 6000)).toEqual({ schema: SCHEMA_VERSION, savedAt: 5000, setup, events });
+  });
+
+  it('keeps a competition two days after its last event, then lets it go (decision)', () => {
+    const storage = memoryStorage();
+    saveGame({ setup, events }, storage, 5000);
+    expect(loadGame(storage, 5000 + KEEP_FOR)).not.toBeNull();
+    expect(loadGame(storage, 5000 + KEEP_FOR + 1)).toBeNull();
+    expect(storage.getItem('raqaa.game')).toBeNull();
   });
 
   it('finds nothing when nothing was saved, or the save is unreadable', () => {

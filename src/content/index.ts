@@ -6,10 +6,10 @@ import words from './memory-words.json';
 import ordering from './ordering.json';
 import spelling from './spelling.json';
 
-export type SpellingItem = { id: string; word: string };
-export type OrderingItem = { id: string; sentence: string };
-export type MemoryWord = { id: string; word: string };
-export type MemoryImage = { id: string; name: string; svg: string };
+type SpellingItem = { id: string; word: string };
+type OrderingItem = { id: string; sentence: string };
+type MemoryWord = { id: string; word: string };
+type MemoryImage = { id: string; name: string; svg: string };
 
 const svgFiles = import.meta.glob<string>('./memory-images/*.svg', { query: '?raw', import: 'default', eager: true });
 

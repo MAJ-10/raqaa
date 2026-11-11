@@ -1,6 +1,7 @@
 // The display (Phase 5): the teams' boards, the map and the windows over the game follow the referee.
 import type { Page } from '@playwright/test';
 import { lastDayScenario, openAuctionScenario, Play, sampleSetup } from '../src/engine/scenarios.ts';
+import type { ChallengeContent, GameEvent } from '../src/engine/types.ts';
 import { expect, openDisplay, seedGame, test } from './fixtures.ts';
 
 const button = (page: Page, name: string) => page.getByRole('button', { name, exact: true });
@@ -42,6 +43,53 @@ test.describe('display', () => {
     await expect(display.locator('.display-map g[data-plot="1-2"]')).toHaveAttribute('data-team', 'coral');
     await expect(display.locator('.sign[data-team="coral"] .sign-population')).toHaveText('٣٠٠');
     await expect(page.locator('.plot[data-plot="1-8"] .plot-number')).toHaveText('١');
+  });
+
+  test('takes back what the referee undoes (criterion 16)', async ({ page }) => {
+    const play = new Play(sampleSetup()).do({ type: 'game/start' }).question(['coral']);
+    await seedGame(page, '/', play.state.setup, play.events);
+    const display = await openDisplay(page);
+    await page.bringToFront();
+    const plot = display.locator('.display-map g[data-plot="1-2"]');
+    const population = display.locator('.sign[data-team="coral"] .sign-population');
+    await expect(population).toHaveText('١٠٠');
+
+    await page.locator('.plot[data-plot="1-2"]').click();
+    await expect(plot).toHaveAttribute('data-team', 'coral');
+    await expect(population).toHaveText('٣٠٠');
+
+    await button(page, 'تراجع').click();
+    await expect(plot).not.toHaveAttribute('data-team');
+    await expect(population).toHaveText('١٠٠');
+  });
+
+  test('closed and opened again mid-game, shows the same moment (criterion 18)', async ({ page, context }) => {
+    const { setup, events } = openAuctionScenario();
+    await seedGame(page, '/', setup, events);
+    const first = await openDisplay(page);
+    const tally = (display: Page) => display.locator('[data-window="auction"] .duel-box[data-won]');
+    await expect(tally(first)).toHaveCount(1);
+    await first.close();
+
+    const again = await context.newPage();
+    await again.goto('/#display');
+    await expect(again.locator('[data-window="auction"] .challenge-type')).toHaveText('بناء');
+    await expect(tally(again)).toHaveCount(1);
+  });
+
+  test('keeps a challenge’s answer off the screen until the challenge ends (criterion 20)', async ({ page }) => {
+    const { setup, events } = openAuctionScenario();
+    // The scenario ends on a challenge just started; it becomes a sum with its answer.
+    const start = events.at(-1) as Extract<GameEvent, { type: 'challenge/start' }>;
+    const math: ChallengeContent = { type: 'math', start: 12, steps: [{ op: '+', n: 5 }], answer: 17 };
+    await seedGame(page, '/', setup, [...events.slice(0, -1), { ...start, content: math }]);
+    const display = await openDisplay(page);
+    const result = display.locator('[data-window="auction"] .math-result');
+    await expect(result).toHaveText('؟');
+
+    await page.bringToFront();
+    await page.getByRole('button', { name: 'فاز النجوم' }).click();
+    await expect(result).toHaveText('١٧');
   });
 
   test('shows the numbers, then the question with each team’s number on its board and no timer', async ({ page }) => {

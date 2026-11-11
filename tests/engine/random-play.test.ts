@@ -3,155 +3,14 @@
 // accepts it. A competition must never get stuck, must keep its rules true, and must reach the end.
 import { describe, expect, it } from 'vitest';
 import { BANKS } from '../../src/content/index.ts';
-import { makeContent, newChallenge, type Random } from '../../src/engine/content.ts';
-import { basePlot, getBoard, neighbours } from '../../src/engine/board.ts';
+import { any, offered, seeded } from '../../src/engine/autoplay.ts';
+import type { Random } from '../../src/engine/content.ts';
+import { basePlot, getBoard } from '../../src/engine/board.ts';
 import { announcement, ranking } from '../../src/engine/missions.ts';
 import { initialState, reduce, replay } from '../../src/engine/reduce.ts';
-import {
-  canUseCard,
-  currentChallenge,
-  nextAuction,
-  openAuction,
-  options,
-  planTargets,
-  population,
-  questionsLeft,
-  wins,
-} from '../../src/engine/select.ts';
+import { population, wins } from '../../src/engine/select.ts';
 import { sampleSetup } from '../../src/engine/scenarios.ts';
-import { TEAMS, type EventInput, type GameEvent, type GameState, type Setup, type Team } from '../../src/engine/types.ts';
-
-/** A small seeded random generator, so a failing game can be played again. */
-function seeded(seed: number): Random {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-const any = <T>(list: readonly T[], random: Random): T => list[Math.floor(random() * list.length)]!;
-
-/** What the referee screen offers now, apart from ending early (picked less often). */
-function offered(s: GameState, random: Random): EventInput[] {
-  const list: EventInput[] = [];
-  const q = s.question;
-  switch (s.step) {
-    case 'setup':
-      list.push({ type: 'game/start' });
-      break;
-    case 'question': {
-      // The referee chooses the kind (group more often, so more teams build), and sometimes changes it.
-      if (q.kind === null) {
-        list.push({ type: 'question/kind', kind: random() < 0.7 ? 'group' : 'individual' });
-        break;
-      }
-      if (!q.numbers && random() < 0.2) list.push({ type: 'question/kind', kind: q.kind === 'group' ? 'individual' : 'group' });
-      if (q.kind === 'individual' && !q.numbers) list.push({ type: 'numbers/show' });
-      if (q.kind === 'group' || q.numbers) list.push({ type: q.index !== null ? 'question/show' : 'question/outside' });
-      if (q.index !== null && questionsLeft(s) > 0) list.push({ type: 'question/replace' });
-      break;
-    }
-    case 'asking':
-      list.push({ type: 'answer/show' });
-      if (s.timer) list.push({ type: 'timer/end' }); // a group question; an individual one has no timer
-      if (q.index !== null && questionsLeft(s) > 0) list.push({ type: 'question/replace' });
-      break;
-    case 'answer': {
-      const right = TEAMS.filter(() => random() < 0.7);
-      list.push({ type: 'permits/set', teams: q.kind === 'individual' ? right.slice(0, 1) : right });
-      break;
-    }
-    case 'build': {
-      const pending = s.pending;
-      if (pending?.kind === 'fence') {
-        list.push({ type: 'card/fence', auction: pending.auction }, { type: 'fence/skip', auction: pending.auction });
-      } else if (pending?.kind === 'inspector') {
-        // The inspector is used as soon as it is taken: the referee picks whose missions to show.
-        for (const target of TEAMS.filter((t) => t !== pending.team)) {
-          list.push({ type: 'card/inspector', team: pending.team, target });
-        }
-      } else if (pending?.kind === 'plan') {
-        const board = getBoard(s.setup.size);
-        const own = board.ids.filter(
-          (id) => s.plots[id]?.owner === pending.team && !board.plots[id]?.base && !s.plots[id]?.plan,
-        );
-        if (own.length >= 2) {
-          // Mostly on plots that touch another team, where bids come, so plans fire in the games.
-          const border = own.filter((id) =>
-            neighbours(board, id).some((near) => ![null, pending.team].includes(s.plots[near]?.owner ?? null)),
-          );
-          const from = border.length >= 2 && random() < 0.8 ? border : own;
-          const first = any(from, random);
-          const second = any(
-            from.filter((id) => id !== first),
-            random,
-          );
-          list.push({ type: 'card/plan', team: pending.team, plots: [first, second] });
-        }
-      } else if (s.turn) {
-        const team = s.turn;
-        if (s.teams[team].moves > 0) {
-          // Every allowed plot, but leaning towards auctions (and plots with a plan) so the games reach them.
-          const o = options(s, team);
-          const planned = o.auction.filter((id) => s.plots[id]?.plan);
-          const auctions = planned.length > 0 && random() < 0.6 ? planned : o.auction;
-          if (auctions.length > 0 && random() < 0.6) {
-            for (const plot of auctions) list.push({ type: 'auction/declare', team, plot });
-            break;
-          }
-          for (const plot of o.build) list.push({ type: 'build', team, plot });
-          for (const plot of o.auction) list.push({ type: 'auction/declare', team, plot });
-          for (const plot of o.bridge) list.push({ type: 'build', team, plot, via: 'bridge' });
-        } else {
-          list.push({ type: 'turn/pass', team });
-        }
-        if (canUseCard(s, team, 'crane')) list.push({ type: 'card/crane', team });
-      }
-      break;
-    }
-    case 'auctions': {
-      const pending = s.pending;
-      if (pending?.kind === 'planTake') {
-        for (const plot of planTargets(s, pending.from, pending.plot)) list.push({ type: 'plan/take', team: pending.team, plot });
-        break;
-      }
-      const open = openAuction(s);
-      const next = nextAuction(s);
-      if (open) {
-        const challenge = currentChallenge(open);
-        if (!challenge) {
-          list.push({ type: 'challenge/start', auction: open.id, content: newChallenge(s, BANKS, random).content });
-        } else if (s.plots[open.plot]?.plan && random() < 0.7) {
-          // A bid on a plan plot: lean towards the defender, so plans fire in the games.
-          list.push({ type: 'challenge/result', auction: open.id, winner: open.defender });
-        } else {
-          for (const winner of [open.bidder, open.defender]) list.push({ type: 'challenge/result', auction: open.id, winner });
-          list.push({
-            type: 'challenge/replay',
-            auction: open.id,
-            content: makeContent(s, challenge.content.type, BANKS, random).content,
-          });
-          if (s.timer?.kind === 'challenge' && !challenge.stopped) list.push({ type: 'timer/end' });
-        }
-      } else if (next) {
-        list.push({ type: 'auction/open', auction: next.id });
-      }
-      break;
-    }
-    case 'dayEnd':
-      if (s.day < s.days) list.push({ type: 'day/end' });
-      else list.push(s.days < 24 && random() < 0.3 ? { type: 'days/extend', count: 1 + Math.floor(random() * 3) } : { type: 'game/end' });
-      break;
-    case 'announce':
-      if (s.announce < announcement(s).length - 1) list.push({ type: 'announce/next' });
-      break;
-  }
-  return list;
-}
+import { TEAMS, type GameEvent, type GameState, type Setup, type Team } from '../../src/engine/types.ts';
 
 /** Things that must stay true at every moment of a competition. */
 function checkRules(s: GameState): void {
@@ -199,7 +58,7 @@ function playOne(setup: Setup, random: Random): Result {
       continue;
     }
 
-    let choices = offered(s, random);
+    let choices = offered(s, random, BANKS);
     if (s.step === 'dayEnd' && s.day < s.days && random() < 0.02) choices = [{ type: 'game/end' }];
 
     if (choices.length === 0) {

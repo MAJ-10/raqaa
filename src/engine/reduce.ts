@@ -13,6 +13,7 @@ import {
   currentChallenge,
   nextAuction,
   openAuction,
+  planPlots,
   planTargets,
   wins,
 } from './select.ts';
@@ -399,15 +400,12 @@ function apply(s: GameState, e: GameEvent): void {
 
     case 'card/plan': {
       rule(s.pending?.kind === 'plan' && s.pending.team === e.team, 'No plan is waiting to be placed');
-      const board = getBoard(s.setup.size);
       rule(e.plots[0] !== e.plots[1], 'A plan goes on two different plots');
-      for (const id of e.plots) {
-        const plot = s.plots[id];
-        rule(
-          plot && plot.owner === e.team && !board.plots[id]?.base && !plot.plan,
-          "A plan goes on the team's own plots, not its base",
-        );
-      }
+      const allowed = planPlots(s, e.team);
+      rule(
+        e.plots.every((id) => allowed.includes(id)),
+        "A plan goes on the team's own plots, not its base",
+      );
       for (const id of e.plots) s.plots[id]!.plan = e.team;
       s.pending = null;
       settleTurn(s);

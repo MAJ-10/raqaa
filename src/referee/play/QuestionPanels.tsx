@@ -94,7 +94,7 @@ export function RequestBody({ state, act }: Props) {
           ) : null}
         </div>
       )}
-      {chosen && fromFile && left <= 5 ? <p className="step-note">بقي في الملف {countOf(left, QUESTION_NOUN)}</p> : null}
+      {chosen && fromFile && left <= 5 ? <p className="note">بقي في الملف {countOf(left, QUESTION_NOUN)}</p> : null}
     </>
   );
 }

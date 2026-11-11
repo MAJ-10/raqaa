@@ -2,10 +2,9 @@
 import { describe, expect, it } from 'vitest';
 import { cuesFor } from '../../src/display/cues.ts';
 import { JUMP_DRAW } from '../../src/display/windows.ts';
-import { lastDayScenario, openAuctionScenario, Play, sampleSetup } from '../../src/engine/scenarios.ts';
+import { fourSmallDays, lastDayScenario, openAuctionScenario, Play, sampleSetup } from '../../src/engine/scenarios.ts';
 import { announcement } from '../../src/engine/missions.ts';
 import { options } from '../../src/engine/select.ts';
-import { fourSmallDays } from './games.ts';
 
 const last = (play: Play) => play.events.at(-1)!;
 const sounds = (play: Play) => cuesFor(play.state, last(play)).map((cue) => cue.sound);

@@ -75,11 +75,11 @@ function OpenAuction({ state, act, auction }: AuctionProps) {
   // turn comes, so the referee knows it before starting it.
   return (
     <>
-      <Duel state={state} auction={auction} number={number} />
+      <Duel state={state} auction={auction} />
       {challenge ? (
-        <RunningChallenge state={state} act={act} auction={auction} challenge={challenge} />
+        <RunningChallenge state={state} act={act} auction={auction} challenge={challenge} number={number} />
       ) : (
-        <NextChallenge key={`${auction.id}-${number}`} state={state} act={act} auction={auction} />
+        <NextChallenge key={`${auction.id}-${number}`} state={state} act={act} auction={auction} number={number} />
       )}
     </>
   );
@@ -89,7 +89,7 @@ function OpenAuction({ state, act, auction }: AuctionProps) {
  * The two sides as team tiles: each player's number on the team's colour, like a shirt, the team and its
  * part in the auction, and the challenges it has won.
  */
-function Duel({ state, auction, number }: { state: GameState; auction: Auction; number: number }) {
+function Duel({ state, auction }: { state: GameState; auction: Auction }) {
   const names = state.setup.teams;
   const sides: [Team, number, string][] = [
     [auction.bidder, auction.players?.bidder ?? 0, 'يزايد'],
@@ -97,7 +97,6 @@ function Duel({ state, auction, number }: { state: GameState; auction: Auction; 
   ];
   return (
     <section className="duel" aria-label="المتنافسان">
-      <h4 className="section-label">التحدي {formatNumber(number)}</h4>
       {sides.map(([team, player, part]) => (
         <TeamTile key={team} team={team} height={56} mark={<span className="team-tile-number">{formatNumber(player)}</span>}>
           <span className="duel-text">
@@ -115,7 +114,10 @@ function Duel({ state, auction, number }: { state: GameState; auction: Auction; 
   );
 }
 
-function NextChallenge({ state, act, auction }: AuctionProps) {
+/** Which challenge of the auction this is: the first, the second... */
+type ChallengeProps = AuctionProps & { number: number };
+
+function NextChallenge({ state, act, auction, number }: ChallengeProps) {
   const [made, setMade] = useState<MadeContent>(() => newChallenge(state, BANKS));
   const seconds = made.content.type === 'memory' ? TIMER_SECONDS.memory : TIMER_SECONDS.challenge;
   // Before it starts, the referee can swap the drawn content for other content of the same type.
@@ -124,11 +126,13 @@ function NextChallenge({ state, act, auction }: AuctionProps) {
     <>
       <ChallengeSections
         key={JSON.stringify(made.content)}
+        number={number}
         content={made.content}
         sides={[auction.bidder, auction.defender]}
         state={state}
         recycled={made.recycled}
         clock={<span className="timer-length">{formatNumber(seconds)} ثانية</span>}
+        hint
       />
       <div className="win-actions auction-actions">
         <Button icon="swap" onClick={swap}>
@@ -155,7 +159,7 @@ function otherContent(state: GameState, content: ChallengeContent): MadeContent 
   return made;
 }
 
-function RunningChallenge({ state, act, auction, challenge }: AuctionProps & { challenge: Challenge }) {
+function RunningChallenge({ state, act, auction, challenge, number }: ChallengeProps & { challenge: Challenge }) {
   const names = state.setup.teams;
   const seconds = timerSeconds(state);
   // The bank ran out and shown items came back (the oldest first): the referee is told.
@@ -170,6 +174,7 @@ function RunningChallenge({ state, act, auction, challenge }: AuctionProps & { c
     <>
       <ChallengeSections
         key={challenge.startedAt}
+        number={number}
         content={challenge.content}
         sides={[auction.bidder, auction.defender]}
         state={state}
@@ -207,19 +212,22 @@ function RunningChallenge({ state, act, auction, challenge }: AuctionProps & { c
 }
 
 type SectionsProps = {
+  number: number;
   content: ChallengeContent;
   sides: [Team, Team];
   state: GameState;
   recycled: boolean;
   /** The timer while it runs, or how long it will run. */
   clock: ReactNode;
+  /** What the challenge is, in a line: for the referee to explain it before it starts. */
+  hint?: boolean;
 };
 
 /**
- * The challenge as the referee runs it, in sections: its name and what it is; what the display shows,
- * with the clock; and the answer. Each type keeps only the sections it needs.
+ * The challenge as the referee runs it, in sections: its name and number (and what it is, before it
+ * starts); what the display shows, with the clock; and the answer. Each type keeps only the sections it needs.
  */
-function ChallengeSections({ content, sides, state, recycled, clock }: SectionsProps) {
+function ChallengeSections({ number, content, sides, state, recycled, clock, hint = false }: SectionsProps) {
   const [hits, setHits] = useState<[number, number]>([0, 0]);
   const shown = (label: string, body: ReactNode) => (
     <Section label={label} clock={clock}>
@@ -306,13 +314,16 @@ function ChallengeSections({ content, sides, state, recycled, clock }: SectionsP
 
   return (
     <>
-      <section className="auction-section challenge" aria-label="التحدي">
-        <h3 className="challenge-name">{CHALLENGE_NAMES[content.type]}</h3>
-        <p className="challenge-hint">{CHALLENGE_HINTS[content.type]}</p>
+      <section className="auction-section" aria-label="التحدي">
+        <header className="section-head">
+          <h3 className="challenge-name">{CHALLENGE_NAMES[content.type]}</h3>
+          <span className="section-label">التحدي {formatNumber(number)}</span>
+        </header>
+        {hint ? <p className="challenge-hint">{CHALLENGE_HINTS[content.type]}</p> : null}
       </section>
       {screen}
       {answer ? <Section label="الإجابة">{answer}</Section> : null}
-      {recycled ? <p className="step-note">انتهى محتوى هذا البنك، وبدأت عناصره تتكرر من الأقدم.</p> : null}
+      {recycled ? <p className="note">انتهى محتوى هذا البنك، وبدأت عناصره تتكرر من الأقدم.</p> : null}
     </>
   );
 }

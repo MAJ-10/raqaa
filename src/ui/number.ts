@@ -6,7 +6,7 @@ const THOUSANDS = '٬'; // ٬ ARABIC THOUSANDS SEPARATOR
 const PLUS = '+';
 const MINUS = '−'; // − MINUS SIGN
 
-export type NumberOptions = {
+type NumberOptions = {
   /** Show "+" before positive numbers, for changes such as +٣٠٠. Negative numbers always show "−". */
   sign?: boolean;
 };

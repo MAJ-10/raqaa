@@ -26,7 +26,7 @@ export function DayEndBody({ state, act, gains }: Props & { gains: Record<Team, 
   return (
     <>
       {gains ? <DayTally state={state} gains={gains} /> : null}
-      {isMapFull(state) ? <p className="step-note">امتلأت الخريطة</p> : null}
+      {isMapFull(state) ? <p className="note">امتلأت الخريطة</p> : null}
       {last ? (
         <>
           <div className="extend-row">

@@ -2,7 +2,7 @@
 // Coordinates are (row, col): rows from the top, columns from the right, from 1.
 import { TEAMS, type Card, type PlotId, type Size, type Team } from './types.ts';
 
-export type PlotInfo = {
+type PlotInfo = {
   id: PlotId;
   row: number;
   col: number;

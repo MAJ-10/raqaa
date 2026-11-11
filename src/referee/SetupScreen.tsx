@@ -48,7 +48,7 @@ export function SetupScreen({ store, setup }: { store: RefereeStore; setup: Setu
 
   return (
     <div className="setup">
-      <TopBar title="إعداد المسابقة">
+      <TopBar title={setup.demo ? 'مسابقة تجريبية' : 'إعداد المسابقة'}>
         <ScreenNote />
         <Toolbar>
           <Button variant="quiet" icon="tv" aria-label="فتح شاشة العرض" onClick={openDisplayWindow}>

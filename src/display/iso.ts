@@ -11,7 +11,7 @@ const CO = Math.cos(Math.PI / 4);
  * (se). The reference looks 35° above the ground; a higher camera hides less behind each building.
  */
 export type View = { ce: number; se: number };
-export const viewFrom = (degreesAboveGround: number): View => {
+const viewFrom = (degreesAboveGround: number): View => {
   const a = (degreesAboveGround * Math.PI) / 180;
   return { ce: Math.sin(a), se: Math.cos(a) };
 };

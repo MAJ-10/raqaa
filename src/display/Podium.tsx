@@ -8,7 +8,7 @@ import { EASE_BOUNCE, motion, reducedMotion } from '../ui/motion.ts';
 import { formatNumber } from '../ui/number.ts';
 import { TeamTile } from '../ui/TeamTile.tsx';
 import { TEAM_PATHS } from '../ui/team-paths.ts';
-import { box, decal, project, REFERENCE_VIEW, type BoxShape } from './iso.ts';
+import { box, decal, path, project, REFERENCE_VIEW, type BoxShape } from './iso.ts';
 import { Box } from './IsoMap.tsx';
 import { playSound } from './sound.ts';
 import { TileFrame } from './TileFrame.tsx';
@@ -52,9 +52,6 @@ const shape = (plan: [number, number, number, number], z0: number, z1: number, r
 /** A point on a wall, around the podium's origin. */
 const wall = (i: number, j: number, z: number) => project(i, j, z, S, 0, REFERENCE_VIEW);
 
-/** A window on a wall, from its four corners. */
-const quad = (points: (readonly [number, number])[]) => `M${points.map(([x, y]) => `${x.toFixed(1)} ${y.toFixed(1)}`).join('L')}Z`;
-
 type Tower = { team: Team; rank: number; population: number; floors: number; ci: number; cj: number };
 
 function towers(state: GameState): Tower[] {
@@ -88,8 +85,8 @@ function TowerDrawing({ tower }: { tower: Tower }) {
     for (const c of [-0.42, 0.42]) {
       const [w0, w1] = [z + 0.2 * FLOOR, z + 0.66 * FLOOR];
       parts.push(
-        <path key={`l${f}${c}`} d={quad([wall(ci + c - 0.2, y1, w0), wall(ci + c + 0.2, y1, w0), wall(ci + c + 0.2, y1, w1), wall(ci + c - 0.2, y1, w1)])} fill={tokens.color.litWindow} />,
-        <path key={`r${f}${c}`} d={quad([wall(x1, cj + c - 0.2, w0), wall(x1, cj + c + 0.2, w0), wall(x1, cj + c + 0.2, w1), wall(x1, cj + c - 0.2, w1)])} fill={tokens.color.litWindowShade} />,
+        <path key={`l${f}${c}`} d={path([wall(ci + c - 0.2, y1, w0), wall(ci + c + 0.2, y1, w0), wall(ci + c + 0.2, y1, w1), wall(ci + c - 0.2, y1, w1)])} fill={tokens.color.litWindow} />,
+        <path key={`r${f}${c}`} d={path([wall(x1, cj + c - 0.2, w0), wall(x1, cj + c + 0.2, w0), wall(x1, cj + c + 0.2, w1), wall(x1, cj + c - 0.2, w1)])} fill={tokens.color.litWindowShade} />,
       );
     }
     if (f < floors - 1) {

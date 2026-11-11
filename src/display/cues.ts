@@ -7,7 +7,7 @@ import type { Sound } from './sound.ts';
 import { CARD_FLIP, JUMP_DRAW, waitOf } from './windows.ts';
 
 /** A sound, and how many seconds after the event it plays (to land with its motion). */
-export type Cue = { sound: Sound; after: number };
+type Cue = { sound: Sound; after: number };
 
 /** How long a building takes to land, so its thud comes with it. */
 const LANDING = 0.28;

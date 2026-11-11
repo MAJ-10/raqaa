@@ -34,8 +34,8 @@ export type QuestionKind = 'individual' | 'group';
 
 export type TeamSetup = { name: string; players: number; missions: Mission[] };
 
-/** Where the questions came from. Only a file today; a built-in bank may come later. */
-export type QuestionSource = { kind: 'file'; name: string };
+/** Where the questions came from: the referee's file, or the made-up sums of a demo. */
+export type QuestionSource = { kind: 'file' | 'demo'; name: string };
 
 export type Setup = {
   size: Size;
@@ -43,6 +43,8 @@ export type Setup = {
   teams: Record<Team, TeamSetup>;
   questions: Question[];
   questionSource?: QuestionSource | null;
+  /** A demo competition: the referee window plays it by itself (engine/autoplay.ts). */
+  demo?: boolean;
 };
 
 export type MathOp = '+' | '-' | '*' | '/';

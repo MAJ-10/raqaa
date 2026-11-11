@@ -4,7 +4,7 @@ import { read, utils, writeFile, type WorkBook } from 'xlsx';
 import type { Question } from '../engine/types.ts';
 import { formatNumber } from '../ui/number.ts';
 
-export type ReadResult = { ok: true; questions: Question[] } | { ok: false; error: string };
+type ReadResult = { ok: true; questions: Question[] } | { ok: false; error: string };
 
 const QUESTION = 'السؤال';
 const ANSWER = 'الإجابة';

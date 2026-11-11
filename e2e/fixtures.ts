@@ -69,7 +69,7 @@ export async function seedGame(page: Page, home: string, setup: Setup, events: G
   await page.goto(home);
   await page.evaluate((game) => localStorage.setItem('raqaa.game', JSON.stringify(game)), {
     schema: SCHEMA_VERSION,
-    savedAt: 0,
+    savedAt: Date.now(),
     setup,
     events,
   });
