@@ -251,17 +251,21 @@ test.describe('play', () => {
     await expect(currentStep(page)).toHaveText('ختام اليوم');
   });
 
-  test('the last day ends in the announcement, then a new competition', async ({ page }) => {
+  test('the last day ends in the announcement, at night, then back to the home page', async ({ page }) => {
     const { setup, events } = lastDayScenario();
     await seedGame(page, '/', setup, events);
+    await expect(page.locator('.play')).not.toHaveAttribute('data-night');
     await button(page, 'الإعلان').click();
+    // The referee's screen is night through the announcement, as the TV is.
+    await expect(page.locator('.play')).toHaveAttribute('data-night');
+    await expect(page.locator('.play-stars')).toBeVisible();
     await expect(page.locator('.announce-title')).toHaveText('سكان الخريطة');
     while (await button(page, 'التالي').isVisible()) await button(page, 'التالي').click();
     await expect(page.locator('.announce-title')).toHaveText('عمدة الرقعة');
-    await button(page, 'مسابقة جديدة').click();
+    await button(page, 'العودة للرئيسية').click();
     await expect(page.getByText('تُحذف هذه المسابقة')).toBeVisible();
-    await button(page, 'مسابقة جديدة').click(); // the confirmation
-    await expect(button(page, 'إنشاء غرفة')).toBeVisible();
+    await button(page, 'العودة للرئيسية').click(); // the confirmation
+    await expect(button(page, 'إنشاء غرفة').first()).toBeVisible();
   });
 
   test('reopening the referee window restarts a running timer', async ({ page }) => {

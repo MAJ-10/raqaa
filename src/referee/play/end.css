@@ -174,3 +174,89 @@
 .announce-mission strong[data-done] {
   color: var(--ok);
 }
+
+/*
+ * The announcement happens at night, on the referee's screen as on the TV: the sky is the night's, with
+ * its stars; the city is lit; the map takes its night colours; and what is written on the sky is white.
+ * The white cards stay as they are. Night comes in over a moment.
+ */
+.play[data-night] {
+  background: var(--night);
+  transition: background-color 900ms ease-out;
+}
+
+.play-stars {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+  animation: stars-in 1400ms ease-out backwards;
+}
+
+@keyframes stars-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.play[data-night] .top-bar,
+.play[data-night] .play-side {
+  background: none;
+}
+
+.play[data-night] .play-side {
+  border-color: var(--night-city);
+}
+
+.play[data-night] .top-bar-title,
+.play[data-night] .announce-head h2 {
+  color: var(--white);
+  transition: color 900ms ease-out;
+}
+
+.play[data-night] .top-bar-of,
+.play[data-night] .announce-count,
+.play[data-night] .screen-note {
+  color: var(--line);
+}
+
+.play[data-night] .board-scenery {
+  --city: var(--night-city);
+  --city-window: var(--lit-window-shade);
+}
+
+.play[data-night] .skyline g {
+  transition: fill 900ms ease-out;
+}
+
+.play[data-night] .cloud {
+  display: none;
+}
+
+/* The map's night colours, as the display draws them. */
+.play[data-night] .board-plate {
+  --plate: var(--night-city);
+  --plot-2: var(--night-plot-2);
+  --plot-3: var(--night-plot-3);
+  --plot-4: var(--night-plot-4);
+  --tower: var(--white);
+}
+
+.play[data-night] .board-plate,
+.play[data-night] .plot {
+  transition: background-color 900ms ease-out;
+}
+
+.play[data-night] .plot-card {
+  color: var(--line);
+}
+
+.play[data-night] .plot[data-centre] .plot-card {
+  color: var(--ink);
+}
+
+/* On the night's sky the focus ring is white, so it still shows. */
+.play[data-night] .team-card:focus-visible {
+  outline-color: var(--white);
+}

@@ -3,8 +3,10 @@ import { TEAMS, type Setup, type Team, type TeamSetup } from '../engine/types.ts
 import type { RefereeStore } from '../state/referee-store.ts';
 import { isReady, LIMITS } from '../state/setup.ts';
 import { Button } from '../ui/Button.tsx';
+import { Cloud, Skyline } from '../ui/City.tsx';
 import { Segmented, Stepper } from '../ui/fields.tsx';
 import { Icon } from '../ui/Icon.tsx';
+import { MedadFoot } from '../ui/MedadFoot.tsx';
 import { countOf, MISSION_NAMES, MISSION_NOUN, TEAM_COLOUR } from '../ui/names.ts';
 import { formatNumber } from '../ui/number.ts';
 import { TeamTile } from '../ui/TeamTile.tsx';
@@ -15,7 +17,11 @@ import { ScreenNote } from './ScreenNote.tsx';
 import { QuestionsCard } from './QuestionsCard.tsx';
 import './setup.css';
 
-/** R02: the competition setup. Every change is saved at once. */
+/**
+ * R02: the competition setup. The teams across the page; under them the map and the days in one row, and
+ * beside them the questions. Behind it all, the identity's city; at the foot, the maker's signature.
+ * Every change is saved at once.
+ */
 export function SetupScreen({ store, setup }: { store: RefereeStore; setup: Setup }) {
   const [picking, setPicking] = useState<Team | null>(null);
   const [shown, setShown] = useState<Set<Team>>(new Set());
@@ -48,6 +54,7 @@ export function SetupScreen({ store, setup }: { store: RefereeStore; setup: Setu
 
   return (
     <div className="setup">
+      <Skyline className="setup-skyline" />
       <TopBar title={setup.demo ? 'مسابقة تجريبية' : 'إعداد المسابقة'}>
         <ScreenNote />
         <Toolbar>
@@ -79,13 +86,7 @@ export function SetupScreen({ store, setup }: { store: RefereeStore; setup: Setu
               const t = setup.teams[team];
               const colour = TEAM_COLOUR[team];
               return (
-                <TeamTile
-                  key={team}
-                  team={team}
-                  height={64}
-                  className="setup-team"
-                  mark={<span className="setup-team-colour">{colour}</span>}
-                >
+                <TeamTile key={team} team={team} height={64} className="setup-team">
                   <input
                     ref={(field) => {
                       nameFields.current[team] = field;
@@ -145,8 +146,8 @@ export function SetupScreen({ store, setup }: { store: RefereeStore; setup: Setu
           </div>
         </section>
 
-        <div className="setup-side">
-          <section className="card">
+        <section className="card setup-map">
+          <div>
             <h2 className="card-title">الخريطة</h2>
             <Segmented
               label="حجم الخريطة"
@@ -157,7 +158,9 @@ export function SetupScreen({ store, setup }: { store: RefereeStore; setup: Setu
               ]}
               onChange={(size) => update({ size })}
             />
-            <h2 className="card-title setup-days-title">الأيام</h2>
+          </div>
+          <div>
+            <h2 className="card-title">الأيام</h2>
             <Stepper
               label="عدد الأيام"
               value={setup.days}
@@ -165,15 +168,21 @@ export function SetupScreen({ store, setup }: { store: RefereeStore; setup: Setu
               max={LIMITS.days.max}
               onChange={(days) => update({ days })}
             />
-          </section>
+          </div>
+        </section>
 
-          <QuestionsCard
-            questions={setup.questions}
-            source={setup.questionSource}
-            onLoad={(questions, questionSource) => update({ questions, questionSource })}
-          />
-        </div>
+        <QuestionsCard
+          questions={setup.questions}
+          source={setup.questionSource}
+          onLoad={(questions, questionSource) => update({ questions, questionSource })}
+        />
       </main>
+      <div className="setup-sky" aria-hidden="true">
+        <Cloud className="setup-cloud" />
+        <Cloud className="setup-cloud" />
+        <Cloud className="setup-cloud" />
+      </div>
+      <MedadFoot />
 
       {picking ? (
         <MissionPicker

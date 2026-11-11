@@ -1,32 +1,102 @@
+/*
+ * The setup fills the window at least. Behind it all, the identity's city: its skyline standing on the
+ * ground at the page's foot, where the maker's signature sits; and a few clouds in the sky left under
+ * the cards.
+ */
 .setup {
+  --foot: 66px;
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
   min-height: 100%;
 }
 
+.setup-skyline {
+  position: absolute;
+  bottom: var(--foot);
+  left: 0;
+  z-index: -1;
+  width: 100%;
+  height: auto;
+  pointer-events: none;
+}
+
+/* The sky left under the cards. Its clouds show on a tall window only, where there is sky enough for them. */
+.setup-sky {
+  position: relative;
+  z-index: -1;
+  flex: 1;
+}
+
+.setup-cloud {
+  position: absolute;
+  display: none;
+  height: auto;
+}
+
+@media (min-height: 1000px) {
+  .setup-cloud {
+    display: block;
+  }
+}
+
+.setup-cloud:nth-child(1) {
+  top: 14%;
+  inset-inline-start: 6%;
+  width: 140px;
+}
+
+.setup-cloud:nth-child(2) {
+  top: 4%;
+  inset-inline-end: 9%;
+  width: 110px;
+}
+
+.setup-cloud:nth-child(3) {
+  top: 20%;
+  inset-inline-end: 40%;
+  width: 88px;
+}
+
+.setup > .medad-foot {
+  min-height: var(--foot);
+  background: var(--city);
+}
+
+/* The teams across the page; under them the map and the days, and beside those the questions. */
 .setup-body {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 420px;
-  align-items: start;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-content: start;
   gap: 24px;
   padding: 24px;
 }
 
-.setup-side {
-  display: grid;
-  gap: 24px;
+.setup-teams {
+  grid-column: 1 / -1;
+}
+
+/* The map's size and the number of days, side by side. */
+.setup-map {
+  display: flex;
+  gap: 48px;
 }
 
 /*
- * Each team is a team tile: its colour (with its symbol and its colour's name) at the start, then its name,
- * its players and its secret missions. The heads above line up with the tiles' columns.
+ * Each team is a team tile: its colour, with its symbol, at the start, then its name, its players and
+ * its secret missions. The heads above line up with the tiles' columns.
  */
 .setup-teams-grid {
+  --start: 112px;
+  --columns: minmax(160px, 320px) 150px minmax(240px, 1fr);
   display: grid;
   gap: 10px;
 }
 
 .setup-team-head {
   display: grid;
-  grid-template-columns: calc(25% + 42px) minmax(160px, 1fr) 150px minmax(240px, 1.4fr);
+  grid-template-columns: calc(var(--start) + 42px) var(--columns);
   gap: 16px;
   padding-inline-end: 12px;
   color: var(--ink-soft);
@@ -34,23 +104,14 @@
   font-weight: 600;
 }
 
-.setup-team {
+.team-tile.setup-team {
+  --rest: var(--start);
   width: 100%;
-}
-
-.setup-team .team-tile-mark {
-  flex-direction: row;
-  gap: 8px;
-}
-
-.setup-team-colour {
-  font-size: var(--fs-label);
-  font-weight: 600;
 }
 
 .setup-team .team-tile-body {
   display: grid;
-  grid-template-columns: minmax(160px, 1fr) 150px minmax(240px, 1.4fr);
+  grid-template-columns: var(--columns);
   gap: 16px;
   padding-block: 10px;
 }
@@ -68,26 +129,29 @@
   cursor: pointer;
 }
 
-.setup-days-title {
-  margin-top: 24px;
-}
-
-/* Questions */
+/* Questions: in a row, the file (or the button that uploads it), its first two questions, and the template at the end. */
 .questions-card {
-  display: grid;
-  justify-items: start;
-  gap: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  align-content: start;
+  gap: 12px 24px;
 }
 
 .questions-card .card-title {
+  flex-basis: 100%;
   margin-bottom: 4px;
+}
+
+.questions-card > .link-button {
+  margin-inline-start: auto;
 }
 
 .questions-loaded {
   display: flex;
+  flex: 0 1 400px;
   align-items: center;
   gap: 12px;
-  width: 100%;
   padding: 12px 16px;
   border: 2px solid var(--ok);
   border-radius: var(--r-box);
@@ -120,11 +184,11 @@
 }
 
 .questions-upload {
-  width: 100%;
+  min-width: 300px;
 }
 
 .questions-error {
-  width: 100%;
+  flex-basis: 100%;
   margin: 0;
   padding: 10px 14px;
   border: 2px solid var(--no);
@@ -136,8 +200,9 @@
 
 .questions-preview {
   display: grid;
+  flex: 1 1 280px;
   gap: 6px;
-  width: 100%;
+  max-width: 460px;
   margin: 0;
 }
 
@@ -298,51 +363,4 @@
   display: flex;
   justify-content: flex-end;
   margin-top: 24px;
-}
-
-/* Intro: the logo in the middle, the teams' tiles in from the four corners, and «إنشاء غرفة». */
-.intro {
-  position: relative;
-  display: grid;
-  place-items: center;
-  min-height: 100%;
-  padding: 48px 24px;
-  overflow: hidden;
-}
-
-.intro-center {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  justify-items: center;
-  gap: 44px;
-  animation: intro-in 800ms cubic-bezier(0.16, 1, 0.3, 1) 250ms backwards;
-}
-
-@keyframes intro-in {
-  from {
-    opacity: 0;
-    transform: translateY(18px) scale(0.97);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-.intro-logo {
-  width: min(400px, 60vw);
-  height: auto;
-}
-
-.intro-actions {
-  display: grid;
-  justify-items: center;
-  gap: 14px;
-}
-
-.intro-create {
-  width: 420px;
-  min-height: 72px;
-  font-size: var(--fs-title);
 }

@@ -358,6 +358,40 @@
   cursor: pointer;
 }
 
+/* The maker's signature at the foot of a page: a quiet line, and the Medad wordmark. */
+.medad-foot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 0;
+  padding: 22px 16px;
+  color: var(--ink-soft);
+  font-size: var(--fs-small);
+}
+
+.medad-foot[data-night] {
+  color: var(--line);
+}
+
+.medad-foot > img {
+  width: auto;
+  height: 22px;
+}
+
+/* The screen that shows if another breaks: the logo, a line, and «إعادة فتح». */
+.error-screen {
+  display: grid;
+  place-items: center;
+  min-height: 100%;
+  padding: 48px 24px;
+}
+
+.error-logo {
+  width: min(400px, 60vw);
+  height: auto;
+}
+
 .error-text {
   margin: 0;
   font-size: var(--fs-label);
@@ -573,63 +607,4 @@
   background: transparent;
   color: var(--ink-soft);
   opacity: 0.45;
-}
-
-/*
- * The identity's opening page: the teams' tiles in from the four corners, heading for the middle, behind
- * the content and never touching it. The tiles pop in from each corner outwards.
- */
-.corner-tiles {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.corner {
-  position: absolute;
-  width: min(34vw, 500px);
-  height: auto;
-  overflow: visible;
-}
-
-.corner[data-at='top-left'] {
-  top: -16px;
-  left: -16px;
-}
-
-.corner[data-at='top-right'] {
-  top: -16px;
-  right: -16px;
-  transform: scaleX(-1);
-}
-
-.corner[data-at='bottom-left'] {
-  bottom: -16px;
-  left: -16px;
-  transform: scaleY(-1);
-}
-
-.corner[data-at='bottom-right'] {
-  right: -16px;
-  bottom: -16px;
-  transform: scale(-1, -1);
-}
-
-.corner-tile {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: tile-in 560ms cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
-  animation-delay: calc(var(--i) * 55ms);
-}
-
-@keyframes tile-in {
-  from {
-    opacity: 0;
-    transform: scale(0.2);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
 }

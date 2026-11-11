@@ -39,7 +39,7 @@ export function saveGame<Setup, Event>(
 
 /**
  * How long a competition stays saved after its last event. A competition is played in a day, so a save
- * left two days is one nobody will finish: the referee window opens on the intro page instead.
+ * left two days is one nobody will finish: the referee window opens on the landing page instead.
  */
 export const KEEP_FOR = 2 * 24 * 60 * 60 * 1000;
 

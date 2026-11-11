@@ -4,7 +4,7 @@ import { openAuction, options, planPlots, planTargets, population } from '../../
 import { TEAMS, type EventInput, type GameEvent, type GameState, type PlotId, type Team } from '../../engine/types.ts';
 import type { RefereeStore } from '../../state/referee-store.ts';
 import { Button } from '../../ui/Button.tsx';
-import { Cloud, Skyline } from '../../ui/City.tsx';
+import { Cloud, Skyline, Stars } from '../../ui/City.tsx';
 import { formatNumber } from '../../ui/number.ts';
 import { TeamSymbol } from '../../ui/TeamBadge.tsx';
 import { Toolbar, TopBar } from '../../ui/TopBar.tsx';
@@ -35,7 +35,8 @@ const CORNERS = { top: ['coral', 'blue'], bottom: ['green', 'gold'] } as const s
 
 /**
  * The referee's play screen (R03–R13): a quiet top bar, the day's steps on one track at the side, and
- * the map as the stage, with each team's card at the corner of its base.
+ * the map as the stage, with each team's card at the corner of its base. In the announcement it is night
+ * here as on the TV: stars, the city lit, the map in its night colours.
  */
 export function PlayScreen({ store, state, events }: Props) {
   // The plots picked for a plan belong to that one decision: when it changes, the pick starts afresh.
@@ -90,9 +91,13 @@ export function PlayScreen({ store, state, events }: Props) {
     />
   );
 
+  const night = state.step === 'announce';
+
   return (
-    <div className="play">
+    <div className="play" data-night={night || undefined}>
+      {night ? <Stars className="play-stars" /> : null}
       <TopBar
+        night={night}
         title={
           <>
             اليوم{' '}
@@ -133,7 +138,7 @@ export function PlayScreen({ store, state, events }: Props) {
       <main className="play-body">
         <aside className="play-side">
           {state.step === 'announce' ? (
-            <AnnouncePanel state={state} act={act} onNew={() => store.end()} />
+            <AnnouncePanel state={state} act={act} onHome={() => store.end()} />
           ) : (
             <DayTrack state={state} act={act} today={today} planPicked={picked} gains={gains} />
           )}

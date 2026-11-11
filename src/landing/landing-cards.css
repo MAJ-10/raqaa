@@ -1,0 +1,207 @@
+/*
+ * The cards on the page: the identity's ink card with its two sides. A card lies face down until the page
+ * reaches it (`data-up`), then turns over and its words show; it turns back when the page leaves it.
+ * Cards in a row turn one after the other (`--i`), and each lies a little off straight, its own way
+ * (`--tilt`). What is on a card is sized from the card's own width.
+ */
+.land-card {
+  --i: 0;
+  --tilt: 0deg;
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 16px;
+  width: var(--card-w, 172px);
+  margin: 0;
+  perspective: 1200px;
+  container-type: inline-size;
+}
+
+.land-flip {
+  display: grid;
+  width: 100%;
+  rotate: var(--tilt);
+  transform: rotateY(180deg);
+  transform-style: preserve-3d;
+  transition: transform 720ms cubic-bezier(0.45, 0, 0.25, 1) calc(var(--i) * 90ms);
+}
+
+.land-card[data-up] .land-flip {
+  transform: rotateY(0deg);
+}
+
+.land-face {
+  display: grid;
+  grid-area: 1 / 1;
+  justify-items: center;
+  align-content: start;
+  gap: 10px;
+  padding: 10px 10px 14px;
+  border-radius: 20px;
+  background: var(--ink);
+  color: var(--white);
+  box-shadow: 8px 8px 0 var(--plate-side);
+  backface-visibility: hidden;
+}
+
+.land-face .card-art {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  border: 0;
+  border-radius: 13px;
+}
+
+.land-face .mission-art {
+  --art: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  padding: 10px;
+  border-radius: 13px;
+  background: var(--sky);
+}
+
+.land-face-name {
+  padding-inline: 6px;
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1.3;
+  text-align: center;
+}
+
+/* Turned over, its shadow is drawn mirrored, so it falls the way the face's does. */
+.land-face-back {
+  place-content: center;
+  box-shadow: -8px 8px 0 var(--plate-side);
+  transform: rotateY(180deg);
+}
+
+/* The box's cards lie as they are: they don't turn. */
+.land-peek.land-face-back {
+  box-shadow: 8px 8px 0 var(--plate-side);
+  transform: none;
+}
+
+/* The back's map: five tiles and their gaps across the card, whatever its width. */
+.land-back-map {
+  --cell: calc((100cqw - 26px) / 6);
+  direction: ltr;
+  display: grid;
+  grid-template-columns: repeat(5, var(--cell));
+  gap: calc(var(--cell) / 4);
+}
+
+.land-back-map > i {
+  width: var(--cell);
+  height: var(--cell);
+  border-radius: calc(var(--cell) / 4);
+}
+
+.land-card figcaption {
+  font-size: 15px;
+  line-height: 1.7;
+  text-align: center;
+  text-wrap: pretty;
+  opacity: 0;
+  transition: opacity 400ms ease-out calc(var(--i) * 90ms);
+}
+
+.land-card[data-up] figcaption {
+  opacity: 1;
+  transition-delay: calc(var(--i) * 90ms + 380ms);
+}
+
+/* The five cards, on the table they are played on: the map's plate. Five across where the table lets them. */
+.land-table {
+  --gap: clamp(16px, 2.4vw, 34px);
+  --card-w: clamp(132px, (100% - 4 * var(--gap) - 1px) / 5, 188px);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--gap);
+  padding: clamp(28px, 3.4vw, 48px) clamp(18px, 3vw, 44px);
+  border-radius: var(--r-card);
+  background: var(--plate);
+  box-shadow: 0 14px 0 var(--plate-side);
+}
+
+/*
+ * The secret missions, beside their words: a column for each level, and in it the level's three missions,
+ * named and no more. The columns share their rows, so the cards line up across them. The words hold in
+ * the window while the cards go by.
+ */
+.land-missions {
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  align-items: start;
+  column-gap: clamp(24px, 4vw, 72px);
+}
+
+.land-missions > .land-words {
+  position: sticky;
+  top: 26svh;
+}
+
+.land-levels {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 30px clamp(12px, 2.2vw, 30px);
+}
+
+.land-level {
+  display: grid;
+  grid-row: span 4;
+  grid-template-rows: subgrid;
+  justify-items: center;
+}
+
+.land-level > h3 {
+  justify-self: stretch;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--ink);
+  font-size: clamp(17px, 1.6vw, 22px);
+  line-height: 1.4;
+  text-align: center;
+}
+
+.land-level .land-card {
+  width: min(100%, 190px);
+}
+
+.land-level .land-face-name {
+  font-size: clamp(13px, 9.4cqw, 17px);
+}
+
+/* A phone: the words, then the three columns under them. */
+@media (max-width: 759px) {
+  .land-missions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .land-missions > .land-words {
+    position: static;
+  }
+
+  .land-levels {
+    gap: 22px 12px;
+  }
+
+  .land-level .land-face {
+    gap: 8px;
+    padding: 7px 7px 10px;
+    border-radius: 15px;
+    box-shadow: 6px 6px 0 var(--plate-side);
+  }
+
+  .land-level .land-face-back {
+    box-shadow: -6px 6px 0 var(--plate-side);
+  }
+
+  .land-level .land-face .mission-art {
+    padding: 6px;
+    border-radius: 10px;
+  }
+
+  .land-level .land-back-map {
+    --cell: calc((100cqw - 20px) / 6);
+  }
+}

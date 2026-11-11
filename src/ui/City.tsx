@@ -61,3 +61,26 @@ export function Cloud({ className, style }: { className?: string; style?: CSSPro
     </svg>
   );
 }
+
+/** The night's stars, scattered the same way every time over a 1440×900 sky: x, y, radius, brightness. */
+const STARS: [number, number, number, number][] = (() => {
+  let seed = 21;
+  const random = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  return Array.from({ length: 110 }, () => [
+    Math.round(random() * 1440),
+    Math.round(random() * 900),
+    [1.1, 1.5, 1.9][Math.floor(random() * 3)]!,
+    [0.3, 0.5, 0.75][Math.floor(random() * 3)]!,
+  ]);
+})();
+
+/** The night sky's stars, filling their box; CSS places it. */
+export function Stars({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+      {STARS.map(([x, y, r, o], i) => (
+        <circle key={i} cx={x} cy={y} r={r} fill="var(--white)" opacity={o} />
+      ))}
+    </svg>
+  );
+}

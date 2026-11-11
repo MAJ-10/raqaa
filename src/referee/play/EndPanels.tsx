@@ -99,9 +99,9 @@ const HEADS: Record<'population' | 'mission' | 'podium', [string, string]> = {
   podium: ['عمدة الرقعة', 'crown'],
 };
 
-/** R13: the announcement, one step at a time; then a new competition, after asking. */
-export function AnnouncePanel({ state, act, onNew }: Props & { onNew: () => void }) {
-  const [starting, setStarting] = useState(false);
+/** R13: the announcement, one step at a time; then back to the home page, after asking. */
+export function AnnouncePanel({ state, act, onHome }: Props & { onHome: () => void }) {
+  const [leaving, setLeaving] = useState(false);
   const steps = announcement(state);
   const step = steps[state.announce]!;
   const names = state.setup.teams;
@@ -162,18 +162,18 @@ export function AnnouncePanel({ state, act, onNew }: Props & { onNew: () => void
             ))}
           </ol>
         ) : null}
-        {lastStep && starting ? (
+        {lastStep && leaving ? (
           <Confirm
-            text="تُحذف هذه المسابقة، وتبدأ مسابقة جديدة من الصفحة الأولى."
-            confirm="مسابقة جديدة"
-            onConfirm={onNew}
-            onCancel={() => setStarting(false)}
+            text="تُحذف هذه المسابقة، وتعود إلى الصفحة الرئيسية."
+            confirm="العودة للرئيسية"
+            onConfirm={onHome}
+            onCancel={() => setLeaving(false)}
           />
         ) : (
           <div className="step-actions">
             {lastStep ? (
-              <Button variant="primary" icon="plus" onClick={() => setStarting(true)}>
-                مسابقة جديدة
+              <Button variant="primary" onClick={() => setLeaving(true)}>
+                العودة للرئيسية
               </Button>
             ) : (
               <Button variant="primary" onClick={() => act({ type: 'announce/next' })}>

@@ -69,7 +69,7 @@ test.describe('single file (raqaa.html)', () => {
 
   test('has the fonts inside it', async ({ page }) => {
     await page.goto(singleFileUrl());
-    await expect(page.getByRole('button', { name: 'إنشاء غرفة' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'إنشاء غرفة' }).first()).toBeVisible();
     expect(await fontsLoaded(page)).toEqual([true, true, true]);
   });
 });

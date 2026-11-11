@@ -4,7 +4,7 @@ import { expect, openDisplay, test } from './fixtures.ts';
 const savedEvents = (page: import('@playwright/test').Page) =>
   page.evaluate(() => (JSON.parse(localStorage.getItem('raqaa.game') ?? '{"events":[]}') as { events: unknown[] }).events.length);
 
-test('a demo competition plays itself on both screens, pauses, and ends back on the intro page', async ({ page }) => {
+test('a demo competition plays itself on both screens, pauses, and ends back on the landing page', async ({ page }) => {
   test.setTimeout(90_000);
   await page.goto('/');
   await page.getByRole('button', { name: 'مسابقة تجريبية' }).click();
@@ -25,9 +25,9 @@ test('a demo competition plays itself on both screens, pauses, and ends back on 
   await page.getByRole('button', { name: 'متابعة' }).click();
   await expect.poll(() => savedEvents(page), { timeout: 15_000 }).toBeGreaterThan(paused);
 
-  // «إنهاء التجربة» drops it and goes back to the intro page.
+  // «إنهاء التجربة» drops it and goes back to the landing page.
   await page.getByRole('button', { name: 'إنهاء التجربة' }).click();
-  await expect(page.getByRole('button', { name: 'إنشاء غرفة' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'إنشاء غرفة' }).first()).toBeVisible();
   expect(await page.evaluate(() => localStorage.getItem('raqaa.game'))).toBeNull();
 });
 

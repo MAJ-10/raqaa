@@ -3,7 +3,7 @@ import type { GameEvent, GameState, Setup } from '../engine/types.ts';
 import { clearGame, saveGame, SCHEMA_VERSION, type SavedGame } from './persist.ts';
 import { makeId, openSyncLink, type Snapshot, type SyncLink, type SyncMessage, type Transport } from './sync.ts';
 
-/** What the referee window holds: no competition (the intro page), or a competition and its events. */
+/** What the referee window holds: no competition (the landing page), or a competition and its events. */
 type RefereeView = {
   readonly state: GameState | null;
   readonly events: readonly GameEvent[];
@@ -114,7 +114,7 @@ export class RefereeStore {
     this.commit(resume(state.setup, events.slice(0, -1)), null);
   }
 
-  /** Clears the competition: back to the intro page. */
+  /** Clears the competition: back to the landing page. */
   end(): void {
     this.commit({ state: null, events: [] }, null);
   }

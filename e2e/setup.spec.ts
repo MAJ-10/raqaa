@@ -1,4 +1,4 @@
-// The setup, from the intro page to «ابدأ», on the website.
+// The setup, from the landing page to «ابدأ», on the website.
 import { readFileSync } from 'node:fs';
 import { read, utils } from 'xlsx';
 import { createRoom, displayTeams, expect, fillSetup, nameField, openDisplay, test } from './fixtures.ts';
@@ -8,6 +8,8 @@ test.describe('setup', () => {
     await createRoom(page, '/');
     const start = page.getByRole('button', { name: 'ابدأ' });
     await expect(start).toBeDisabled();
+    // A team's tile shows its colour and its symbol; the colour's name is for screen readers only.
+    await expect(page.locator('.setup-team').first()).not.toContainText('المرجاني');
 
     await fillSetup(page);
     await page.getByRole('group', { name: 'عدد الأيام' }).getByRole('button', { name: 'ناقص' }).click();

@@ -22,11 +22,11 @@ Read these before any work. They are in Arabic.
 ## Stack and hard constraints
 
 - Vite, TypeScript and React. One build makes two outputs from the same code:
-  - the website, which installs as an app and works offline after the first visit (web app manifest and service worker). It is published on CranL (cranl.com) from the private GitHub repo: every push to `main` builds the `Dockerfile`, which runs the unit tests and only then builds, and `tools/serve.ts` serves `dist`. A failing test stops the deploy;
+  - the website, which installs as an app and works offline after the first visit (web app manifest and service worker). It is published on CranL (cranl.com) from the GitHub repo (`MAJ-10/raqaa`, public since 11 November 2026): every push to `main` builds the `Dockerfile`, which runs the unit tests and only then builds, and `tools/serve.ts` serves `dist`. A failing test stops the deploy;
   - `raqaa.html`, one self-contained file built with `vite-plugin-singlefile`. It opens by double-click (`file://`) as the offline backup.
 - Both run fully offline in Chrome or Edge on Windows. The app makes no network requests of its own: no CDN, no Google Fonts, no analytics. The only network use is the site loading and updating itself. Both builds carry a Content-Security-Policy that enforces this (`tools/pwa.ts`); `raqaa.html` allows no connections at all. Keep it, and widen it only on purpose.
 - An update never reloads a running competition: a new version applies the next time the app opens. Saved games carry a schema version.
-- Questions never ship inside the published code. They come from the referee's file. The demo competition (from the intro page) asks made-up sums instead.
+- Questions never ship inside the published code. They come from the referee's file. The demo competition (from the landing page) asks made-up sums instead.
 - Embed Alexandria 400/600/900 from `assets/fonts`, as WOFF2.
 - Two windows: the referee and the display (`#display`). They sync over `BroadcastChannel` and, as a fallback, `localStorage` "storage" events; every message goes over both and the display drops copies (`src/state/sync.ts`). Each works alone in Chrome and Edge, on the website and from `file://`; `?sync=broadcast` or `?sync=storage` keeps one, for tests. The display can be opened from its own link at any time. When it opens it shows the last snapshot kept in `localStorage` (so it works while the referee window is closed), and asks for the full state; only renders the state and the last event, and never changes anything. The referee window is the only writer.
 - The state is event-sourced. Every change is an event, and state is a pure fold of the events over the initial state. Undo removes the last event and recomputes. Generated content (math problems, scrambled sentences, memory items) and each event's time live in the event's payload. A timer running out is an event.
@@ -54,12 +54,13 @@ Read these before any work. They are in Arabic.
 - **Turn on the display:** never show build-order numbers. The «دوره», «يبني» or «يزايد» arrow marks the active team. The referee screen keeps the order list.
 - **Colours:** use the tokens in `assets/tokens.css` and `assets/tokens.json`. Ask before adding a colour.
   - Each colour has one meaning on the referee screen: ink is text, the frame and marker of the current step, a chosen option and the primary button's border; ground blue is a step done; a team's colour is that team only; red frames a confirmation. Buttons are white (the primary framed in ink), and a disabled button is plainly grey. No yellow in buttons or steps.
+- **Night:** the announcement happens at night on both screens: the display's stage, and the referee's play screen (`.play[data-night]`). White cards stay white; what sits on the sky turns white, and the map takes its night colours.
 - **Teams on screen:** show a team with the team tile (`src/ui/TeamTile.tsx`): its colour fills the start of the tile, holds its symbol and ends in a soft curve (a rounded top sweeping down to the bottom: not a full circle, not a wave); filled, the colour sweeps across the tile (the team is chosen, or it is its turn).
 - **Shapes**
   - Use fully rounded pills only for the population bubble and the referee's status. Other tags and chips get radius 6 to 8.
   - Cards that need emphasis use a white background with a coloured border, not a tinted fill.
 - **Text:** don't add captions or helper text unless they are strictly needed. Elements should explain themselves. Write UI text in short, plain Modern Standard Arabic («اليوم التالي», not «اليوم الجاي»).
-- **Type on the referee screen:** the identity's control sizes only (22, 17, 16, 15 and 13, as `--fs-*` in `src/ui/base.css`), and three sizes at most in one area.
+- **Type on the referee screen:** the identity's control sizes only (22, 17, 16, 15 and 13, as `--fs-*` in `src/ui/base.css`), and three sizes at most in one area. The landing page is a page to read, and sets its own larger sizes.
 - **Confirmations:** ask in the page (`src/ui/Confirm.tsx`), never with a browser dialog.
 - **Accessibility:** touch targets are at least 44px and the focus ring is 3px.
 - **Sizes**
@@ -74,6 +75,7 @@ Read these before any work. They are in Arabic.
 | `assets/icons` | 24-grid icons in `currentColor`. Draw new icons in the same style: 24 grid, 2.6 stroke, round caps and joins, or solid shapes. |
 | `src/content/memory-images` | The memory images: Fluent Emoji Flat (Microsoft, MIT) with an ink outline, fetched by `pnpm images` from the list in `memory-images.json`. Don't draw memory images; pick clear, single-object, unambiguous ones. |
 | `assets/teams` | The team symbols. |
+| `assets/medad` | The maker's wordmark (Medad), teal for light pages and cream for night, shown by `src/ui/MedadFoot.tsx` at the foot of the landing page and the setup. |
 | `assets/cards` | Action-card art (200 grid) and `cards.json` with the Arabic names. |
 | `assets/fonts` | Alexandria (TTF originals and the WOFF2 the app uses) and its license note. |
 | `reference/*.py` | The Python that drew the identity and the screens (`map9.py` the iso map, `mark3.py` the logo, `mayor.py` the final podium). Port the maths, not the code. |
@@ -101,6 +103,7 @@ src/engine     rules, reducer, selectors (pure, tested); scenarios.ts has ready-
 src/state      events, persistence, window sync
 src/ui         shared components: TeamTile, TeamBadge, TopBar, Sign, Timer, Board, Button, City, CardArt, MissionArt
 src/referee    referee screens (R01–R13)
+src/landing    the landing page: the first page when no competition is saved, and at #landing at any time; story.ts plays the short competition its map and podium tell
 src/display    display stage and states (D01–D21)
 src/content    built-in banks (spelling, ordering, memory) as JSON + SVG
 tests/         Vitest

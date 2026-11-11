@@ -1,0 +1,183 @@
+/*
+ * The city, built by the scroll. The track's height is the time it takes to build it; the scene holds in
+ * the window while the track goes by, and at the track's end it goes up with the page.
+ */
+.land-map-track {
+  height: 400svh;
+}
+
+.land-map-scene {
+  position: sticky;
+  top: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  grid-template-areas:
+    'words map'
+    'rings map';
+  align-content: center;
+  gap: clamp(20px, 2.4vw, 32px) clamp(24px, 4vw, 72px);
+  max-width: var(--land-width);
+  height: 100svh;
+  margin: 0 auto;
+  padding: 24px var(--land-gutter);
+}
+
+.land-map-words {
+  grid-area: words;
+  align-self: end;
+}
+
+/* The words keep their room whatever their length, so the rings under them never move. */
+.land-part {
+  display: grid;
+  align-content: end;
+  gap: 14px;
+  min-height: 13.5em;
+}
+
+.land-part p {
+  max-width: 26em;
+  color: var(--ink-soft);
+  font-size: clamp(17px, 1.3vw, 19px);
+  line-height: 1.9;
+}
+
+/* The rings, from the base in to the tower: each lights when the city reaches it, and the one it is on is framed in ink. */
+.land-rings {
+  grid-area: rings;
+  align-self: start;
+  display: grid;
+  gap: 8px;
+  max-width: 400px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.land-rings li {
+  display: grid;
+  grid-template-columns: 26px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 0 14px;
+  border-radius: 10px;
+  background: var(--white);
+  box-shadow: inset 0 0 0 1px var(--line);
+  font-weight: 600;
+  transition:
+    opacity 400ms ease-out,
+    box-shadow 250ms ease-out,
+    translate 400ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.land-rings li[data-ahead] {
+  opacity: 0.38;
+}
+
+.land-rings li[data-now] {
+  box-shadow: inset 0 0 0 2px var(--ink);
+  translate: -8px 0;
+}
+
+.land-rings i {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+
+.land-rings b {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 900;
+}
+
+/* On a wide window the map takes the room beside the page's column too; the words stay in line with the page. */
+.land-map-box {
+  position: relative;
+  grid-area: map;
+  align-self: center;
+  margin-inline-end: calc(-1 * max(0px, (100vw - var(--land-width)) / 2 - 24px));
+}
+
+.land-iso {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: calc(100svh - 48px);
+  overflow: visible;
+}
+
+.land-day {
+  position: absolute;
+  top: 0;
+  inset-inline-end: 0;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--white);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+@media (max-width: 759px) {
+  .land-map-track {
+    height: 380svh;
+  }
+
+  /* On a phone: the words, the map, then the rings under it, all in the window at once. */
+  .land-map-scene {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'words'
+      'map'
+      'rings';
+    gap: 12px;
+    padding-block: 14px;
+  }
+
+  .land-part {
+    gap: 8px;
+    min-height: 0;
+    height: 9.4em;
+  }
+
+  .land-part p {
+    font-size: 15px;
+    line-height: 1.75;
+  }
+
+  .land-rings {
+    gap: 5px;
+    max-width: none;
+  }
+
+  .land-rings li {
+    min-height: 36px;
+    font-size: 15px;
+  }
+
+  .land-rings li[data-now] {
+    translate: none;
+  }
+
+  .land-rings i {
+    width: 20px;
+    height: 20px;
+    border-radius: 6px;
+  }
+
+  .land-map-box {
+    margin-inline-end: 0;
+  }
+
+  .land-iso {
+    max-height: 36svh;
+  }
+}

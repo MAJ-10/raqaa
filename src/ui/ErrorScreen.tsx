@@ -20,8 +20,8 @@ export class ErrorScreen extends Component<{ children: ReactNode }, { failed: bo
   override render() {
     if (!this.state.failed) return this.props.children;
     return (
-      <main className="intro">
-        <img className="intro-logo" src={logo} alt="رقعة" />
+      <main className="error-screen">
+        <img className="error-logo" src={logo} alt="رقعة" />
         <p className="error-text">صار خطأ في الشاشة. المسابقة محفوظة.</p>
         <Button variant="primary" icon="undo" onClick={() => location.reload()}>
           إعادة فتح

@@ -1,0 +1,456 @@
+/* The landing page: the competition told to whoever opens the site, and «إنشاء غرفة». */
+.landing {
+  --land-gutter: clamp(16px, 4vw, 56px);
+  --land-width: 1320px;
+  min-height: 100%;
+  overflow-x: clip;
+  /* Its own stack of layers, so the night at its end can lie behind everything on it. */
+  isolation: isolate;
+  background: var(--sky);
+  color: var(--ink);
+}
+
+.landing h1,
+.landing h2,
+.landing h3 {
+  margin: 0;
+  font-weight: 900;
+  text-wrap: balance;
+}
+
+.landing p {
+  margin: 0;
+  text-wrap: pretty;
+}
+
+/* The top of the page: the words and the game's box, over the identity's city, which stays here with them. */
+.land-top {
+  position: relative;
+  overflow: hidden;
+}
+
+.land-city {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.land-cloud {
+  position: absolute;
+  height: auto;
+}
+
+/* The skyline thins out toward the ground, so the city has no hard edge where the next part starts. */
+.land-skyline {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: max(100%, 960px);
+  height: auto;
+  translate: -50%;
+  mask-image: linear-gradient(#000 40%, transparent);
+}
+
+.land-top-in {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 6fr) minmax(0, 5fr);
+  align-items: center;
+  gap: clamp(32px, 5vw, 80px);
+  max-width: var(--land-width);
+  min-height: 100svh;
+  margin: 0 auto;
+  padding: 72px var(--land-gutter) clamp(110px, 17svh, 190px);
+}
+
+.land-top-words {
+  display: grid;
+  justify-items: start;
+}
+
+.land-logo {
+  width: clamp(150px, 13vw, 190px);
+  height: auto;
+  margin-bottom: clamp(26px, 3vw, 40px);
+}
+
+.land-top h1 {
+  font-size: clamp(40px, 5vw, 72px);
+  line-height: 1.34;
+}
+
+.land-top-words > p {
+  max-width: 30em;
+  margin-top: clamp(22px, 2.2vw, 32px);
+  color: var(--ink-soft);
+  font-size: clamp(17px, 1.35vw, 20px);
+  line-height: 2;
+}
+
+.land-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: clamp(30px, 3vw, 44px);
+}
+
+/* The page's actions, larger than the referee's: white, the first framed in ink and standing on its plate. */
+.land-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 60px;
+  padding: 0 26px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-box);
+  background: var(--white);
+  color: var(--ink);
+  font: inherit;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    transform 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 180ms;
+}
+
+.land-button:hover {
+  border-color: var(--ink);
+}
+
+.land-button-primary {
+  border: 2px solid var(--ink);
+  box-shadow: 6px 6px 0 var(--plate-side);
+}
+
+.land-button-primary:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 8px 8px 0 var(--plate-side);
+}
+
+.land-button:active {
+  transform: translate(3px, 3px);
+  box-shadow: 2px 2px 0 var(--plate-side);
+}
+
+.land-button:not(.land-button-primary):active {
+  box-shadow: none;
+}
+
+/* What the box says on its side. */
+.land-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 24px;
+  margin: 30px 0 0;
+  padding: 0;
+  color: var(--ink-soft);
+  font-size: 15px;
+  font-weight: 600;
+  list-style: none;
+}
+
+.land-facts li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/*
+ * The box: its lid, and three cards under it, two peeking out and one hidden. As the box opens (`--open`,
+ * from 0 to 1 with the scroll), the lid tilts, the cards fan out from under it, and the box lingers a
+ * little in the window. `--k` sizes the whole of it: the page sets it to the room the box has, so the
+ * cards are never cut and never reach the window's edge. Each card has where it lies and how it tilts,
+ * closed (`--x`, `--y`, `--r`), and how far it goes as the box opens (`--dx`, `--dy`, `--dr`).
+ */
+.land-box {
+  --k: 1;
+  --open: 0;
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: calc(560px * var(--k));
+  translate: 0 calc(var(--open) * var(--linger, 120px) * var(--k));
+}
+
+.land-lid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  justify-items: center;
+  gap: calc(26px * var(--k));
+  width: calc(390px * var(--k));
+  padding: calc(36px * var(--k)) calc(30px * var(--k)) calc(30px * var(--k));
+  border-radius: calc(30px * var(--k));
+  background: var(--ink);
+  box-shadow: calc(18px * var(--k)) calc(18px * var(--k)) 0 var(--plate-side);
+  translate: 0 calc(var(--open) * -16px * var(--k));
+  rotate: calc(-3deg - var(--open) * var(--lid-turn, 4deg));
+}
+
+.land-lid > img {
+  width: 66%;
+  height: auto;
+}
+
+.land-lid .land-back-map {
+  --cell: calc(47px * var(--k));
+}
+
+.land-lid > span {
+  color: var(--line);
+  font-size: max(12px, calc(15px * var(--k)));
+  font-weight: 600;
+}
+
+.land-peek {
+  --card-w: calc(190px * var(--k));
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--card-w);
+  margin: calc(-150px * var(--k)) 0 0 calc(-95px * var(--k));
+  translate: calc((var(--x) + var(--open) * var(--dx)) * var(--k)) calc((var(--y) + var(--open) * var(--dy)) * var(--k));
+  rotate: calc(var(--r) + var(--open) * var(--dr));
+}
+
+/* Beside the words, the cards fan out to the sides: further on the window's side than on the words'. */
+.land-peek:nth-child(1) {
+  --x: 150px;
+  --dx: 22px;
+  --y: -120px;
+  --dy: -58px;
+  --r: 14deg;
+  --dr: 8deg;
+}
+
+.land-peek:nth-child(2) {
+  --x: -170px;
+  --dx: -36px;
+  --y: 60px;
+  --dy: 44px;
+  --r: -12deg;
+  --dr: -8deg;
+}
+
+.land-peek:nth-child(3) {
+  --x: 70px;
+  --dx: 110px;
+  --y: 70px;
+  --dy: 124px;
+  --r: 3deg;
+  --dr: 12deg;
+}
+
+.land-peek.land-face-back {
+  min-height: calc(250px * var(--k));
+}
+
+.land-peek .land-back-map {
+  --cell: calc((var(--card-w) - 26px) / 6);
+}
+
+/* The words that open a part of the page. */
+.land-section {
+  display: grid;
+  gap: clamp(28px, 4vw, 52px);
+  max-width: var(--land-width);
+  margin: 0 auto;
+  padding: clamp(56px, 8vw, 104px) var(--land-gutter);
+}
+
+.land-words {
+  display: grid;
+  justify-items: start;
+  gap: 16px;
+  max-width: 640px;
+}
+
+.landing h2 {
+  font-size: clamp(30px, 3.4vw, 50px);
+  line-height: 1.3;
+}
+
+.land-words > p {
+  color: var(--ink-soft);
+  font-size: clamp(17px, 1.3vw, 19px);
+  line-height: 1.9;
+}
+
+/*
+ * The end of the page. `--dusk` goes from 0 to 1 with the scroll as night falls: the sky's layer, which
+ * holds in the window behind everything, darkens and brings out its stars; then the words, the lit city
+ * and the podium show in it.
+ */
+.land-ending {
+  --dusk: 0;
+}
+
+/* Night rises from the bottom of the window, where its part comes from: it darkens first below, and last at the top. */
+.land-nightfall {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(
+    color-mix(in oklch, var(--night) calc(var(--dusk) * var(--dusk) * 100%), var(--sky)),
+    color-mix(in oklch, var(--night) calc(min(1, var(--dusk) * 1.5) * 100%), var(--sky))
+  );
+  pointer-events: none;
+}
+
+/* The stars come out once the sky has started to darken. */
+.land-nightfall > svg {
+  width: 100%;
+  height: 100%;
+  opacity: calc((var(--dusk) - 0.35) * 1.7);
+}
+
+/* «إنشاء غرفة», once more, where the telling ends. Its words turn white once the sky behind them is dark (`data-night`). */
+.land-create {
+  display: grid;
+  justify-items: center;
+  gap: 32px;
+  padding: clamp(48px, 7vw, 96px) var(--land-gutter) clamp(88px, 11vw, 150px);
+  text-align: center;
+}
+
+.land-create h2 {
+  transition: color 250ms ease-out;
+}
+
+.land-create[data-night] h2 {
+  color: var(--white);
+}
+
+/* At night the focus ring is white, so it still shows. */
+.land-create[data-night] .land-button:focus-visible {
+  outline-color: var(--white);
+}
+
+.land-create .land-button {
+  min-height: 72px;
+  padding: 0 40px;
+  font-size: 22px;
+}
+
+/* The night's part: its words, then the podium standing on the lit city, then the maker's signature on the city's ground. */
+.land-finale {
+  --city: var(--night-city);
+  --city-window: var(--lit-window-shade);
+  position: relative;
+  overflow: hidden;
+  padding: clamp(72px, 10vw, 128px) 0 0;
+  color: var(--white);
+  text-align: center;
+}
+
+.land-finale h2 {
+  padding: 0 var(--land-gutter);
+  opacity: calc((var(--dusk) - 0.45) * 2.2);
+}
+
+.land-night {
+  position: relative;
+}
+
+.land-night-skyline {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: max(100%, 960px);
+  height: auto;
+  opacity: var(--dusk);
+  translate: -50%;
+}
+
+.land-podium {
+  position: relative;
+  width: min(100%, 1160px, calc((100svh - 150px) * 16 / 9));
+  margin: clamp(8px, 2vw, 28px) auto 0;
+}
+
+.land-finale .medad-foot {
+  position: relative;
+  background: var(--night-city);
+}
+
+/*
+ * The display's stage inside the page, scaled to its box's width. Nothing is cut at its edges: the glow
+ * behind the first tower fades out over the page's own night.
+ */
+.mini-stage {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  user-select: none;
+}
+
+.mini-stage > .stage {
+  top: 0;
+  left: 0;
+  overflow: visible;
+  transform-origin: 0 0;
+}
+
+.mini-stage .podium-art {
+  overflow: visible;
+}
+
+/* A phone: the words, then the box under them. */
+@media (max-width: 759px) {
+  .land-top-in {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 56px;
+    min-height: auto;
+    padding-top: 56px;
+  }
+
+  .land-top h1 {
+    line-height: 1.38;
+  }
+
+  /* Under the words the box has the window's width only: its cards go up and down from under the lid, not out to the sides. */
+  .land-box {
+    --k: 0.74;
+    --linger: 60px;
+    min-height: calc(700px * var(--k));
+  }
+
+  .land-lid {
+    --lid-turn: 2.5deg;
+  }
+
+  .land-peek:nth-child(1) {
+    --x: 72px;
+    --dx: 20px;
+    --y: -130px;
+    --dy: -62px;
+    --r: 10deg;
+    --dr: 6deg;
+  }
+
+  .land-peek:nth-child(2) {
+    --x: -100px;
+    --dx: -4px;
+    --y: 180px;
+    --dy: 68px;
+    --r: -10deg;
+    --dr: -6deg;
+  }
+
+  .land-peek:nth-child(3) {
+    --x: 40px;
+    --dx: 24px;
+    --y: 80px;
+    --dy: 180px;
+    --r: 3deg;
+    --dr: 6deg;
+  }
+
+  /* The stage is wider than a phone's window by its empty edges, so the towers stand as large as they can. */
+  .land-podium {
+    width: 114%;
+    margin-inline: -7%;
+  }
+}

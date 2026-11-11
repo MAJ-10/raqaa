@@ -76,10 +76,10 @@ export async function seedGame(page: Page, home: string, setup: Setup, events: G
   await page.reload();
 }
 
-/** Opens the intro page and creates a new competition. */
+/** Opens the landing page and creates a new competition, from the button at its top. */
 export async function createRoom(referee: Page, home: string): Promise<void> {
   await referee.goto(home);
-  await referee.getByRole('button', { name: 'إنشاء غرفة' }).click();
+  await referee.getByRole('button', { name: 'إنشاء غرفة' }).first().click();
   await expect(nameField(referee, 'coral')).toBeVisible();
 }
 
