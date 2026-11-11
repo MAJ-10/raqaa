@@ -30,10 +30,14 @@ const SPACING = 290;
 const ORIGIN_X = 640;
 const ORIGIN_Y = 548;
 
-/** The towers rise one after another, from the fourth to the first; then the crown lands. */
-const FIRST_RISE = 500;
-const NEXT_RISE = 650;
-const RISE = 850;
+/**
+ * The towers are built one after another, from the fourth to the first, floor by floor: each floor drops
+ * onto the one under it. Then the crown lands on the first.
+ */
+const FIRST_FLOOR = 500;
+const FLOOR_EVERY = 170;
+const FLOOR_DROP = 320;
+const NEXT_TOWER = 320;
 const COUNT = 900;
 
 const CO = Math.SQRT1_2;
@@ -68,50 +72,64 @@ function towers(state: GameState): Tower[] {
   });
 }
 
-/** When a tower starts to rise: the last place first. `place` counts from 0 for the first. */
-const riseAt = (place: number, count: number) => FIRST_RISE + (count - 1 - place) * NEXT_RISE;
+/**
+ * When each tower is built, from the last place to the first: when its first floor drops, and when its
+ * last floor has landed. Teams that share a place are built one after the other all the same.
+ */
+function schedule(rows: Tower[]): Map<Team, { start: number; end: number }> {
+  const times = new Map<Team, { start: number; end: number }>();
+  let start = FIRST_FLOOR;
+  for (const tower of [...rows].reverse()) {
+    const end = start + (tower.floors - 1) * FLOOR_EVERY + FLOOR_DROP;
+    times.set(tower.team, { start, end });
+    start = end + NEXT_TOWER;
+  }
+  return times;
+}
 
+/** A tower on its tile, each floor a piece of its own (with the seam under it), so it can be built floor by floor. */
 function TowerDrawing({ tower }: { tower: Tower }) {
   const { ci, cj, team, floors } = tower;
   const t = tokens.team[team];
   const palette = [t.main, t.side, t.side2] as const;
   const [x0, y0, x1, y1] = [ci - FOOT / 2, cj - FOOT / 2, ci + FOOT / 2, cj + FOOT / 2];
   const m = TILE_MARGIN;
-  const parts = [];
+  const storeys = [];
   for (let f = 0; f < floors; f++) {
     const z = f * FLOOR;
     const top = z + FLOOR;
-    parts.push(<Box key={`f${f}`} shape={shape([x0, y0, x1, y1], z, top - SEAM, RADIUS)} palette={palette} />);
-    for (const c of [-0.42, 0.42]) {
-      const [w0, w1] = [z + 0.2 * FLOOR, z + 0.66 * FLOOR];
+    const parts = [];
+    if (f > 0) {
+      // The recessed seam between this floor and the one under it, in the side colour darkened toward ink.
+      const seam = shape([x0 + 0.07, y0 + 0.07, x1 - 0.07, y1 - 0.07], z - SEAM, z, RADIUS);
       parts.push(
-        <path key={`l${f}${c}`} d={path([wall(ci + c - 0.2, y1, w0), wall(ci + c + 0.2, y1, w0), wall(ci + c + 0.2, y1, w1), wall(ci + c - 0.2, y1, w1)])} fill={tokens.color.litWindow} />,
-        <path key={`r${f}${c}`} d={path([wall(x1, cj + c - 0.2, w0), wall(x1, cj + c + 0.2, w0), wall(x1, cj + c + 0.2, w1), wall(x1, cj + c - 0.2, w1)])} fill={tokens.color.litWindowShade} />,
-      );
-    }
-    if (f < floors - 1) {
-      // The recessed seam between two floors, in the side colour darkened toward ink.
-      const seam = shape([x0 + 0.07, y0 + 0.07, x1 - 0.07, y1 - 0.07], top - SEAM, top, RADIUS);
-      parts.push(
-        <g key={`s${f}`}>
+        <g key="seam">
           <path d={seam.left} fill={t.side2} />
           <path d={seam.right} fill={t.side2} />
           <path d={`${seam.left}${seam.right}`} fill={tokens.color.ink} opacity={0.4} />
         </g>,
       );
     }
+    parts.push(<Box key="box" shape={shape([x0, y0, x1, y1], z, top - SEAM, RADIUS)} palette={palette} />);
+    for (const c of [-0.42, 0.42]) {
+      const [w0, w1] = [z + 0.2 * FLOOR, z + 0.66 * FLOOR];
+      parts.push(
+        <path key={`l${c}`} d={path([wall(ci + c - 0.2, y1, w0), wall(ci + c + 0.2, y1, w0), wall(ci + c + 0.2, y1, w1), wall(ci + c - 0.2, y1, w1)])} fill={tokens.color.litWindow} />,
+        <path key={`r${c}`} d={path([wall(x1, cj + c - 0.2, w0), wall(x1, cj + c + 0.2, w0), wall(x1, cj + c + 0.2, w1), wall(x1, cj + c - 0.2, w1)])} fill={tokens.color.litWindowShade} />,
+      );
+    }
+    storeys.push(
+      <g key={f} data-floor={f}>
+        {parts}
+      </g>,
+    );
   }
   const roof = floors * FLOOR - SEAM;
-  if (tower.rank !== 1) {
-    parts.push(<path key="symbol" d={TEAM_PATHS[team]} transform={decal(ci, cj, roof, 1, S, 0, REFERENCE_VIEW)} fill={tokens.color.ink} />);
-  }
   return (
     <g data-tower={team}>
       <Box shape={shape([x0 - m, y0 - m, x1 + m, y1 + m], -TILE_DEPTH, 0, RADIUS + 0.12)} palette={tokens.map.night.v2 as unknown as readonly [string, string, string]} />
-      {/* The floors are what rise, from the tile up. */}
-      <g className="tower-body" data-rise={team}>
-        {parts}
-      </g>
+      {storeys}
+      {tower.rank !== 1 ? <path data-roof="" d={TEAM_PATHS[team]} transform={decal(ci, cj, roof, 1, S, 0, REFERENCE_VIEW)} fill={tokens.color.ink} /> : null}
     </g>
   );
 }
@@ -153,11 +171,13 @@ function CountFrom({ value, delay, live }: { value: number; delay: number; live:
 /**
  * D21, «عمدة الرقعة»: the four towers by rank, the tallest first on the right, each with its population
  * above it and its team's plate and rank under it, the crown on the first. Night, stars and the lit city,
- * with a soft gold glow behind the winner. When it has just come (`live`), the towers rise from the fourth
- * to the first, each landing with a thud, the numbers count up, and the crown lands last with a sparkle.
+ * with a soft gold glow behind the winner. When it has just come (`live`), the towers are built from the
+ * fourth to the first, floor by floor, each finished with a thud as its number counts up, and the crown
+ * lands last with a sparkle.
  */
 export function Podium({ state, live }: { state: GameState; live: boolean }) {
   const rows = towers(state);
+  const times = schedule(rows);
   const first = rows.find((row) => row.rank === 1)!;
   const glow = labels(first);
   const root = useRef<HTMLDivElement>(null);
@@ -170,14 +190,18 @@ export function Podium({ state, live }: { state: GameState; live: boolean }) {
     if (played.current || !came.current || !node || reducedMotion()) return;
     played.current = true;
     const order = towers(state);
-    const crownAt = riseAt(0, order.length) + RISE + 350;
-    order.forEach((tower, place) => {
-      const delay = riseAt(place, order.length);
+    const when = schedule(order);
+    const crownAt = Math.max(...[...when.values()].map((t) => t.end)) + 350;
+    order.forEach((tower) => {
+      const { start, end } = when.get(tower.team)!;
       const label = (name: string) => node.querySelector(`[data-label="${tower.team}"] .${name}`);
-      motion(node.querySelector(`[data-rise="${tower.team}"]`), [{ transform: 'scaleY(0)' }, { transform: 'none' }], { duration: RISE, delay, fill: 'backwards' });
-      motion(label('podium-plate'), [{ opacity: 0, transform: 'translate(-50%, 18px)' }, { opacity: 1, transform: 'translateX(-50%)' }], { duration: 420, delay, fill: 'backwards' });
-      motion(label('podium-bubble'), [{ opacity: 0, transform: 'translate(-50%, -70%)' }, { opacity: 1, transform: 'translate(-50%, -100%)' }], { duration: 380, delay: delay + RISE - 120, fill: 'backwards' });
-      playSound('thud', (delay + RISE - 60) / 1000);
+      node.querySelectorAll(`[data-tower="${tower.team}"] [data-floor]`).forEach((floor, f) => {
+        motion(floor, [{ transform: 'translateY(-42px)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: FLOOR_DROP, delay: start + f * FLOOR_EVERY, fill: 'backwards' });
+      });
+      motion(node.querySelector(`[data-tower="${tower.team}"] [data-roof]`), [{ opacity: 0 }, { opacity: 1 }], { duration: 300, delay: end - 80, fill: 'backwards' });
+      motion(label('podium-plate'), [{ opacity: 0, transform: 'translate(-50%, 18px)' }, { opacity: 1, transform: 'translateX(-50%)' }], { duration: 420, delay: start - 200, fill: 'backwards' });
+      motion(label('podium-bubble'), [{ opacity: 0, transform: 'translate(-50%, -70%)' }, { opacity: 1, transform: 'translate(-50%, -100%)' }], { duration: 380, delay: end - 120, fill: 'backwards' });
+      playSound('thud', (end - 60) / 1000);
     });
     node.querySelectorAll('.podium-crown').forEach((crown) => {
       motion(crown, [{ opacity: 0, transform: 'translate(-50%, -150px) rotate(-14deg)' }, { opacity: 1, transform: 'translateX(-50%)' }], { duration: 720, delay: crownAt, easing: EASE_BOUNCE, fill: 'backwards' });
@@ -206,13 +230,13 @@ export function Podium({ state, live }: { state: GameState; live: boolean }) {
         <img src={mark} alt="" />
         عمدة الرقعة
       </h1>
-      {rows.map((tower, place) => {
+      {rows.map((tower) => {
         const spot = labels(tower);
         return (
           <div key={tower.team} className="podium-labels" data-label={tower.team}>
             <span className="podium-bubble" style={{ left: spot.x, top: spot.bubble }}>
               <Icon name="house" size={24} />
-              <CountFrom value={tower.population} delay={riseAt(place, rows.length) + RISE - 100} live={live} />
+              <CountFrom value={tower.population} delay={times.get(tower.team)!.end - 100} live={live} />
             </span>
             {tower.rank === 1 ? (
               <span className="podium-crown" style={{ left: spot.x, top: spot.crown }}>

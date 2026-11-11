@@ -14,13 +14,14 @@ import './podium.css';
 import './motion.css';
 import { GameWindow } from './GameWindow.tsx';
 import { IsoMap } from './IsoMap.tsx';
+import { MissionStrip } from './MissionStrip.tsx';
 import { Podium } from './Podium.tsx';
 import { playSound, setSoundMuted } from './sound.ts';
 import { Stage } from './Stage.tsx';
 import { TeamSigns } from './TeamSigns.tsx';
 import { useClock } from './use-clock.ts';
 import { useRefereeSnapshot } from './use-referee.ts';
-import { announceStep, displayWindow, nextWake, type DisplayWindow, type Running } from './windows.ts';
+import { announceStep, displayWindow, nextWake, WINDOW_IN, WINDOW_OUT, type DisplayWindow, type Running } from './windows.ts';
 
 /** The clouds of the display's sky, where screen D01 has them: centre and size of each. */
 const CLOUDS: [x: number, y: number, k: number][] = [
@@ -80,23 +81,33 @@ function Scenery({ night, dusk }: { night: boolean; dusk: boolean }) {
   );
 }
 
-/** A new window comes in fresh; the same window keeps its place while it changes. */
+/**
+ * Windows that follow one another stay one window, whose parts change: the numbers, the question and its
+ * answer are one card, and an auction keeps its window from challenge to challenge. A card is its own.
+ */
 const windowKey = (shown: DisplayWindow) =>
-  shown.kind === 'card' ? `card-${shown.card}-${shown.team}-${shown.says}` : shown.kind === 'mission' ? `mission-${shown.team}-${shown.result.mission}` : shown.kind;
+  shown.kind === 'card'
+    ? `card-${shown.card}-${shown.team}-${shown.says}`
+    : shown.kind === 'numbers' || shown.kind === 'answer'
+      ? 'question'
+      : shown.kind;
 
 /**
- * A window coming in and going out: it rises softly into place when the moment brings it, and when it
- * goes, a copy of it fades where it stood. A display that reopens shows it at once.
+ * A window coming in and going out: it rises calmly into place when the moment brings it, and when it
+ * goes, a copy of it fades where it stood. A display that reopens shows it at once. A window that moves
+ * itself in and out (`own`: a card) is left to it.
  */
-function WindowMotion({ live, children }: { live: boolean; children: ReactNode }) {
+function WindowMotion({ live, own, children }: { live: boolean; own: boolean; children: ReactNode }) {
   const box = useRef<HTMLDivElement>(null);
-  // Whether it came with the moment, read only when it mounts.
+  // Whether it came with the moment, and moves itself, read only when it mounts.
   const came = useRef(live);
+  const itself = useRef(own);
   useLayoutEffect(() => {
     const node = box.current;
     const stage = node?.parentElement ?? null;
+    if (itself.current) return;
     if (came.current) {
-      motion(node, [{ opacity: 0, transform: 'translateY(14px) scale(0.97)' }, { opacity: 1, transform: 'none' }], { duration: 360 });
+      motion(node, [{ opacity: 0, transform: 'translateY(22px) scale(0.985)' }, { opacity: 1, transform: 'none' }], { duration: WINDOW_IN });
     }
     return () => {
       if (!node || !stage || reducedMotion()) return;
@@ -104,7 +115,7 @@ function WindowMotion({ live, children }: { live: boolean; children: ReactNode }
       ghost.setAttribute('aria-hidden', 'true');
       ghost.querySelectorAll('[data-window]').forEach((element) => element.removeAttribute('data-window'));
       stage.appendChild(ghost);
-      const fade = ghost.animate([{ opacity: 1 }, { opacity: 0, transform: 'scale(0.98)' }], { duration: 240, easing: EASE_OUT });
+      const fade = ghost.animate([{ opacity: 1 }, { opacity: 0, transform: 'translateY(10px) scale(0.985)' }], { duration: WINDOW_OUT, easing: EASE_OUT });
       fade.onfinish = () => ghost.remove();
     };
   }, []);
@@ -168,6 +179,10 @@ export function DisplayApp() {
   const night = state?.step === 'announce';
   const step = state ? announceStep(state) : null;
   const shown = state && !starting ? displayWindow(state, last, now) : null;
+  // A mission shows in a strip beside the map, which makes room for it and stands its team's buildings up;
+  // every other window comes over the dimmed game.
+  const mission = shown?.kind === 'mission' ? shown : null;
+  const over = shown && !mission ? shown : null;
   const seconds = state ? timerSeconds(state) : null;
   const running = state?.timer && seconds ? { startedAt: state.timer.startedAt, seconds } : null;
 
@@ -187,12 +202,13 @@ export function DisplayApp() {
     <Stage night={night}>
       <Scenery night={night} dusk={fresh?.type === 'game/end'} />
       {state ? (
-        <div className="display-game" data-dimmed={shown ? '' : undefined}>
+        <div className="display-game" data-dimmed={over ? '' : undefined}>
           <IsoMap
             state={state}
             night={night}
             fresh={fresh}
-            className={starting ? 'display-map display-map-start' : 'display-map'}
+            focus={mission?.team}
+            className={starting ? 'display-map display-map-start' : mission ? 'display-map display-map-room' : 'display-map'}
           />
           <TeamSigns state={state} shown={shown} />
         </div>
@@ -204,9 +220,10 @@ export function DisplayApp() {
           سكان الخريطة
         </p>
       ) : null}
-      {state && shown ? (
-        <WindowMotion key={windowKey(shown)} live={fresh !== null}>
-          <GameWindow state={state} shown={shown} live={fresh !== null} />
+      {state && mission ? <MissionStrip state={state} team={mission.team} result={mission.result} live={fresh !== null} /> : null}
+      {state && over ? (
+        <WindowMotion key={windowKey(over)} live={fresh !== null} own={over.kind === 'card'}>
+          <GameWindow state={state} shown={over} live={fresh !== null} />
         </WindowMotion>
       ) : null}
     </Stage>

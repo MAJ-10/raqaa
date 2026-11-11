@@ -2,15 +2,15 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import tokens from '../../assets/tokens.json';
 import { getBoard } from '../engine/board.ts';
 import { teamInTurn } from '../engine/select.ts';
-import type { GameEvent, GameState, PlotId } from '../engine/types.ts';
+import type { GameEvent, GameState, PlotId, Team } from '../engine/types.ts';
 import { iconSvg } from '../ui/icons.ts';
-import { EASE_BOUNCE, motion, reducedMotion } from '../ui/motion.ts';
+import { EASE_BOUNCE, EASE_OUT, motion, reducedMotion } from '../ui/motion.ts';
 import { formatNumber } from '../ui/number.ts';
 import { TEAM_PATHS } from '../ui/team-paths.ts';
 import { boardLooks, iconInside, landing, plateShape, plotShape, struckPlan, tones, type PlotLook } from './board-art.ts';
 import { bounds, isoUnit, MAP_STEP, MAP_VIEW, project, type BoxShape, type Palette } from './iso.ts';
 import { Pin } from './Pin.tsx';
-import { JUMP_DRAW } from './windows.ts';
+import { AUCTION_LAND, JUMP_DRAW } from './windows.ts';
 
 /** How far toward a plot's back corner, in plan, its number sits: above the card in the middle. */
 const NUMBER_BACK = 0.3;
@@ -75,7 +75,14 @@ export function Box({ shape, palette }: { shape: BoxShape; palette: Palette }) {
   );
 }
 
-type Props = { state: GameState; night?: boolean; fresh?: GameEvent | null; className?: string };
+type Props = {
+  state: GameState;
+  night?: boolean;
+  fresh?: GameEvent | null;
+  /** The team whose buildings stand while the others sink: the team in turn unless another is given. */
+  focus?: Team;
+  className?: string;
+};
 
 /**
  * The display's iso map, drawn from the state: the plate, each plot as a rounded tile, buildings that
@@ -84,13 +91,14 @@ type Props = { state: GameState; night?: boolean; fresh?: GameEvent | null; clas
  * teams' buildings sink and the plots it can act on stand up, edged and numbered. Night colours for the
  * announcement. The moment that has just happened (`fresh`) moves: a plot a team gains drops into place
  * with a ring and its population in a bubble; a bridge's line jumps to it first; a pin drops on a plot
- * bid for; a plan that strikes stamps itself on its roof.
+ * bid for; a plan that strikes stamps itself on its roof. What an auction won does on the map waits for
+ * the auction's window to go, so it shows on the map itself.
  */
-export function IsoMap({ state, night = false, fresh = null, className }: Props) {
+export function IsoMap({ state, night = false, fresh = null, focus, className }: Props) {
   const pal = night ? tokens.map.night : tokens.map.day;
   const n = getBoard(state.setup.size).size;
   const s = isoUnit(n);
-  const looks = useMemo(() => boardLooks(state, night), [state, night]);
+  const looks = useMemo(() => boardLooks(state, night, focus), [state, night, focus]);
   const heights = useMovingHeights(looks);
   const plate = useMemo(() => plateShape(s, n), [s, n]);
   const view = bounds(s, n, MAP_VIEW, MAP_STEP);
@@ -119,9 +127,11 @@ export function IsoMap({ state, night = false, fresh = null, className }: Props)
     animated.current = key;
 
     const land = landing(state, fresh);
+    // An auction won shows its window first; its plot moves on the map once the window has gone.
+    const after = fresh.type === 'challenge/result' ? AUCTION_LAND : 0;
     if (land) {
       // With the bridge, its line draws first, and the building lands where it arrives.
-      const wait = land.from ? JUMP_DRAW : 0;
+      const wait = (land.from ? JUMP_DRAW : 0) + after;
       if (land.from) {
         const line = root.querySelector('.bridge-jump');
         motion(line, [{ strokeDashoffset: 1 }, { strokeDashoffset: 0 }], { duration: JUMP_DRAW, easing: 'ease-in-out', fill: 'both' });
@@ -143,15 +153,17 @@ export function IsoMap({ state, night = false, fresh = null, className }: Props)
         ],
         { duration: 720, delay: wait + 260, fill: 'forwards' },
       );
+      // The bubble rises into view, drifts while it is read, then fades: even time across the timeline,
+      // each part with its own easing.
       motion(
         root.querySelector('.gain-bubble'),
         [
-          { opacity: 0, transform: 'translateY(8px)' },
+          { opacity: 0, transform: 'translateY(8px)', easing: EASE_OUT },
           { opacity: 1, transform: 'translateY(-10px)', offset: 0.2 },
-          { opacity: 1, transform: 'translateY(-20px)', offset: 0.8 },
+          { opacity: 1, transform: 'translateY(-20px)', offset: 0.8, easing: 'ease-in' },
           { opacity: 0, transform: 'translateY(-28px)' },
         ],
-        { duration: 1800, delay: wait + 220, fill: 'both' },
+        { duration: 1800, delay: wait + 220, fill: 'both', easing: 'linear' },
       );
     }
     if (fresh.type === 'auction/declare') {
@@ -172,7 +184,7 @@ export function IsoMap({ state, night = false, fresh = null, className }: Props)
           { transform: 'scale(2.4)', opacity: 0 },
           { transform: 'none', opacity: 1 },
         ],
-        { duration: 520, delay: 300, easing: EASE_BOUNCE, fill: 'backwards' },
+        { duration: 520, delay: 300 + after, easing: EASE_BOUNCE, fill: 'backwards' },
       );
     }
     // A new team's turn: its numbers come once its plots have risen.
@@ -195,7 +207,8 @@ export function IsoMap({ state, night = false, fresh = null, className }: Props)
       {looks.map((look) => {
         const drawn = plotShape(look, heights[look.id] ?? look.height, s, n);
         return (
-          <g key={look.id} data-plot={look.id} data-team={look.symbol} data-open={look.open ? '' : undefined}>
+          // In the announcement, a mission's team stands out: the other teams' plots sink and dim, still in view.
+          <g key={look.id} data-plot={look.id} data-team={look.symbol} data-open={look.open ? '' : undefined} data-dim={night && look.faded ? '' : undefined}>
             <Box shape={drawn.shape} palette={look.palette} />
             {drawn.edge ? (
               <path

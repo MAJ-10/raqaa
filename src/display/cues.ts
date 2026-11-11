@@ -4,7 +4,8 @@ import { getBoard } from '../engine/board.ts';
 import { announcement } from '../engine/missions.ts';
 import type { GameEvent, GameState } from '../engine/types.ts';
 import type { Sound } from './sound.ts';
-import { CARD_FLIP, JUMP_DRAW, waitOf } from './windows.ts';
+import { landing } from './board-art.ts';
+import { AUCTION_LAND, CARD_FLIP, JUMP_DRAW, RESULT_AT, waitOf } from './windows.ts';
 
 /** A sound, and how many seconds after the event it plays (to land with its motion). */
 type Cue = { sound: Sound; after: number };
@@ -47,14 +48,17 @@ export function cuesFor(state: GameState, e: GameEvent): Cue[] {
     case 'card/crane':
     case 'card/inspector':
       return [flip(0)];
-    case 'challenge/result':
-      return [now(state.auctions[e.auction]?.status === 'done' ? 'gavel' : 'pop')];
+    case 'challenge/result': {
+      if (state.auctions[e.auction]?.status !== 'done') return [now('pop')];
+      // The auction won: the gavel with its window, then a thud when the plot lands on the map after it.
+      return [now('gavel'), ...(landing(state, e) ? [{ sound: 'thud' as const, after: (AUCTION_LAND + LANDING * 1000) / 1000 }] : [])];
+    }
     case 'plan/take':
       return [{ sound: 'thud', after: LANDING }, flip(0)];
     case 'announce/next': {
       // A mission's result; the podium times its own sounds with its towers.
       const step = announcement(state)[state.announce];
-      return step?.kind === 'mission' ? [{ sound: step.result.done ? 'pop' : 'thud', after: 0.35 }] : [];
+      return step?.kind === 'mission' ? [{ sound: step.result.done ? 'pop' : 'thud', after: RESULT_AT / 1000 + 0.05 }] : [];
     }
     default:
       return [];

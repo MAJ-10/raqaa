@@ -66,13 +66,13 @@ export type PlotLook = {
  * as 1, the tower as 5); a plot no one has built lies flat, with its card on it; the tower is flat until
  * a team takes it. While a team plays, the other teams' buildings sink to the ground, but the ones it can
  * bid for stay up; the plots it can build on rise to the building they would be. Each plot it can act on
- * carries the dashed edge of a choice and its number.
+ * carries the dashed edge of a choice and its number. `focus` is the team in turn, or in the announcement
+ * the team whose mission shows: its buildings stand while the others' sink.
  */
-export function boardLooks(state: GameState, night: boolean, step = MAP_STEP): PlotLook[] {
+export function boardLooks(state: GameState, night: boolean, focus: Team | null = teamInTurn(state), step = MAP_STEP): PlotLook[] {
   const board = getBoard(state.setup.size);
   const n = board.size;
   const pal = night ? tokens.map.night : tokens.map.day;
-  const focus = teamInTurn(state);
   // The plots the team in turn can build on or bid for, with the numbers its leader calls out.
   const open = plotNumbers(state);
 

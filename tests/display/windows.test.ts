@@ -1,7 +1,7 @@
 // Phase 5: what the display shows over the game at each moment, from the state and the last event.
 import { describe, expect, it } from 'vitest';
 import { boardLooks, landing } from '../../src/display/board-art.ts';
-import { announcedPopulation, displayWindow, JUMP, LAND, MOMENT, nextWake, PERMITS_TIME, signLook, type DisplayWindow } from '../../src/display/windows.ts';
+import { announcedPopulation, CARD_TIME, displayWindow, JUMP, LAND, MOMENT, nextWake, PERMITS_TIME, signLook, type DisplayWindow } from '../../src/display/windows.ts';
 import { plotNumbers } from '../../src/ui/plot-numbers.ts';
 import { announcement } from '../../src/engine/missions.ts';
 import { fourDays, fourSmallDays, lastDayScenario, Play, planScenario, sampleSetup } from '../../src/engine/scenarios.ts';
@@ -60,7 +60,8 @@ describe('the day’s question on the display', () => {
   it('shows the answer with the teams in build order, then marks them once the permits are confirmed', () => {
     const play = new Play(sampleSetup()).do({ type: 'game/start' });
     play.do({ type: 'question/kind', kind: 'group' }).do({ type: 'question/show' }).do({ type: 'answer/show' });
-    expect(shownNow(play)).toEqual({ kind: 'answer', answer: '٧', teams: buildOrder(play.state), permits: null, individual: false });
+    // The question stays over its answer: one card.
+    expect(shownNow(play)).toEqual({ kind: 'answer', text: 'كم عدد أيام الأسبوع؟', answer: '٧', teams: buildOrder(play.state), permits: null, individual: false });
 
     play.do({ type: 'permits/set', teams: ['blue', 'gold'] });
     expect(shownNow(play)).toMatchObject({ kind: 'answer', permits: ['blue', 'gold'], individual: false });
@@ -96,7 +97,7 @@ describe('cards on the display', () => {
     expect(shownNow(play, LAND + 100)).toMatchObject({ kind: 'card', card: 'fence', team: 'coral', says: 'كسب السياج', also: null, taken: true });
     expect(signLook(play.state, 'coral', shownNow(play, LAND + 100))).toMatchObject({ faded: false, filled: true });
     expect(signLook(play.state, 'blue', shownNow(play, LAND + 100))).toMatchObject({ faded: true, filled: false });
-    expect(shownNow(play, LAND + MOMENT + 1)).toBeNull();
+    expect(shownNow(play, LAND + CARD_TIME + 1)).toBeNull();
   });
 
   it('shows the fence with both sides of the cancelled auction', () => {
@@ -245,9 +246,9 @@ describe('the plots the team in turn can act on', () => {
     // While the line jumps, the map shows; then the bridge's card, for its moment.
     expect(displayWindow(play.state, play.events.at(-1)!, at + 100)).toBeNull();
     expect(displayWindow(play.state, play.events.at(-1)!, at + JUMP + 100)).toMatchObject({ kind: 'card', card: 'bridge' });
-    expect(displayWindow(play.state, play.events.at(-1)!, at + JUMP + MOMENT + 1)).toBeNull();
+    expect(displayWindow(play.state, play.events.at(-1)!, at + JUMP + CARD_TIME + 1)).toBeNull();
     expect(nextWake(play.events.at(-1)!, at + 100)).toBe(at + JUMP);
-    expect(nextWake(play.events.at(-1)!, at + JUMP + 100)).toBe(at + JUMP + MOMENT);
+    expect(nextWake(play.events.at(-1)!, at + JUMP + 100)).toBe(at + JUMP + CARD_TIME);
   });
 
   it('has none while no team is building', () => {

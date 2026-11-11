@@ -18,7 +18,7 @@ test.describe('display', () => {
 
     // The answer; once the permits are confirmed, each team is marked, and none fills.
     const answer = display.locator('[data-window="answer"]');
-    await expect(answer.locator('.answer-box')).toHaveText('٧');
+    await expect(answer.locator('.answer-value')).toHaveText('٧');
     const permits = page.locator('.permit-grid');
     await permits.getByRole('button', { name: 'الرواد' }).click();
     await permits.getByRole('button', { name: 'النجوم' }).click();
@@ -112,6 +112,24 @@ test.describe('display', () => {
     await expect(display.locator('[data-window="question"]')).toContainText('كم عدد أيام الأسبوع؟');
   });
 
+  test('keeps the numbers, the question and its answer in one card that changes, not one window after another', async ({ page }) => {
+    const play = new Play(sampleSetup())
+      .do({ type: 'game/start' })
+      .do({ type: 'question/kind', kind: 'individual' })
+      .do({ type: 'numbers/show' });
+    await seedGame(page, '/', play.state.setup, play.events);
+    const display = await openDisplay(page);
+    const card = await display.locator('[data-window="numbers"]').elementHandle();
+
+    await button(page, 'عرض السؤال').click();
+    await expect(display.locator('[data-window="question"]')).toContainText('كم عدد أيام الأسبوع؟');
+    await button(page, 'عرض الإجابة').click();
+    const answer = display.locator('[data-window="answer"]');
+    await expect(answer.locator('.answer-value')).toHaveText('٧');
+    await expect(answer.locator('.question-words')).toHaveText('كم عدد أيام الأسبوع؟'); // the question stays over its answer
+    expect(await card!.evaluate((node) => node.isConnected && node.getAttribute('data-window'))).toBe('answer'); // the same card all along
+  });
+
   test('runs the timer of a group question', async ({ page }) => {
     const play = new Play(sampleSetup()).do({ type: 'game/start' }).do({ type: 'question/kind', kind: 'group' });
     await seedGame(page, '/', play.state.setup, play.events);
@@ -133,7 +151,7 @@ test.describe('display', () => {
     const card = display.locator('[data-window="card"]');
     await expect(card).toContainText('الرواد كسب السياج');
     await expect(display.locator('.sign[data-team="blue"]')).toHaveAttribute('data-faded');
-    await expect(card).toHaveCount(0, { timeout: 6000 });
+    await expect(card).toHaveCount(0, { timeout: 8000 });
     await expect(display.locator('.sign[data-team="coral"] .sign-cards .icon')).toHaveCount(1);
   });
 
@@ -162,13 +180,23 @@ test.describe('display', () => {
     await expect(display.locator('.display-title')).toHaveText('سكان الخريطة');
     await expect(display.locator('.sign-population')).toHaveCount(4);
 
+    // A mission shows beside the map, not over it: the map stays in full view, making room for the strip,
+    // and the mission's team stands out while the others dim.
     await button(page, 'التالي').click();
     await expect(display.locator('[data-window="mission"]')).toContainText('برج الرقعة');
+    await expect(display.locator('.display-game')).not.toHaveAttribute('data-dimmed');
+    await expect(display.locator('.display-map')).toHaveClass(/display-map-room/);
+    await expect(display.locator('.display-map g[data-team="coral"][data-dim]')).toHaveCount(0);
+    await expect(display.locator('.display-map g[data-team="blue"][data-dim]')).not.toHaveCount(0);
+
     while (await button(page, 'التالي').isVisible()) await button(page, 'التالي').click();
     const podium = display.getByTestId('podium');
     await expect(podium.locator('[data-tower]')).toHaveCount(4);
     await expect(podium.locator('.podium-crown')).not.toHaveCount(0);
     await expect(podium.locator('.podium-title')).toHaveText('عمدة الرقعة');
+    // Each tower is built of its floors, the first the tallest.
+    const winner = await podium.locator('.podium-labels:has(.podium-crown)').first().getAttribute('data-label');
+    await expect(podium.locator(`[data-tower="${winner}"] [data-floor]`)).toHaveCount(8);
   });
 
   test('moves only when motion is welcome: with reduced motion, a build changes the display at once', async ({ page }) => {

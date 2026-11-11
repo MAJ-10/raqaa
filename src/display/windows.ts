@@ -17,8 +17,24 @@ import {
 import type { Auction, Card, Challenge, GameEvent, GameState, Team } from '../engine/types.ts';
 import { CARD_THE } from '../ui/names.ts';
 
-/** How long a card's window, and the end of an auction, stay after their event. */
+/** How long the end of an auction stays after its last challenge, with the winner filled. */
 export const MOMENT = 3000;
+
+/**
+ * How long a card's window stays: it comes in face down and shows the identity's back, turns over slowly,
+ * then stays long enough to read.
+ */
+export const CARD_TIME = 5200;
+
+/** How long a window takes to come in, calmly, and to go. */
+export const WINDOW_IN = 650;
+export const WINDOW_OUT = 420;
+
+/**
+ * When a mission's result comes in the announcement, after the mission shows: the strip pops it, its sound
+ * plays, and the team's board counts to its new population.
+ */
+export const RESULT_AT = 900;
 
 /**
  * How long the answer stays with the permits marked, once the referee confirms them: long enough to see
@@ -35,15 +51,22 @@ export const JUMP_DRAW = 650;
  */
 export const LAND = 800;
 export const JUMP = 1400;
-/** When a card's window starts to turn the card over, after the window comes. */
-export const CARD_FLIP = 580;
+/** When a card's window starts to turn the card over, after the window comes: its back shows first. */
+export const CARD_FLIP = 1500;
+
+/**
+ * When a won auction's plot lands on the map: once the auction's window has gone, so the move shows on
+ * the map itself and not behind the window.
+ */
+export const AUCTION_LAND = MOMENT + WINDOW_OUT;
 
 export const waitOf = (e: GameEvent) => (e.type !== 'build' ? 0 : e.via === 'bridge' ? JUMP : LAND);
 
 /** When the clock should next look again: when a window that comes or goes by itself does, or never. */
 export function nextWake(last: GameEvent | null, now: number): number | null {
   if (!last) return null;
-  const marks = last.type === 'permits/set' ? [PERMITS_TIME] : [waitOf(last), waitOf(last) + MOMENT];
+  const wait = waitOf(last);
+  const marks = last.type === 'permits/set' ? [PERMITS_TIME] : last.type === 'challenge/result' ? [MOMENT] : [wait, wait + CARD_TIME];
   for (const mark of marks) if (last.at + mark > now) return last.at + mark;
   return null;
 }
@@ -61,7 +84,7 @@ export type DisplayWindow =
    * a permit, or in a group question a wrong answer; then the window goes after a few seconds, or with the
    * first move of the build if it comes sooner.
    */
-  | { kind: 'answer'; answer: string | null; teams: Team[]; permits: Team[] | null; individual: boolean }
+  | { kind: 'answer'; text: string | null; answer: string | null; teams: Team[]; permits: Team[] | null; individual: boolean }
   /** The open auction, or one just won: the two sides, and the challenge being played or the last one. */
   | { kind: 'auction'; auction: Auction; challenge: Challenge | null; timer: Running | null }
   /** A card taken or used: the card, and the team with what it did. Gone by itself (`until`) after a moment. */
@@ -74,21 +97,21 @@ function cardMoment(state: GameState, e: GameEvent): DisplayWindow | null {
   switch (e.type) {
     case 'build': {
       const card = getBoard(state.setup.size).plots[e.plot]?.card;
-      if (card) return { kind: 'card', card, team: e.team, says: `كسب ${CARD_THE[card]}`, also: null, until: e.at + waitOf(e) + MOMENT, taken: true };
-      if (e.via === 'bridge') return { kind: 'card', card: 'bridge', team: e.team, says: 'بنى بالجسر', also: null, until: e.at + waitOf(e) + MOMENT, taken: false };
+      if (card) return { kind: 'card', card, team: e.team, says: `كسب ${CARD_THE[card]}`, also: null, until: e.at + waitOf(e) + CARD_TIME, taken: true };
+      if (e.via === 'bridge') return { kind: 'card', card: 'bridge', team: e.team, says: 'بنى بالجسر', also: null, until: e.at + waitOf(e) + CARD_TIME, taken: false };
       return null;
     }
     case 'card/fence': {
       const auction = state.auctions[e.auction];
       if (!auction) return null;
-      return { kind: 'card', card: 'fence', team: auction.defender, says: 'صدّ المزاد بالسياج', also: auction.bidder, until: e.at + waitOf(e) + MOMENT, taken: false };
+      return { kind: 'card', card: 'fence', team: auction.defender, says: 'صدّ المزاد بالسياج', also: auction.bidder, until: e.at + waitOf(e) + CARD_TIME, taken: false };
     }
     case 'card/crane':
-      return { kind: 'card', card: 'crane', team: e.team, says: 'استخدم الرافعة', also: null, until: e.at + waitOf(e) + MOMENT, taken: false };
+      return { kind: 'card', card: 'crane', team: e.team, says: 'استخدم الرافعة', also: null, until: e.at + waitOf(e) + CARD_TIME, taken: false };
     case 'card/inspector':
-      return { kind: 'card', card: 'inspector', team: e.team, says: 'استخدم مفتش البلدية', also: null, until: e.at + waitOf(e) + MOMENT, taken: false };
+      return { kind: 'card', card: 'inspector', team: e.team, says: 'استخدم مفتش البلدية', also: null, until: e.at + waitOf(e) + CARD_TIME, taken: false };
     case 'plan/take':
-      return { kind: 'card', card: 'plan', team: e.team, says: 'أخذ قطعة بالمخطط السري', also: null, until: e.at + waitOf(e) + MOMENT, taken: false };
+      return { kind: 'card', card: 'plan', team: e.team, says: 'أخذ قطعة بالمخطط السري', also: null, until: e.at + waitOf(e) + CARD_TIME, taken: false };
     default:
       return null;
   }
@@ -103,9 +126,11 @@ function auctionWindow(state: GameState, auction: Auction): DisplayWindow {
 }
 
 function answerWindow(state: GameState, permits: Team[] | null): DisplayWindow {
+  const question = currentQuestion(state);
   return {
     kind: 'answer',
-    answer: currentQuestion(state)?.answer ?? null,
+    text: question?.text ?? null,
+    answer: question?.answer ?? null,
     teams: buildOrder(state),
     permits,
     individual: state.question.kind === 'individual',
@@ -114,12 +139,12 @@ function answerWindow(state: GameState, permits: Team[] | null): DisplayWindow {
 
 /** The window over the game now, or null when the game shows plainly. `now` is the clock, in ms. */
 export function displayWindow(state: GameState, last: GameEvent | null, now: number): DisplayWindow | null {
-  const wait = last ? waitOf(last) : 0;
-  if (last && now - last.at >= wait && now - last.at < wait + MOMENT) {
+  const since = last ? now - last.at : 0;
+  if (last && since >= waitOf(last)) {
     const moment = cardMoment(state, last);
-    if (moment) return moment;
+    if (moment && since < waitOf(last) + CARD_TIME) return moment;
     // The auction just ended: its window stays a moment, with the last win, before the map shows the result.
-    if (last.type === 'challenge/result' && state.auctions[last.auction]?.status === 'done') {
+    if (last.type === 'challenge/result' && state.auctions[last.auction]?.status === 'done' && since < MOMENT) {
       return auctionWindow(state, state.auctions[last.auction]!);
     }
   }

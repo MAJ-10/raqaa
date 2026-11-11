@@ -1,8 +1,10 @@
+/* The display only shows: clicks on it (for fullscreen and sound) never select its words. */
 .stage-viewport {
   position: fixed;
   inset: 0;
   overflow: hidden;
   background: var(--sky);
+  user-select: none;
 }
 
 .stage {
@@ -197,14 +199,30 @@
   height: 720px;
 }
 
-/* Pins stand above the back plots, beyond the map's own box. */
+/* Pins stand above the back plots, beyond the map's own box. The map dims as calmly as a window comes. */
 .display-map {
   overflow: visible;
-  transition: opacity 320ms ease-out;
+  transition:
+    opacity 650ms ease-out,
+    transform 900ms cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+/* During the missions the map makes room at the top for their strip, and stays whole under it. */
+.display-map-room {
+  transform: translate(-50%, -50%) translateY(56px) scale(0.86);
+}
+
+/* A mission's team stands out on the map: the other teams' plots dim, still in view. */
+.display-map g[data-plot] {
+  transition: opacity 600ms ease-out;
+}
+
+.display-map g[data-dim] {
+  opacity: 0.4;
 }
 
 .sign {
-  transition: opacity 320ms ease-out;
+  transition: opacity 650ms ease-out;
 }
 
 /*

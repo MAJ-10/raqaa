@@ -5,7 +5,7 @@ import { Icon } from '../ui/Icon.tsx';
 import { formatNumber } from '../ui/number.ts';
 import { TeamTile } from '../ui/TeamTile.tsx';
 import { TileFrame } from './TileFrame.tsx';
-import { signLook, type DisplayWindow } from './windows.ts';
+import { RESULT_AT, signLook, type DisplayWindow } from './windows.ts';
 
 /** Which corner of the stage each team's boards hang in (the corner of its base on the map). */
 const CORNER = tokens.teamCorner as Record<Team, string>;
@@ -39,7 +39,8 @@ export function TeamSigns({ state, shown }: { state: GameState; shown: DisplayWi
                   {look.board && 'population' in look.board ? (
                     <span className="sign-population">
                       <Icon name="house" size={22} />
-                      <CountUp value={look.board.population} />
+                      {/* In the announcement, a board counts when its mission's result comes. */}
+                      <CountUp value={look.board.population} delay={shown?.kind === 'mission' ? RESULT_AT : 0} />
                     </span>
                   ) : null}
                   {cards.length > 0 ? (

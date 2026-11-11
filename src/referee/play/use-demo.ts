@@ -2,7 +2,7 @@
 // so the display shows each moment through: a window, a building that lands, a card that turns over.
 import { useEffect } from 'react';
 import { BANKS } from '../../content/index.ts';
-import { MOMENT, PERMITS_TIME, waitOf } from '../../display/windows.ts';
+import { AUCTION_LAND, CARD_TIME, PERMITS_TIME, waitOf } from '../../display/windows.ts';
 import { demoNext } from '../../engine/autoplay.ts';
 import { getBoard } from '../../engine/board.ts';
 import type { EventInput, GameEvent, GameState } from '../../engine/types.ts';
@@ -22,21 +22,22 @@ function hold(state: GameState, e: GameEvent): number {
       return PERMITS_TIME + 600;
     case 'build': {
       const card = e.via === 'bridge' || getBoard(state.setup.size).plots[e.plot]?.card;
-      return waitOf(e) + (card ? MOMENT + 600 : 1200);
+      return waitOf(e) + (card ? CARD_TIME + 600 : 1200);
     }
     case 'card/fence':
     case 'card/crane':
     case 'card/inspector':
     case 'plan/take':
-      return MOMENT + 600;
+      return CARD_TIME + 600;
     case 'challenge/start':
     case 'challenge/replay':
       return 6000;
     case 'challenge/result':
-      return state.auctions[e.auction]?.status === 'done' ? MOMENT + 800 : 2500;
+      // A won auction: its window, then its plot landing on the map.
+      return state.auctions[e.auction]?.status === 'done' ? AUCTION_LAND + 1400 : 2500;
     case 'game/end':
     case 'announce/next':
-      return 4500;
+      return 5500;
     default:
       return 2200;
   }
