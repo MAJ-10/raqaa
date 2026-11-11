@@ -26,8 +26,27 @@ export const MOMENT = 3000;
  */
 export const PERMITS_TIME = 4000;
 
-/** When the clock should next look again: when a window that goes by itself, after this event, is gone. */
-export const windowWake = (last: GameEvent) => last.at + (last.type === 'permits/set' ? PERMITS_TIME : MOMENT);
+/** How long the bridge's line takes to jump to its plot. */
+export const JUMP_DRAW = 650;
+
+/**
+ * How long after its event a moment's window waits, so the map shows what happened first: a card taken
+ * waits for its building to land, and a bridge's card for its line to jump and the building to land.
+ */
+export const LAND = 800;
+export const JUMP = 1400;
+/** When a card's window starts to turn the card over, after the window comes. */
+export const CARD_FLIP = 580;
+
+export const waitOf = (e: GameEvent) => (e.type !== 'build' ? 0 : e.via === 'bridge' ? JUMP : LAND);
+
+/** When the clock should next look again: when a window that comes or goes by itself does, or never. */
+export function nextWake(last: GameEvent | null, now: number): number | null {
+  if (!last) return null;
+  const marks = last.type === 'permits/set' ? [PERMITS_TIME] : [waitOf(last), waitOf(last) + MOMENT];
+  for (const mark of marks) if (last.at + mark > now) return last.at + mark;
+  return null;
+}
 
 /** A timer on screen: when it started and how many seconds it runs. */
 export type Running = { startedAt: number; seconds: number };
@@ -45,8 +64,8 @@ export type DisplayWindow =
   | { kind: 'answer'; answer: string | null; teams: Team[]; permits: Team[] | null; individual: boolean }
   /** The open auction, or one just won: the two sides, and the challenge being played or the last one. */
   | { kind: 'auction'; auction: Auction; challenge: Challenge | null; timer: Running | null }
-  /** A card taken or used: the card, and the team with what it did. Gone by itself after a moment. */
-  | { kind: 'card'; card: Card; team: Team; says: string; also: Team | null }
+  /** A card taken or used: the card, and the team with what it did. Gone by itself (`until`) after a moment. */
+  | { kind: 'card'; card: Card; team: Team; says: string; also: Team | null; until: number; taken: boolean }
   /** A secret mission in the announcement, with its result. */
   | { kind: 'mission'; team: Team; result: MissionResult };
 
@@ -55,21 +74,21 @@ function cardMoment(state: GameState, e: GameEvent): DisplayWindow | null {
   switch (e.type) {
     case 'build': {
       const card = getBoard(state.setup.size).plots[e.plot]?.card;
-      if (card) return { kind: 'card', card, team: e.team, says: `كسب ${CARD_THE[card]}`, also: null };
-      if (e.via === 'bridge') return { kind: 'card', card: 'bridge', team: e.team, says: 'بنى بالجسر', also: null };
+      if (card) return { kind: 'card', card, team: e.team, says: `كسب ${CARD_THE[card]}`, also: null, until: e.at + waitOf(e) + MOMENT, taken: true };
+      if (e.via === 'bridge') return { kind: 'card', card: 'bridge', team: e.team, says: 'بنى بالجسر', also: null, until: e.at + waitOf(e) + MOMENT, taken: false };
       return null;
     }
     case 'card/fence': {
       const auction = state.auctions[e.auction];
       if (!auction) return null;
-      return { kind: 'card', card: 'fence', team: auction.defender, says: 'صدّ المزاد بالسياج', also: auction.bidder };
+      return { kind: 'card', card: 'fence', team: auction.defender, says: 'صدّ المزاد بالسياج', also: auction.bidder, until: e.at + waitOf(e) + MOMENT, taken: false };
     }
     case 'card/crane':
-      return { kind: 'card', card: 'crane', team: e.team, says: 'استخدم الرافعة', also: null };
+      return { kind: 'card', card: 'crane', team: e.team, says: 'استخدم الرافعة', also: null, until: e.at + waitOf(e) + MOMENT, taken: false };
     case 'card/inspector':
-      return { kind: 'card', card: 'inspector', team: e.team, says: 'استخدم مفتش البلدية', also: null };
+      return { kind: 'card', card: 'inspector', team: e.team, says: 'استخدم مفتش البلدية', also: null, until: e.at + waitOf(e) + MOMENT, taken: false };
     case 'plan/take':
-      return { kind: 'card', card: 'plan', team: e.team, says: 'أخذ قطعة بالمخطط السري', also: null };
+      return { kind: 'card', card: 'plan', team: e.team, says: 'أخذ قطعة بالمخطط السري', also: null, until: e.at + waitOf(e) + MOMENT, taken: false };
     default:
       return null;
   }
@@ -95,7 +114,8 @@ function answerWindow(state: GameState, permits: Team[] | null): DisplayWindow {
 
 /** The window over the game now, or null when the game shows plainly. `now` is the clock, in ms. */
 export function displayWindow(state: GameState, last: GameEvent | null, now: number): DisplayWindow | null {
-  if (last && now - last.at < MOMENT) {
+  const wait = last ? waitOf(last) : 0;
+  if (last && now - last.at >= wait && now - last.at < wait + MOMENT) {
     const moment = cardMoment(state, last);
     if (moment) return moment;
     // The auction just ended: its window stays a moment, with the last win, before the map shows the result.

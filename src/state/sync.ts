@@ -24,6 +24,8 @@ export type Snapshot<State, Event> = {
    * answer stays until the first move), so a display that reopens shows the same thing.
    */
   latest: Event | null;
+  /** The referee muted the display's sounds. Not part of the competition: undo leaves it alone. */
+  muted?: boolean;
 };
 
 export type SyncMessage<State, Event> =

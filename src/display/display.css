@@ -382,7 +382,45 @@
   display: grid;
   justify-items: center;
   gap: 24px;
+  perspective: 1400px;
   transform: translate(-50%, -54%);
+}
+
+/* The holder comes and goes; inside it the card turns over (nothing on the turning card may fade). */
+.big-card-hold {
+  perspective: 1400px;
+}
+
+/* The card has two faces, its picture and the identity's back, so it can come in face down and turn over. */
+.big-card-flip {
+  display: grid;
+  rotate: -2deg;
+  transform-style: preserve-3d;
+}
+
+.big-card-flip > .big-card {
+  grid-area: 1 / 1;
+  backface-visibility: hidden;
+}
+
+/* Turned over, its shadow would fall the other way, so it is drawn mirrored to fall as the front's does. */
+.big-card-flip > .big-card-back {
+  place-content: center;
+  box-shadow: -12px 12px 0 var(--plate-side);
+  transform: rotateY(180deg);
+}
+
+.card-back-map {
+  direction: ltr;
+  display: grid;
+  grid-template-columns: repeat(5, 33px);
+  gap: 8px;
+}
+
+.card-back-map > i {
+  width: 33px;
+  height: 33px;
+  border-radius: 8px;
 }
 
 .big-card {
@@ -393,7 +431,6 @@
   border-radius: 28px;
   background: var(--ink);
   box-shadow: 12px 12px 0 var(--plate-side);
-  rotate: -2deg;
 }
 
 .big-card .card-art {
@@ -836,4 +873,54 @@
   color: var(--ink);
   font-size: 18px;
   font-weight: 900;
+}
+
+/* Motion: the box a window comes in and goes out with covers the stage; the window sits in it as before. */
+.window-motion {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.window-motion > * {
+  pointer-events: auto;
+}
+
+/* The day's sky, fading away as night falls at the start of the announcement. */
+.display-dusk {
+  position: absolute;
+  inset: 0;
+  background: var(--sky);
+}
+
+/* What moves from its own middle: the ring of a plot just gained, a plan stamped on a roof. */
+.land-ring,
+.map-stamp {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* The population a plot brought, in its bubble over the map. */
+.gain-text {
+  font-size: 17px;
+  font-weight: 900;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+/* A podium tower rises from its tile. */
+.tower-body {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+
+.duel-plot-box {
+  display: grid;
+  place-items: center;
+}
+
+/* Something that comes into a window when the moment brings it. */
+.appear {
+  display: grid;
+  justify-items: center;
 }

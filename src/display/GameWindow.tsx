@@ -1,3 +1,5 @@
+import { useLayoutEffect, useRef } from 'react';
+import tokens from '../../assets/tokens.json';
 import { TEAMS, type Card, type GameState, type Team } from '../engine/types.ts';
 import type { MissionResult } from '../engine/missions.ts';
 import { CardArt } from '../ui/CardArt.tsx';
@@ -8,11 +10,12 @@ import { formatNumber, toArabicDigits } from '../ui/number.ts';
 import { TeamName } from '../ui/TeamBadge.tsx';
 import { TeamTile } from '../ui/TeamTile.tsx';
 import { Timer } from '../ui/Timer.tsx';
+import { EASE_BOUNCE, motion } from '../ui/motion.ts';
 import { AuctionWindow } from './AuctionWindow.tsx';
 import type { DisplayWindow, Running } from './windows.ts';
 
 /** The window over the dimmed game, as the moment asks. */
-export function GameWindow({ state, shown }: { state: GameState; shown: DisplayWindow }) {
+export function GameWindow({ state, shown, live }: { state: GameState; shown: DisplayWindow; live: boolean }) {
   switch (shown.kind) {
     case 'numbers':
       return <NumbersWindow state={state} numbers={shown.numbers} />;
@@ -21,11 +24,11 @@ export function GameWindow({ state, shown }: { state: GameState; shown: DisplayW
     case 'answer':
       return <AnswerWindow state={state} {...shown} />;
     case 'auction':
-      return <AuctionWindow state={state} auction={shown.auction} challenge={shown.challenge} timer={shown.timer} />;
+      return <AuctionWindow state={state} auction={shown.auction} challenge={shown.challenge} timer={shown.timer} live={live} />;
     case 'card':
-      return <CardWindow state={state} {...shown} />;
+      return <CardWindow state={state} {...shown} live={live} />;
     case 'mission':
-      return <MissionWindow state={state} team={shown.team} result={shown.result} />;
+      return <MissionWindow state={state} team={shown.team} result={shown.result} live={live} />;
   }
 }
 
@@ -107,15 +110,80 @@ function AnswerWindow({ state, answer, teams, permits, individual }: AnswerProps
   );
 }
 
-type CardProps = { state: GameState; card: Card; team: Team; says: string };
+type CardProps = { state: GameState; card: Card; team: Team; says: string; until: number; taken: boolean; live: boolean };
+
+/** Where each team's board hangs, from the middle of the big card: a card taken flies there. */
+const BOARD_FROM_CARD: Record<string, [number, number]> = {
+  'top-left': [201 - 640, 145 - 308],
+  'top-right': [1079 - 640, 145 - 308],
+  'bottom-left': [201 - 640, 653 - 308],
+  'bottom-right': [1079 - 640, 653 - 308],
+};
+
+/** How long a card takes to leave, at the end of its moment, and to come in face down and turn over. */
+const CARD_EXIT = 560;
+const CARD_IN = 1050;
+
+/** The back of every action card, as the identity draws it: a small map in the teams' colours, the tower white. */
+const CARD_BACK = [
+  ['blue', 'blue', 'night-city', 'coral', 'coral'],
+  ['blue', 'night-city', 'night-city', 'night-city', 'coral'],
+  ['night-city', 'night-city', 'white', 'night-city', 'night-city'],
+  ['gold', 'night-city', 'night-city', 'night-city', 'green'],
+  ['gold', 'gold', 'night-city', 'green', 'green'],
+].flat();
 
 /** D09 and D10: the card itself, large over the game, and under it the team and what it did. */
-function CardWindow({ state, card, team, says }: CardProps) {
+function CardWindow({ state, card, team, says, until, taken, live }: CardProps) {
+  const box = useRef<HTMLElement>(null);
+  // As the identity's cards do, it comes in face down, then turns over. At the end of its moment a card taken
+  // flies to the team's board, and a card used turns face down again and fades.
+  useLayoutEffect(() => {
+    const node = box.current;
+    if (!node || !live) return;
+    // The holder comes and goes (fading would flatten the turn, so the card itself only turns).
+    const hold = node.querySelector('.big-card-hold');
+    const flip = node.querySelector('.big-card-flip');
+    const caption = node.querySelector('.card-caption');
+    motion(hold, [{ opacity: 0, transform: 'scale(0.55)' }, { opacity: 1, transform: 'none' }], { duration: CARD_IN * 0.42, easing: EASE_BOUNCE });
+    motion(
+      flip,
+      [
+        { transform: 'rotateY(180deg)' },
+        { transform: 'rotateY(180deg)', offset: 0.55, easing: 'cubic-bezier(0.45, 0, 0.2, 1)' },
+        { transform: 'rotateY(0deg)' },
+      ],
+      { duration: CARD_IN },
+    );
+    motion(caption, [{ opacity: 0, transform: 'translateY(12px)' }, { opacity: 1, transform: 'none' }], { duration: 360, delay: CARD_IN - 150, fill: 'backwards' });
+    const leave = until - CARD_EXIT - Date.now();
+    if (leave <= 0) return;
+    const late = { duration: CARD_EXIT, delay: leave, easing: 'cubic-bezier(0.5, 0, 0.75, 0)', fill: 'forwards' } as const;
+    if (taken) {
+      const [dx, dy] = BOARD_FROM_CARD[tokens.teamCorner[team]] ?? [0, 0];
+      motion(hold, [{ transform: 'none', opacity: 1 }, { transform: `translate(${dx}px, ${dy}px) scale(0.16)`, opacity: 0.3 }], late);
+    } else {
+      motion(flip, [{ transform: 'rotateY(0deg)' }, { transform: 'rotateY(-180deg)' }], { ...late, duration: CARD_EXIT * 0.75 });
+      motion(hold, [{ opacity: 1 }, { opacity: 1, offset: 0.7 }, { opacity: 0, transform: 'scale(0.9)' }], late);
+    }
+    motion(caption, [{ opacity: 1 }, { opacity: 0 }], { duration: 240, delay: leave, fill: 'forwards' });
+  }, [until, live, taken, team]);
   return (
-    <section className="card-window" data-window="card" aria-label={CARD_NAMES[card]}>
-      <div className="big-card">
-        <CardArt card={card} />
-        <span className="big-card-name">{CARD_NAMES[card]}</span>
+    <section ref={box} className="card-window" data-window="card" aria-label={CARD_NAMES[card]}>
+      <div className="big-card-hold">
+        <div className="big-card-flip">
+          <div className="big-card">
+            <CardArt card={card} />
+            <span className="big-card-name">{CARD_NAMES[card]}</span>
+          </div>
+          <div className="big-card big-card-back" aria-hidden="true">
+            <span className="card-back-map">
+              {CARD_BACK.map((colour, i) => (
+                <i key={i} style={{ background: `var(--${colour})` }} />
+              ))}
+            </span>
+          </div>
+        </div>
       </div>
       <p className="card-caption">
         <TeamName team={team} name={state.setup.teams[team].name} /> {says}
@@ -125,7 +193,12 @@ function CardWindow({ state, card, team, says }: CardProps) {
 }
 
 /** D20: one secret mission in the announcement: its picture, the team, what it asked, and the result. */
-function MissionWindow({ state, team, result }: { state: GameState; team: Team; result: MissionResult }) {
+function MissionWindow({ state, team, result, live }: { state: GameState; team: Team; result: MissionResult; live: boolean }) {
+  const mark = useRef<HTMLParagraphElement>(null);
+  // The result comes a moment after the mission, with a pop.
+  useLayoutEffect(() => {
+    if (live) motion(mark.current, [{ opacity: 0, transform: 'scale(0.5)' }, { opacity: 1, transform: 'none' }], { duration: 520, delay: 380, easing: EASE_BOUNCE, fill: 'backwards' });
+  }, [live]);
   return (
     <section className="display-window window-mission" data-window="mission" aria-label="مشروع سري">
       <h2 className="window-label">
@@ -143,7 +216,7 @@ function MissionWindow({ state, team, result }: { state: GameState; team: Team; 
             <small>{MISSION_TEXT[result.mission]}</small>
           </p>
         </div>
-        <p className="mission-result" data-done={result.done || undefined}>
+        <p ref={mark} className="mission-result" data-done={result.done || undefined}>
           <Icon name={result.done ? 'check' : 'x'} size={30} />
           <b>{formatNumber(result.points * 100, { sign: true })}</b>
         </p>

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, useSyncExternalStore } from 'react';
 import { getBoard } from '../../engine/board.ts';
 import { replay } from '../../engine/reduce.ts';
 import { openAuction, options, planTargets, population } from '../../engine/select.ts';
@@ -39,6 +39,7 @@ export function PlayScreen({ store, state, events }: Props) {
   const picked = pick.key === pickKey ? pick.plots : [];
   const setPicked = (plots: PlotId[]) => setPick({ key: pickKey, plots });
   const [logOpen, setLogOpen] = useState(false);
+  const muted = useSyncExternalStore(store.subscribe, store.isMuted);
   const [inventory, setInventory] = useState<Team | null>(null);
   // The inspector's window stays until the referee closes it, or does the next thing.
   const [seen, setSeen] = useState<number | null>(null);
@@ -97,6 +98,9 @@ export function PlayScreen({ store, state, events }: Props) {
         <Toolbar>
           <Button variant="quiet" icon="tv" aria-label="فتح شاشة العرض" onClick={openDisplayWindow}>
             شاشة العرض
+          </Button>
+          <Button variant="quiet" icon={muted ? 'mute' : 'sound'} aria-pressed={muted} onClick={() => store.setMuted(!muted)}>
+            كتم الصوت
           </Button>
           <Button variant="quiet" icon="log" aria-pressed={logOpen} onClick={() => setLogOpen(!logOpen)}>
             السجل

@@ -1,13 +1,16 @@
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import tokens from '../../assets/tokens.json';
 import mark from '../../assets/brand/mark.svg';
 import { ranking } from '../engine/missions.ts';
 import type { GameState, Team } from '../engine/types.ts';
 import { Icon } from '../ui/Icon.tsx';
+import { EASE_BOUNCE, motion, reducedMotion } from '../ui/motion.ts';
 import { formatNumber } from '../ui/number.ts';
 import { TeamTile } from '../ui/TeamTile.tsx';
 import { TEAM_PATHS } from '../ui/team-paths.ts';
 import { box, decal, project, REFERENCE_VIEW, type BoxShape } from './iso.ts';
 import { Box } from './IsoMap.tsx';
+import { playSound } from './sound.ts';
 import { TileFrame } from './TileFrame.tsx';
 
 // The final podium (D21), as reference/iso-board.md and model_a in reference/mayor.py draw it: four
@@ -26,6 +29,12 @@ const FLOORS = [8, 6, 4, 2] as const;
 const SPACING = 290;
 const ORIGIN_X = 640;
 const ORIGIN_Y = 548;
+
+/** The towers rise one after another, from the fourth to the first; then the crown lands. */
+const FIRST_RISE = 500;
+const NEXT_RISE = 650;
+const RISE = 850;
+const COUNT = 900;
 
 const CO = Math.SQRT1_2;
 const D = SPACING / (2 * CO * S);
@@ -62,6 +71,9 @@ function towers(state: GameState): Tower[] {
   });
 }
 
+/** When a tower starts to rise: the last place first. `place` counts from 0 for the first. */
+const riseAt = (place: number, count: number) => FIRST_RISE + (count - 1 - place) * NEXT_RISE;
+
 function TowerDrawing({ tower }: { tower: Tower }) {
   const { ci, cj, team, floors } = tower;
   const t = tokens.team[team];
@@ -69,7 +81,6 @@ function TowerDrawing({ tower }: { tower: Tower }) {
   const [x0, y0, x1, y1] = [ci - FOOT / 2, cj - FOOT / 2, ci + FOOT / 2, cj + FOOT / 2];
   const m = TILE_MARGIN;
   const parts = [];
-  parts.push(<Box key="tile" shape={shape([x0 - m, y0 - m, x1 + m, y1 + m], -TILE_DEPTH, 0, RADIUS + 0.12)} palette={tokens.map.night.v2 as unknown as readonly [string, string, string]} />);
   for (let f = 0; f < floors; f++) {
     const z = f * FLOOR;
     const top = z + FLOOR;
@@ -97,7 +108,15 @@ function TowerDrawing({ tower }: { tower: Tower }) {
   if (tower.rank !== 1) {
     parts.push(<path key="symbol" d={TEAM_PATHS[team]} transform={decal(ci, cj, roof, 1, S, 0, REFERENCE_VIEW)} fill={tokens.color.ink} />);
   }
-  return <g data-tower={team}>{parts}</g>;
+  return (
+    <g data-tower={team}>
+      <Box shape={shape([x0 - m, y0 - m, x1 + m, y1 + m], -TILE_DEPTH, 0, RADIUS + 0.12)} palette={tokens.map.night.v2 as unknown as readonly [string, string, string]} />
+      {/* The floors are what rise, from the tile up. */}
+      <g className="tower-body" data-rise={team}>
+        {parts}
+      </g>
+    </g>
+  );
 }
 
 /** Where a tower's labels go on the stage: the bubble over the roof, the crown on it, the plate under it. */
@@ -111,17 +130,67 @@ function labels(tower: Tower) {
   return { x: cx, bubble: tower.rank === 1 ? crown - 4 : back - 14, crown, plate: base + 16 };
 }
 
+/** A population counting up from nothing once its tower stands, or shown at once. */
+function CountFrom({ value, delay, live }: { value: number; delay: number; live: boolean }) {
+  const counting = live && !reducedMotion();
+  const [shown, setShown] = useState(counting ? 0 : value);
+  useEffect(() => {
+    if (!counting) return;
+    let frame = 0;
+    const start = setTimeout(() => {
+      const began = performance.now();
+      frame = requestAnimationFrame(function tick(now) {
+        const t = Math.min(1, (now - began) / COUNT);
+        setShown(Math.round(value * (1 - Math.pow(1 - t, 3))));
+        if (t < 1) frame = requestAnimationFrame(tick);
+      });
+    }, delay);
+    return () => {
+      clearTimeout(start);
+      cancelAnimationFrame(frame);
+    };
+  }, [counting, value, delay]);
+  return <>{formatNumber(counting ? shown : value)}</>;
+}
+
 /**
  * D21, «عمدة الرقعة»: the four towers by rank, the tallest first on the right, each with its population
  * above it and its team's plate and rank under it, the crown on the first. Night, stars and the lit city,
- * with a soft gold glow behind the winner.
+ * with a soft gold glow behind the winner. When it has just come (`live`), the towers rise from the fourth
+ * to the first, each landing with a thud, the numbers count up, and the crown lands last with a sparkle.
  */
-export function Podium({ state }: { state: GameState }) {
+export function Podium({ state, live }: { state: GameState; live: boolean }) {
   const rows = towers(state);
   const first = rows.find((row) => row.rank === 1)!;
   const glow = labels(first);
+  const root = useRef<HTMLDivElement>(null);
+  const came = useRef(live);
+  const played = useRef(false);
+
+  // Once, when the podium comes: the towers don't change after that.
+  useLayoutEffect(() => {
+    const node = root.current;
+    if (played.current || !came.current || !node || reducedMotion()) return;
+    played.current = true;
+    const order = towers(state);
+    const crownAt = riseAt(0, order.length) + RISE + 350;
+    order.forEach((tower, place) => {
+      const delay = riseAt(place, order.length);
+      const label = (name: string) => node.querySelector(`[data-label="${tower.team}"] .${name}`);
+      motion(node.querySelector(`[data-rise="${tower.team}"]`), [{ transform: 'scaleY(0)' }, { transform: 'none' }], { duration: RISE, delay, fill: 'backwards' });
+      motion(label('podium-plate'), [{ opacity: 0, transform: 'translate(-50%, 18px)' }, { opacity: 1, transform: 'translateX(-50%)' }], { duration: 420, delay, fill: 'backwards' });
+      motion(label('podium-bubble'), [{ opacity: 0, transform: 'translate(-50%, -70%)' }, { opacity: 1, transform: 'translate(-50%, -100%)' }], { duration: 380, delay: delay + RISE - 120, fill: 'backwards' });
+      playSound('thud', (delay + RISE - 60) / 1000);
+    });
+    node.querySelectorAll('.podium-crown').forEach((crown) => {
+      motion(crown, [{ opacity: 0, transform: 'translate(-50%, -150px) rotate(-14deg)' }, { opacity: 1, transform: 'translateX(-50%)' }], { duration: 720, delay: crownAt, easing: EASE_BOUNCE, fill: 'backwards' });
+    });
+    motion(node.querySelector('.podium-glow'), [{ opacity: 0 }, { opacity: 1 }], { duration: 900, delay: crownAt, fill: 'backwards' });
+    playSound('sparkle', (crownAt + 420) / 1000);
+  }, [state]);
+
   return (
-    <div className="podium" data-testid="podium">
+    <div ref={root} className="podium" data-testid="podium">
       <svg className="podium-art" viewBox="0 0 1280 720" aria-hidden="true" focusable="false">
         <defs>
           <radialGradient id="podium-glow">
@@ -129,7 +198,7 @@ export function Podium({ state }: { state: GameState }) {
             <stop offset="1" stopColor={tokens.color.crown} stopOpacity="0" />
           </radialGradient>
         </defs>
-        <circle cx={glow.x} cy={glow.crown + 230} r={330} fill="url(#podium-glow)" />
+        <circle className="podium-glow" cx={glow.x} cy={glow.crown + 230} r={330} fill="url(#podium-glow)" />
         <g transform={`translate(${ORIGIN_X} ${ORIGIN_Y})`}>
           {[...rows].reverse().map((tower) => (
             <TowerDrawing key={tower.team} tower={tower} />
@@ -140,20 +209,20 @@ export function Podium({ state }: { state: GameState }) {
         <img src={mark} alt="" />
         عمدة الرقعة
       </h1>
-      {rows.map((tower) => {
-        const place = labels(tower);
+      {rows.map((tower, place) => {
+        const spot = labels(tower);
         return (
-          <div key={tower.team} className="podium-labels" data-team={tower.team}>
-            <span className="podium-bubble" style={{ left: place.x, top: place.bubble }}>
+          <div key={tower.team} className="podium-labels" data-label={tower.team}>
+            <span className="podium-bubble" style={{ left: spot.x, top: spot.bubble }}>
               <Icon name="house" size={24} />
-              {formatNumber(tower.population)}
+              <CountFrom value={tower.population} delay={riseAt(place, rows.length) + RISE - 100} live={live} />
             </span>
             {tower.rank === 1 ? (
-              <span className="podium-crown" style={{ left: place.x, top: place.crown }}>
+              <span className="podium-crown" style={{ left: spot.x, top: spot.crown }}>
                 <Icon name="crown" size={70} />
               </span>
             ) : null}
-            <div className="podium-plate" style={{ left: place.x, top: place.plate }}>
+            <div className="podium-plate" style={{ left: spot.x, top: spot.plate }}>
               <TeamTile team={tower.team} height={58} filled>
                 <span className="team-tile-name">{state.setup.teams[tower.team].name}</span>
                 <TileFrame />

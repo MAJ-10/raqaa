@@ -1,11 +1,12 @@
 // Phase 5: what the display shows over the game at each moment, from the state and the last event.
 import { describe, expect, it } from 'vitest';
-import { boardLooks } from '../../src/display/board-art.ts';
-import { announcedPopulation, displayWindow, MOMENT, PERMITS_TIME, signLook, type DisplayWindow } from '../../src/display/windows.ts';
+import { boardLooks, landing } from '../../src/display/board-art.ts';
+import { announcedPopulation, displayWindow, JUMP, LAND, MOMENT, nextWake, PERMITS_TIME, signLook, type DisplayWindow } from '../../src/display/windows.ts';
 import { plotNumbers } from '../../src/ui/plot-numbers.ts';
+import { fourSmallDays } from './games.ts';
 import { announcement } from '../../src/engine/missions.ts';
 import { lastDayScenario, Play, planScenario, sampleSetup } from '../../src/engine/scenarios.ts';
-import { buildOrder, nextAuction, population, TIMER_SECONDS } from '../../src/engine/select.ts';
+import { buildOrder, nextAuction, options, population, TIMER_SECONDS } from '../../src/engine/select.ts';
 import { TEAMS, type ChallengeContent, type Team } from '../../src/engine/types.ts';
 
 const all: Team[] = ['coral', 'blue', 'green', 'gold'];
@@ -111,10 +112,12 @@ describe('cards on the display', () => {
     let play = new Play(sampleSetup()).do({ type: 'game/start' });
     play = play.question(['coral']).build({ coral: ['1-2'] }).endDay().question(['coral']).build({ coral: ['2-2'] }).endDay();
     play.question(['coral']).do({ type: 'build', team: 'coral', plot: '2-3' });
-    expect(shownNow(play)).toEqual({ kind: 'card', card: 'fence', team: 'coral', says: 'كسب السياج', also: null });
-    expect(signLook(play.state, 'coral', shownNow(play))).toMatchObject({ faded: false, filled: true });
-    expect(signLook(play.state, 'blue', shownNow(play))).toMatchObject({ faded: true, filled: false });
-    expect(shownNow(play, MOMENT + 1)).toBeNull();
+    // The building lands first; then the card, for its moment.
+    expect(shownNow(play)).toBeNull();
+    expect(shownNow(play, LAND + 100)).toMatchObject({ kind: 'card', card: 'fence', team: 'coral', says: 'كسب السياج', also: null, taken: true });
+    expect(signLook(play.state, 'coral', shownNow(play, LAND + 100))).toMatchObject({ faded: false, filled: true });
+    expect(signLook(play.state, 'blue', shownNow(play, LAND + 100))).toMatchObject({ faded: true, filled: false });
+    expect(shownNow(play, LAND + MOMENT + 1)).toBeNull();
   });
 
   it('shows the fence with both sides of the cancelled auction', () => {
@@ -123,7 +126,7 @@ describe('cards on the display', () => {
     const fence = play.events.findIndex((e) => e.type === 'card/fence');
     const at = play.events[fence]!;
     const shown = displayWindow(play.state, at, at.at + 100);
-    expect(shown).toEqual({ kind: 'card', card: 'fence', team: 'blue', says: 'صدّ المزاد بالسياج', also: 'coral' });
+    expect(shown).toMatchObject({ kind: 'card', card: 'fence', team: 'blue', says: 'صدّ المزاد بالسياج', also: 'coral' });
     expect(signLook(play.state, 'coral', shown).faded).toBe(false);
     expect(signLook(play.state, 'green', shown).faded).toBe(true);
   });
@@ -141,7 +144,7 @@ describe('cards on the display', () => {
     const play = new Play(planScenario().setup);
     for (const e of planScenario().events) play.do(e);
     play.do({ type: 'plan/take', team: 'coral', plot: '2-5' });
-    expect(shownNow(play)).toEqual({ kind: 'card', card: 'plan', team: 'coral', says: 'أخذ قطعة بالمخطط السري', also: null });
+    expect(shownNow(play)).toMatchObject({ kind: 'card', card: 'plan', team: 'coral', says: 'أخذ قطعة بالمخطط السري', also: null });
   });
 });
 
@@ -238,16 +241,34 @@ describe('the plots the team in turn can act on', () => {
     ]);
   });
 
-  it('numbers the plots it can bid for too, in the same count, sunk as the other team’s', () => {
+  it('numbers the plots it can bid for too, in the same count; they stay up, edged as choices', () => {
     // Day 5: coral's 1-5 touches blue's 1-6, built on day 3, so coral can bid for it.
     const play = fourDays().question(['coral']);
     const numbers = plotNumbers(play.state);
     expect(numbers.get('1-6')).toBeGreaterThan(0);
-    expect(boardLooks(play.state, false).find((look) => look.id === '1-6')).toMatchObject({
-      symbol: 'blue',
-      faded: true,
-      number: numbers.get('1-6'),
-    });
+    const looks = boardLooks(play.state, false);
+    expect(looks.find((look) => look.id === '1-6')).toMatchObject({ symbol: 'blue', open: 'coral', number: numbers.get('1-6') });
+    expect(looks.find((look) => look.id === '1-6')?.faded).toBeUndefined();
+    // Blue's other buildings sink while coral plays.
+    expect(looks.find((look) => look.id === '1-7')).toMatchObject({ symbol: 'blue', faded: true });
+  });
+
+  it('lets the bridge’s line jump before its card shows, from the team’s plot to the one it reached', () => {
+    // 7×7, day 5: coral holds the bridge it took on 2-4, and uses it.
+    const play = fourSmallDays().question(['coral']);
+    const target = options(play.state, 'coral').bridge[0]!;
+    expect(plotNumbers(play.state).has(target)).toBe(true);
+    play.do({ type: 'build', team: 'coral', plot: target, via: 'bridge' });
+    const at = play.events.at(-1)!.at;
+    const jump = landing(play.state, play.events.at(-1)!);
+    expect(jump).toMatchObject({ plot: target, team: 'coral' });
+    expect(play.state.plots[jump!.from!]?.owner).toBe('coral');
+    // While the line jumps, the map shows; then the bridge's card, for its moment.
+    expect(displayWindow(play.state, play.events.at(-1)!, at + 100)).toBeNull();
+    expect(displayWindow(play.state, play.events.at(-1)!, at + JUMP + 100)).toMatchObject({ kind: 'card', card: 'bridge' });
+    expect(displayWindow(play.state, play.events.at(-1)!, at + JUMP + MOMENT + 1)).toBeNull();
+    expect(nextWake(play.events.at(-1)!, at + 100)).toBe(at + JUMP);
+    expect(nextWake(play.events.at(-1)!, at + JUMP + 100)).toBe(at + JUMP + MOMENT);
   });
 
   it('has none while no team is building', () => {

@@ -123,6 +123,29 @@ test.describe('display', () => {
     await expect(podium.locator('.podium-title')).toHaveText('عمدة الرقعة');
   });
 
+  test('moves only when motion is welcome: with reduced motion, a build changes the display at once', async ({ page }) => {
+    const play = new Play(sampleSetup()).do({ type: 'game/start' }).question(['coral']);
+    await seedGame(page, '/', play.state.setup, play.events);
+    const display = await openDisplay(page);
+    await display.emulateMedia({ reducedMotion: 'reduce' });
+    await display.reload();
+    await expect(display.locator('.display-map g[data-open]')).toHaveCount(2);
+    await page.locator('.plot[data-plot="1-2"]').click();
+    await expect(display.locator('.display-map g[data-plot="1-2"]')).toHaveAttribute('data-team', 'coral');
+    expect(await display.evaluate(() => document.getAnimations().filter((a) => a.playState === 'running').length)).toBe(0);
+  });
+
+  test('the referee mutes the display’s sounds, and the choice stays after a reload', async ({ page }) => {
+    const play = new Play(sampleSetup()).do({ type: 'game/start' });
+    await seedGame(page, '/', play.state.setup, play.events);
+    const mute = page.getByRole('button', { name: 'كتم الصوت' });
+    await expect(mute).toHaveAttribute('aria-pressed', 'false');
+    await mute.click();
+    await expect(mute).toHaveAttribute('aria-pressed', 'true');
+    await page.reload();
+    await expect(page.getByRole('button', { name: 'كتم الصوت' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
   test('hides the population in the last days, and keeps the cards', async ({ page }) => {
     let play = new Play(sampleSetup(9, 4)).do({ type: 'game/start' });
     for (let day = 0; day < 2; day++) play = play.question([]).endDay();

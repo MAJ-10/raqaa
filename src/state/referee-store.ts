@@ -19,6 +19,16 @@ export type RefereeStoreOptions = {
   transports?: Transport[];
 };
 
+const MUTED_KEY = 'raqaa.muted';
+
+function readMuted(storage: Storage | undefined): boolean {
+  try {
+    return (storage ?? localStorage).getItem(MUTED_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
 /** Folds events over the setup, keeping those that still follow the rules (a newer version may refuse an old one). */
 function resume(setup: Setup, saved: readonly GameEvent[]): RefereeView {
   let state = initialState(setup);
@@ -47,17 +57,33 @@ export class RefereeStore {
   private readonly listeners = new Set<() => void>();
   private readonly answered = new Set<string>();
   private view: RefereeView;
+  private muted: boolean;
   private seq = 0;
 
   constructor(options: RefereeStoreOptions = {}) {
     this.storage = options.storage;
     this.view = options.saved ? resume(options.saved.setup, options.saved.events) : { state: null, events: [] };
+    this.muted = readMuted(this.storage);
     this.link = openSyncLink<Message>((message) => this.receive(message), options.transports);
     // Displays that are already open follow the referee as soon as it opens.
     this.publish(null);
   }
 
   getView = (): RefereeView => this.view;
+
+  /** Whether the display's sounds are muted. The referee's choice, kept apart from the competition. */
+  isMuted = (): boolean => this.muted;
+
+  setMuted(muted: boolean): void {
+    this.muted = muted;
+    try {
+      (this.storage ?? localStorage).setItem(MUTED_KEY, muted ? '1' : '0');
+    } catch {
+      // Private windows may refuse storage; the choice still holds while this window is open.
+    }
+    this.publish(null);
+    this.listeners.forEach((listener) => listener());
+  }
 
   subscribe = (listener: () => void): (() => void) => {
     this.listeners.add(listener);
@@ -114,6 +140,7 @@ export class RefereeStore {
       state: this.view.state,
       last,
       latest: this.view.events.at(-1) ?? null,
+      muted: this.muted,
     };
     this.link.send({ type: 'snapshot', snapshot });
   }

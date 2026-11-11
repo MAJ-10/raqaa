@@ -121,6 +121,24 @@ describe('window sync', () => {
     expect(screen.latest()?.latest).toBeNull();
   });
 
+  it('tells the display when the referee mutes its sounds, keeps the choice, and leaves undo out of it', async () => {
+    const { store, storage } = referee();
+    store.create(sampleSetup());
+    const screen = display();
+    await vi.waitFor(() => expect(screen.latest()?.state?.step).toBe('setup'));
+    expect(screen.latest()?.muted).toBe(false);
+    store.setMuted(true);
+    await vi.waitFor(() => expect(screen.latest()?.muted).toBe(true));
+    expect(screen.latest()?.last).toBeNull(); // not an event of the competition
+    store.dispatch(start);
+    store.undo();
+    await vi.waitFor(() => expect(screen.latest()?.state?.step).toBe('setup'));
+    expect(screen.latest()?.muted).toBe(true);
+    // A referee window that reopens remembers it.
+    const again = referee(null, storage);
+    expect(again.store.isMuted()).toBe(true);
+  });
+
   it('lets a display follow a referee window that reopens', async () => {
     const storage = memoryStorage();
     const first = referee(null, storage);

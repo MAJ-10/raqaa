@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { motion } from './motion.ts';
 import { formatNumber } from './number.ts';
 import { secondsLeft } from './time.ts';
 
@@ -14,6 +15,11 @@ export function Timer({ startedAt, seconds = 45, size = 64 }: { startedAt: numbe
   }, []);
 
   const left = secondsLeft(startedAt, seconds, now);
+  const number = useRef<HTMLSpanElement>(null);
+  // In the last five seconds, each second's number beats once.
+  useLayoutEffect(() => {
+    if (left >= 1 && left <= 5) motion(number.current, [{ transform: 'scale(1.4)' }, { transform: 'none' }], { duration: 420 });
+  }, [left]);
   const radius = 20;
   const length = 2 * Math.PI * radius;
   return (
@@ -29,7 +35,9 @@ export function Timer({ startedAt, seconds = 45, size = 64 }: { startedAt: numbe
           strokeDashoffset={length * (1 - left / seconds)}
         />
       </svg>
-      <span className="timer-number">{formatNumber(left)}</span>
+      <span ref={number} className="timer-number">
+        {formatNumber(left)}
+      </span>
     </span>
   );
 }

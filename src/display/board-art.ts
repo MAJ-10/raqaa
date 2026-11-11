@@ -1,8 +1,8 @@
 // What the display's iso map shows, worked out from the state: pure data for IsoMap to draw.
 import tokens from '../../assets/tokens.json';
-import { getBoard } from '../engine/board.ts';
+import { bridgeReach, getBoard } from '../engine/board.ts';
 import { teamInTurn } from '../engine/select.ts';
-import type { Card, GameState, PlotId, Team } from '../engine/types.ts';
+import type { Card, GameEvent, GameState, PlotId, Team } from '../engine/types.ts';
 import { iconSvg } from '../ui/icons.ts';
 import { plotNumbers } from '../ui/plot-numbers.ts';
 import {
@@ -51,10 +51,11 @@ export type PlotLook = {
   symbolSize: number;
   /** A building of another team, sunk to the ground while a team plays: its symbol fades. */
   faded?: boolean;
-  /** A secret plan that has struck here: shown on the roof from then on, in place of the symbol. */
+  /** A secret plan that has struck here: shown small on the roof from then on, beside the symbol. */
   plan?: boolean;
   card?: Card;
-  /** A plot the team in turn can build on: raised to the building it would be, edged in the team's colour. */
+  /** A plot the team in turn can act on: one to build on rises to the building it would be; one to bid for
+   * stays up. Either carries the dashed edge of a choice. */
   open?: Team;
   /** The number the leader of the team in turn calls out to build or bid there, as on the referee's map. */
   number?: number;
@@ -63,8 +64,9 @@ export type PlotLook = {
 /**
  * Every plot, back to front, with what it shows. A building rises with its plot's value (a base counts
  * as 1, the tower as 5); a plot no one has built lies flat, with its card on it; the tower is flat until
- * a team takes it. While a team plays, the other teams' buildings sink to the ground, and the plots it can
- * build on rise to the building they would be.
+ * a team takes it. While a team plays, the other teams' buildings sink to the ground, but the ones it can
+ * bid for stay up; the plots it can build on rise to the building they would be. Each plot it can act on
+ * carries the dashed edge of a choice and its number.
  */
 export function boardLooks(state: GameState, night: boolean, step = MAP_STEP): PlotLook[] {
   const board = getBoard(state.setup.size);
@@ -83,7 +85,8 @@ export function boardLooks(state: GameState, night: boolean, step = MAP_STEP): P
     const at = { id, order: i + j, i, j, symbolSize: centre ? 0.42 : 0.4 };
 
     if (plot.owner) {
-      const sunk = focus !== null && plot.owner !== focus;
+      const bid = focus !== null && open.has(id);
+      const sunk = focus !== null && plot.owner !== focus && !bid;
       return {
         ...at,
         height: sunk ? TH : building,
@@ -91,6 +94,7 @@ export function boardLooks(state: GameState, night: boolean, step = MAP_STEP): P
         symbol: plot.owner,
         faded: sunk || undefined,
         plan: plot.planShown || undefined,
+        open: bid ? focus : undefined,
         number: open.get(id),
       };
     }
@@ -102,11 +106,42 @@ export function boardLooks(state: GameState, night: boolean, step = MAP_STEP): P
   return looks.sort((a, b) => a.order - b.order);
 }
 
+/** A plot the moment just gave a team (built, won at auction, taken by a plan), with the population it is
+ * worth; and for a bridge, the team's plot it jumped from, two steps away in the same row or column. */
+export function landing(state: GameState, e: GameEvent): { plot: PlotId; team: Team; gain: number; from?: PlotId } | null {
+  const board = getBoard(state.setup.size);
+  const gain = (plot: PlotId) => (board.plots[plot]?.value ?? 0) * 100;
+  switch (e.type) {
+    case 'build': {
+      const from = e.via === 'bridge' ? bridgeReach(board, e.plot).find((id) => state.plots[id]?.owner === e.team) : undefined;
+      return { plot: e.plot, team: e.team, gain: gain(e.plot), from };
+    }
+    case 'plan/take':
+      return { plot: e.plot, team: e.team, gain: gain(e.plot) };
+    case 'challenge/result': {
+      const auction = state.auctions[e.auction];
+      if (auction?.status !== 'done' || auction.winner !== auction.bidder) return null;
+      return { plot: auction.plot, team: auction.bidder, gain: gain(auction.plot) };
+    }
+    default:
+      return null;
+  }
+}
+
+/** The plot where the moment just made a plan strike, so the plan shows there from now on. */
+export function struckPlan(state: GameState, e: GameEvent): PlotId | null {
+  if (e.type !== 'challenge/result') return null;
+  const auction = state.auctions[e.auction];
+  const struck = auction?.status === 'done' && auction.winner === auction.defender && state.plots[auction.plot]?.planShown;
+  return struck ? auction.plot : null;
+}
+
 export type PlotShape = {
   shape: BoxShape;
-  /** Transforms that lay the team symbol, or the card, flat on the plot's top. */
+  /** Transforms that lay the team symbol, the card, or a plan that struck, flat on the plot's top. */
   symbol?: string;
   card?: string;
+  plan?: string;
   /** The dashed edge on top of a plot the team in turn can build on. */
   edge?: string;
 };
@@ -122,6 +157,8 @@ export function plotShape(look: PlotLook, height: number, s: number, n: number, 
     shape: box([x0, y0, x1, y1], 0, height, R_TILE, s, n, view),
     symbol: look.symbol ? decal(cx, cy, height, look.symbolSize, s, n, view) : undefined,
     card: look.card ? decal(cx, cy, height, 0.56, s, n, view) : undefined,
+    // In the roof's right corner, so the team's symbol stays and a number can take the top.
+    plan: look.plan ? decal(cx + 0.27, cy - 0.27, height, 0.24, s, n, view) : undefined,
     edge: look.open
       ? path(
           roundedPlan(x0 + inset, y0 + inset, x1 - inset, y1 - inset, R_TILE * 0.7).map(([a, b]) => project(a, b, height, s, n, view)),

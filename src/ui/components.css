@@ -386,11 +386,19 @@
   stroke-width: 5;
 }
 
+/* The ring runs down smoothly between its quarter-second steps. */
 .timer-left {
   fill: none;
   stroke: var(--ink);
   stroke-width: 5;
   stroke-linecap: round;
+  transition:
+    stroke-dashoffset 250ms linear,
+    stroke 300ms ease-out;
+}
+
+.timer-number {
+  display: inline-block;
 }
 
 .timer[data-ending] .timer-left {
