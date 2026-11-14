@@ -36,6 +36,11 @@ export class RuleError extends Error {
   override name = 'RuleError';
 }
 
+/** A challenge's timer, from when it starts; the precision challenge has none (decision, 14 November). */
+function challengeTimer(content: ChallengeContent, at: number): GameState['timer'] {
+  return content.type === 'precision' ? null : { kind: 'challenge', startedAt: at };
+}
+
 function rule(ok: unknown, message: string): asserts ok {
   if (!ok) throw new RuleError(message);
 }
@@ -291,6 +296,8 @@ function apply(s: GameState, e: GameEvent): void {
       }
       const auction = openAuction(s);
       const challenge = auction && currentChallenge(auction);
+      // A precision challenge has no timer. Competitions saved before that may hold its timer's end: it changes nothing.
+      if (challenge?.content.type === 'precision' && !s.timer) return;
       rule(challenge && !challenge.stopped && s.timer?.kind === 'challenge', 'No timer is running');
       challenge.stopped = true;
       s.timer = null;
@@ -441,7 +448,7 @@ function apply(s: GameState, e: GameEvent): void {
       rule(!currentChallenge(auction), 'A challenge is already being played');
       auction.challenges.push({ content: e.content, startedAt: e.at, stopped: false, winner: null });
       noteContent(s, e.content);
-      s.timer = { kind: 'challenge', startedAt: e.at };
+      s.timer = challengeTimer(e.content, e.at);
       return;
     }
 
@@ -455,7 +462,7 @@ function apply(s: GameState, e: GameEvent): void {
       challenge.startedAt = e.at;
       challenge.stopped = false;
       noteContent(s, e.content);
-      s.timer = { kind: 'challenge', startedAt: e.at };
+      s.timer = challengeTimer(e.content, e.at);
       return;
     }
 

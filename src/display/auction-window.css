@@ -249,3 +249,122 @@
   justify-items: center;
   gap: 14px;
 }
+
+/*
+ * The winner of the auction, celebrated under the two sides: its medal, in its colour with its symbol and
+ * the crown over it, a burst of pieces around it, then «فاز» and its name, and what it won.
+ */
+.auction-won {
+  --team: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 40px;
+  min-height: 310px;
+  margin-top: 22px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+
+.auction-won[data-team='coral'] {
+  --team: var(--coral);
+  --team-side: var(--coral-side);
+}
+
+.auction-won[data-team='blue'] {
+  --team: var(--blue);
+  --team-side: var(--blue-side);
+}
+
+.auction-won[data-team='green'] {
+  --team: var(--green);
+  --team-side: var(--green-side);
+}
+
+.auction-won[data-team='gold'] {
+  --team: var(--gold);
+  --team-side: var(--gold-side);
+}
+
+.won-medal-box {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 150px;
+  height: 190px;
+}
+
+.won-medal {
+  display: grid;
+  place-items: center;
+  width: 136px;
+  height: 136px;
+  margin-top: 36px;
+  border-radius: 50%;
+  background: var(--team);
+  box-shadow:
+    0 0 0 8px var(--white),
+    0 0 0 11px var(--team);
+}
+
+.won-medal .team-glyph {
+  width: 62px;
+  height: 62px;
+  color: var(--ink);
+}
+
+.won-crown {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  z-index: 1;
+  margin-left: -28px;
+  color: var(--crown);
+}
+
+.won-burst {
+  position: absolute;
+  top: 56%;
+  left: 50%;
+  width: 0;
+  height: 0;
+}
+
+.won-piece {
+  position: absolute;
+  width: 12px;
+  height: 22px;
+  border-radius: 4px;
+  opacity: 0;
+}
+
+.won-piece[data-colour='team'] {
+  background: var(--team);
+}
+
+.won-piece[data-colour='crown'] {
+  background: var(--crown);
+}
+
+.won-piece[data-colour='side'] {
+  background: var(--team-side);
+}
+
+.won-words {
+  display: grid;
+  gap: 4px;
+}
+
+.won-words h2 {
+  margin: 0;
+  font-size: 56px;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.won-words p {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 30px;
+  font-weight: 600;
+}

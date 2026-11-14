@@ -117,9 +117,13 @@ function Duel({ state, auction }: { state: GameState; auction: Auction }) {
 /** Which challenge of the auction this is: the first, the second... */
 type ChallengeProps = AuctionProps & { number: number };
 
+/** The challenges whose answer the display shows: before the time is up, the referee can show it. */
+const WITH_ANSWER = new Set<ChallengeContent['type']>(['math', 'spelling', 'ordering']);
+
 function NextChallenge({ state, act, auction, number }: ChallengeProps) {
   const [made, setMade] = useState<MadeContent>(() => newChallenge(state, BANKS));
-  const seconds = made.content.type === 'memory' ? TIMER_SECONDS.memory : TIMER_SECONDS.challenge;
+  // The precision challenge has no timer.
+  const seconds = made.content.type === 'precision' ? null : made.content.type === 'memory' ? TIMER_SECONDS.memory : TIMER_SECONDS.challenge;
   // Before it starts, the referee can swap the drawn content for other content of the same type.
   const swap = () => setMade(otherContent(state, made.content));
   return (
@@ -131,7 +135,7 @@ function NextChallenge({ state, act, auction, number }: ChallengeProps) {
         sides={[auction.bidder, auction.defender]}
         state={state}
         recycled={made.recycled}
-        clock={<span className="timer-length">{formatNumber(seconds)} ثانية</span>}
+        clock={seconds ? <span className="timer-length">{formatNumber(seconds)} ثانية</span> : null}
         hint
       />
       <div className="win-actions auction-actions">
@@ -159,9 +163,14 @@ function otherContent(state: GameState, content: ChallengeContent): MadeContent 
   return made;
 }
 
+/**
+ * The challenge being played. When no side is right, the referee shows the answer on the display
+ * («عرض الإجابة», as the time running out does), then plays it again with new content («تعادل»).
+ */
 function RunningChallenge({ state, act, auction, challenge, number }: ChallengeProps & { challenge: Challenge }) {
   const names = state.setup.teams;
   const seconds = timerSeconds(state);
+  const timed = challenge.content.type !== 'precision';
   // The bank ran out and shown items came back (the oldest first): the referee is told.
   const [recycled, setRecycled] = useState(false);
   const replay = () => {
@@ -180,17 +189,24 @@ function RunningChallenge({ state, act, auction, challenge, number }: ChallengeP
         state={state}
         recycled={recycled}
         clock={
-          state.timer && seconds ? (
+          !timed ? null : state.timer && seconds ? (
             <Timer startedAt={state.timer.startedAt} seconds={seconds} size={44} />
           ) : (
-            <span className="timer-length">انتهى الوقت</span>
+            <span className="timer-length">انتهى</span>
           )
         }
       />
+      {WITH_ANSWER.has(challenge.content.type) && !challenge.stopped ? (
+        <div className="step-actions">
+          <Button icon="eye" onClick={() => act({ type: 'timer/end' })}>
+            عرض الإجابة
+          </Button>
+        </div>
+      ) : null}
       <div className="win-actions auction-actions">
-        {/* For a tie: the same type again, with new content. */}
+        {/* A tie, or no side right: the same type again, with new content. */}
         <Button icon="swap" onClick={replay}>
-          تبديل
+          تعادل
         </Button>
         <div className="win-buttons">
           {[auction.bidder, auction.defender].map((team) => (

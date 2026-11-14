@@ -17,8 +17,17 @@ import {
 import type { Auction, Card, Challenge, GameEvent, GameState, Team } from '../engine/types.ts';
 import { CARD_THE } from '../ui/names.ts';
 
-/** How long the end of an auction stays after its last challenge, with the winner filled. */
-export const MOMENT = 3000;
+/**
+ * How long the end of an auction stays after its last challenge: the challenge a moment more, with its
+ * answer and the last win box filling (WON_AT), then the winner's celebration, long enough to see.
+ */
+export const MOMENT = 5800;
+
+/** When a won auction's celebration comes, after the last challenge's result. */
+export const WON_AT = 1400;
+
+/** The mental maths steps appear one every three seconds. */
+export const MATH_STEP_TIME = 3000;
 
 /**
  * How long a card's window stays: it comes in face down and shows the identity's back, turns over slowly,
@@ -139,7 +148,9 @@ function answerWindow(state: GameState, permits: Team[] | null): DisplayWindow {
 
 /** The window over the game now, or null when the game shows plainly. `now` is the clock, in ms. */
 export function displayWindow(state: GameState, last: GameEvent | null, now: number): DisplayWindow | null {
-  const since = last ? now - last.at : 0;
+  // The clock moves on only when something is due (use-clock.ts), so it may still read a time from before
+  // an event that has just come: such an event has just happened, not yet to happen.
+  const since = last ? Math.max(0, now - last.at) : 0;
   if (last && since >= waitOf(last)) {
     const moment = cardMoment(state, last);
     if (moment && since < waitOf(last) + CARD_TIME) return moment;

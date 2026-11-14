@@ -163,6 +163,8 @@ describe('the auction on the display', () => {
     }
     expect(shownNow(play)).toMatchObject({ kind: 'auction', auction: { status: 'done', winner: 'coral' } });
     expect(shownNow(play, MOMENT + 1)).toBeNull();
+    // The display's clock moves on only when something is due: it may still read a time before the result.
+    expect(shownNow(play, -2000)).toMatchObject({ kind: 'auction', auction: { status: 'done' } });
   });
 });
 

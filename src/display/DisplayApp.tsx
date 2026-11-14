@@ -210,7 +210,7 @@ export function DisplayApp() {
             focus={mission?.team}
             className={starting ? 'display-map display-map-start' : mission ? 'display-map display-map-room' : 'display-map'}
           />
-          <TeamSigns state={state} shown={shown} />
+          <TeamSigns state={state} shown={shown} reveal={fresh?.type === 'game/end'} />
         </div>
       ) : null}
       {starting ? <img className="display-logo" src={logo} alt="رقعة" /> : null}

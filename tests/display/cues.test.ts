@@ -1,7 +1,7 @@
 // Phase 6: the display's sounds for each moment. All of them are shaped noise (see sound.ts): no notes.
 import { describe, expect, it } from 'vitest';
 import { cuesFor } from '../../src/display/cues.ts';
-import { AUCTION_LAND, JUMP_DRAW } from '../../src/display/windows.ts';
+import { AUCTION_LAND, JUMP_DRAW, WON_AT } from '../../src/display/windows.ts';
 import { fourSmallDays, lastDayScenario, openAuctionScenario, Play, sampleSetup } from '../../src/engine/scenarios.ts';
 import { announcement } from '../../src/engine/missions.ts';
 import { options } from '../../src/engine/select.ts';
@@ -41,7 +41,7 @@ describe('the display’s sounds', () => {
     expect(cues[1]).toEqual({ sound: 'thud', after: JUMP_DRAW / 1000 + 0.28 });
   });
 
-  it('knocks the gavel for an auction declared, pops for a challenge won, knocks it for the auction won, then lands its plot after the window', () => {
+  it('knocks the gavel for an auction declared, pops for a challenge won, knocks it and sparkles for the auction won, then lands its plot after the window', () => {
     const { setup, events } = openAuctionScenario();
     const play = new Play(setup);
     for (const e of events) play.do(e);
@@ -51,6 +51,7 @@ describe('the display’s sounds', () => {
     const won = play.do({ type: 'challenge/result', auction: id, winner: 'coral' });
     expect(cuesFor(won.state, last(won))).toEqual([
       { sound: 'gavel', after: 0 },
+      { sound: 'sparkle', after: (WON_AT + 200) / 1000 },
       { sound: 'thud', after: (AUCTION_LAND + 280) / 1000 },
     ]);
 

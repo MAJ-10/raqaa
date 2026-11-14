@@ -97,12 +97,13 @@ test.describe('website', () => {
       await nameField(page, 'blue').fill('النجوم');
       await expect(displayTeams(display)).toContainText('النجوم');
 
-      // Once every window is closed, the next open gets the new version and resumes the competition.
+      // Once every window is closed, the next open gets the new version, and the setup is where it was left.
       await display.close();
       await page.close();
       const reopened = await context.newPage();
       await reopened.goto('/');
       await expect.poll(async () => (await registration(reopened)).caches).toEqual([`raqaa-${version}-next`]);
+      await reopened.getByRole('button', { name: 'إنشاء غرفة' }).first().click();
       await expect(nameField(reopened, 'blue')).toHaveValue('النجوم');
     } finally {
       writeFileSync(file, original);

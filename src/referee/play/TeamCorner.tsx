@@ -4,7 +4,7 @@ import { Button } from '../../ui/Button.tsx';
 import { CardArt } from '../../ui/CardArt.tsx';
 import { CountUp } from '../../ui/CountUp.tsx';
 import { Icon } from '../../ui/Icon.tsx';
-import { CARD_NAMES, CARD_WHEN } from '../../ui/names.ts';
+import { CARD_NAMES, CARD_POWER, CARD_WHEN } from '../../ui/names.ts';
 import { TeamBadge } from '../../ui/TeamBadge.tsx';
 import { TeamTileButton } from '../../ui/TeamTile.tsx';
 
@@ -55,7 +55,7 @@ export function TeamCorner({ state, team, open, onToggle, side, place }: CardPro
   );
 }
 
-/** The cards a team holds, with their pictures, and when each is used. */
+/** The cards a team holds, with their pictures, what each does and when it is used. */
 function Inventory({ state, team, onClose }: { state: GameState; team: Team; onClose: () => void }) {
   const name = state.setup.teams[team].name;
   const cards = state.teams[team].cards;
@@ -81,6 +81,7 @@ function Inventory({ state, team, onClose }: { state: GameState; team: Team; onC
               <CardArt card={card} />
               <span className="inventory-card-text">
                 <strong>{CARD_NAMES[card]}</strong>
+                <span>{CARD_POWER[card]}</span>
                 <span>{CARD_WHEN[card]}</span>
               </span>
             </li>

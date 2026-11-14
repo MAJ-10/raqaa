@@ -542,16 +542,6 @@
   font-weight: 600;
 }
 
-/*
- * The note in the bar, when the TV mirrors the laptop instead of extending it. When the bar is short of
- * room, it gives way onto a second line; the tools never do.
- */
-.screen-note {
-  min-width: 0;
-  font-size: var(--fs-label);
-  line-height: 1.35;
-}
-
 .note::before {
   content: '';
   flex: none;
@@ -572,7 +562,7 @@
   box-shadow: inset 0 0 0 1px var(--line);
 }
 
-.toolbar > .button {
+.toolbar .button {
   min-height: 44px;
   border: 0;
   border-radius: 9px;
@@ -580,11 +570,11 @@
   color: var(--ink);
 }
 
-.toolbar > .button + .button {
+.toolbar > * + * {
   position: relative;
 }
 
-.toolbar > .button + .button::before {
+.toolbar > * + *::before {
   content: '';
   position: absolute;
   inset-inline-start: -1px;
@@ -594,17 +584,100 @@
   background: var(--line);
 }
 
-.toolbar > .button:hover:not(:disabled) {
+.toolbar .button:hover:not(:disabled) {
   background: var(--sky);
 }
 
-.toolbar > .button[aria-pressed='true'] {
+.toolbar .button[aria-pressed='true'] {
   background: var(--white);
   box-shadow: inset 0 0 0 2px var(--ink);
 }
 
-.toolbar > .button:disabled {
+.toolbar .button:disabled {
   background: transparent;
   color: var(--ink-soft);
   opacity: 0.45;
+}
+
+/*
+ * The display button, and under it, after the referee opens the display while the laptop has one screen,
+ * a word on what to do if the TV shows the laptop's screen: a small card pointing at the button, with
+ * «إغلاق». It goes when closed, when play goes on, or once the screen is extended.
+ */
+.display-anchor {
+  position: relative;
+  display: inline-flex;
+}
+
+.screen-tip {
+  position: absolute;
+  top: calc(100% + 12px);
+  inset-inline-end: -4px;
+  z-index: 30;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 2px 8px;
+  width: 300px;
+  padding: 12px 8px 12px 14px;
+  border: 2px solid var(--ink);
+  border-radius: var(--r-box);
+  background: var(--white);
+  box-shadow: 0 10px 28px rgb(19 33 61 / 0.16);
+  color: var(--ink);
+  text-align: start;
+  animation: tip-in 320ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* The point toward the button. */
+.screen-tip::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  inset-inline-end: 48px;
+  width: 14px;
+  height: 14px;
+  border-top: 2px solid var(--ink);
+  border-inline-start: 2px solid var(--ink);
+  background: var(--white);
+  transform: rotate(45deg);
+}
+
+@keyframes tip-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+.screen-tip strong {
+  font-size: var(--fs-label);
+  font-weight: 900;
+  line-height: 1.5;
+}
+
+.screen-tip p {
+  grid-column: 1;
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: var(--fs-small);
+  line-height: 1.7;
+}
+
+.screen-tip kbd {
+  padding: 0 5px;
+  border: 1px solid var(--line-strong);
+  border-radius: 5px;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+.screen-tip .button {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+  min-height: 36px;
+  padding: 0 8px;
 }

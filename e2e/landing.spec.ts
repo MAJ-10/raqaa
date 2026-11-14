@@ -84,4 +84,20 @@ test.describe('landing page', () => {
     await expect(page.getByRole('heading', { name: 'اليوم ٥ من ٨' })).toBeVisible();
     expect(await savedEvents(page)).toBe(events.length);
   });
+
+  test('the setup goes back to the landing page, and keeps what was filled in', async ({ page }) => {
+    const landing = page.locator('.landing');
+    await page.goto('/');
+    await page.getByRole('button', { name: 'إنشاء غرفة' }).first().click();
+    await nameField(page, 'coral').fill('الرواد');
+    await page.getByRole('button', { name: 'الرئيسية' }).click();
+    await expect(landing).toBeVisible();
+    await page.getByRole('button', { name: 'إنشاء غرفة' }).first().click();
+    await expect(nameField(page, 'coral')).toHaveValue('الرواد');
+    // The browser's back, too; and the link opened again shows the landing page while nothing has started.
+    await page.goBack();
+    await expect(landing).toBeVisible();
+    await page.goto('/');
+    await expect(landing).toBeVisible();
+  });
 });

@@ -5,7 +5,7 @@ import { announcement } from '../engine/missions.ts';
 import type { GameEvent, GameState } from '../engine/types.ts';
 import type { Sound } from './sound.ts';
 import { landing } from './board-art.ts';
-import { AUCTION_LAND, CARD_FLIP, JUMP_DRAW, RESULT_AT, waitOf } from './windows.ts';
+import { AUCTION_LAND, CARD_FLIP, JUMP_DRAW, RESULT_AT, waitOf, WON_AT } from './windows.ts';
 
 /** A sound, and how many seconds after the event it plays (to land with its motion). */
 type Cue = { sound: Sound; after: number };
@@ -50,8 +50,13 @@ export function cuesFor(state: GameState, e: GameEvent): Cue[] {
       return [flip(0)];
     case 'challenge/result': {
       if (state.auctions[e.auction]?.status !== 'done') return [now('pop')];
-      // The auction won: the gavel with its window, then a thud when the plot lands on the map after it.
-      return [now('gavel'), ...(landing(state, e) ? [{ sound: 'thud' as const, after: (AUCTION_LAND + LANDING * 1000) / 1000 }] : [])];
+      // The auction won: the gavel, a sparkle with the winner's celebration, then a thud when the plot lands
+      // on the map after the window.
+      return [
+        now('gavel'),
+        { sound: 'sparkle', after: (WON_AT + 200) / 1000 },
+        ...(landing(state, e) ? [{ sound: 'thud' as const, after: (AUCTION_LAND + LANDING * 1000) / 1000 }] : []),
+      ];
     }
     case 'plan/take':
       return [{ sound: 'thud', after: LANDING }, flip(0)];

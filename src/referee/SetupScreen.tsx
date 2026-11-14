@@ -12,17 +12,17 @@ import { formatNumber } from '../ui/number.ts';
 import { TeamTile } from '../ui/TeamTile.tsx';
 import { Toolbar, TopBar } from '../ui/TopBar.tsx';
 import { MissionPicker } from './MissionPicker.tsx';
-import { openDisplayWindow } from './open-display.ts';
-import { ScreenNote } from './ScreenNote.tsx';
+import { DisplayButton } from './DisplayButton.tsx';
 import { QuestionsCard } from './QuestionsCard.tsx';
 import './setup.css';
 
 /**
  * R02: the competition setup. The teams across the page; under them the map and the days in one row, and
  * beside them the questions. Behind it all, the identity's city; at the foot, the maker's signature.
- * Every change is saved at once.
+ * Every change is saved at once, so «الرئيسية» (or the browser's back) leaves the setup as it is, for
+ * «إنشاء غرفة» to open again.
  */
-export function SetupScreen({ store, setup }: { store: RefereeStore; setup: Setup }) {
+export function SetupScreen({ store, setup, onHome }: { store: RefereeStore; setup: Setup; onHome: () => void }) {
   const [picking, setPicking] = useState<Team | null>(null);
   const [shown, setShown] = useState<Set<Team>>(new Set());
   const nameFields = useRef<Partial<Record<Team, HTMLInputElement | null>>>({});
@@ -56,11 +56,11 @@ export function SetupScreen({ store, setup }: { store: RefereeStore; setup: Setu
     <div className="setup">
       <Skyline className="setup-skyline" />
       <TopBar title={setup.demo ? 'مسابقة تجريبية' : 'إعداد المسابقة'}>
-        <ScreenNote />
         <Toolbar>
-          <Button variant="quiet" icon="tv" aria-label="فتح شاشة العرض" onClick={openDisplayWindow}>
-            شاشة العرض
+          <Button variant="quiet" icon="back" onClick={onHome}>
+            الرئيسية
           </Button>
+          <DisplayButton />
         </Toolbar>
         <Button
           variant="primary"

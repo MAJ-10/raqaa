@@ -8,8 +8,7 @@ import { Cloud, Skyline, Stars } from '../../ui/City.tsx';
 import { formatNumber } from '../../ui/number.ts';
 import { TeamSymbol } from '../../ui/TeamBadge.tsx';
 import { Toolbar, TopBar } from '../../ui/TopBar.tsx';
-import { openDisplayWindow } from '../open-display.ts';
-import { ScreenNote } from '../ScreenNote.tsx';
+import { DisplayButton } from '../DisplayButton.tsx';
 import { plotNumbers } from '../../ui/plot-numbers.ts';
 import { DayTrack } from './DayTrack.tsx';
 import { bannerFor } from './banner.ts';
@@ -108,7 +107,6 @@ export function PlayScreen({ store, state, events }: Props) {
           </>
         }
       >
-        <ScreenNote />
         <Toolbar>
           {demo ? (
             <>
@@ -120,9 +118,7 @@ export function PlayScreen({ store, state, events }: Props) {
               </Button>
             </>
           ) : null}
-          <Button variant="quiet" icon="tv" aria-label="فتح شاشة العرض" onClick={openDisplayWindow}>
-            شاشة العرض
-          </Button>
+          <DisplayButton progress={events.length} />
           <Button variant="quiet" icon={muted ? 'mute' : 'sound'} aria-pressed={muted} onClick={() => store.setMuted(!muted)}>
             كتم الصوت
           </Button>

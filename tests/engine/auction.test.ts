@@ -100,6 +100,19 @@ describe('playing an auction (criterion 10)', () => {
     expect(challenges[0]?.content).toEqual(again);
   });
 
+  it('runs the precision challenge with no timer (a saved timer end of it changes nothing)', () => {
+    const play = declared().do({ type: 'auction/open', auction: 0 });
+    play.do({ type: 'challenge/start', auction: 0, content: { type: 'precision' } });
+    expect(play.state.timer).toBeNull();
+    play.do({ type: 'timer/end' });
+    expect(play.state.auctions[0]?.challenges[0]).toMatchObject({ stopped: false, winner: null });
+    play.do({ type: 'challenge/replay', auction: 0, content: { type: 'precision' } });
+    expect(play.state.timer).toBeNull();
+    const math: ChallengeContent = { type: 'math', start: 4, steps: [{ op: '+', n: 1 }], answer: 5 };
+    play.do({ type: 'challenge/result', auction: 0, winner: 'blue' }).do({ type: 'challenge/start', auction: 0, content: math });
+    expect(play.state.timer).toMatchObject({ kind: 'challenge' });
+  });
+
   it('the timer stops the challenge, and the referee still picks the winner', () => {
     const play = declared().do({ type: 'auction/open', auction: 0 });
     play.do({ type: 'challenge/start', auction: 0, content: { type: 'building' } }).do({ type: 'timer/end' });

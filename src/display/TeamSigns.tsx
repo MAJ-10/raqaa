@@ -7,6 +7,14 @@ import { TeamTile } from '../ui/TeamTile.tsx';
 import { TileFrame } from './TileFrame.tsx';
 import { RESULT_AT, signLook, type DisplayWindow } from './windows.ts';
 
+/**
+ * When the announcement starts, each board counts its population up from nothing, one team after the
+ * other, once night has fallen.
+ */
+const REVEAL_AT = 1100;
+const REVEAL_EVERY = 450;
+const REVEAL_TIME = 2200;
+
 /** Which corner of the stage each team's boards hang in (the corner of its base on the map). */
 const CORNER = tokens.teamCorner as Record<Team, string>;
 
@@ -15,12 +23,14 @@ const CORNER = tokens.teamCorner as Record<Team, string>;
  * frame inside it, that fills with the team's colour while the team plays (no arrow, no turn number);
  * and under it, hung on two posts, a white board with its population and the cards it holds, or its
  * player's number while an individual question is on screen. In the last days the population hides and
- * only the cards stay. Behind a window, the boards of teams with no part in it fade.
+ * only the cards stay. Behind a window, the boards of teams with no part in it fade. When the announcement
+ * has just started (`reveal`), the populations count up from nothing.
  */
-export function TeamSigns({ state, shown }: { state: GameState; shown: DisplayWindow | null }) {
+export function TeamSigns({ state, shown, reveal = false }: { state: GameState; shown: DisplayWindow | null; reveal?: boolean }) {
+  const announcing = state.step === 'announce';
   return (
     <div className="signs" data-testid="display-teams">
-      {TEAMS.map((team) => {
+      {TEAMS.map((team, i) => {
         const look = signLook(state, team, shown);
         const cards = state.teams[team].cards;
         const number = look.board && 'number' in look.board ? look.board.number : null;
@@ -37,10 +47,16 @@ export function TeamSigns({ state, shown }: { state: GameState; shown: DisplayWi
               ) : (
                 <>
                   {look.board && 'population' in look.board ? (
-                    <span className="sign-population">
+                    // The announcement draws its own count: from nothing as it starts, then with each mission.
+                    <span key={announcing ? 'announce' : 'day'} className="sign-population">
                       <Icon name="house" size={22} />
                       {/* In the announcement, a board counts when its mission's result comes. */}
-                      <CountUp value={look.board.population} delay={shown?.kind === 'mission' ? RESULT_AT : 0} />
+                      <CountUp
+                        value={look.board.population}
+                        from={reveal ? 0 : undefined}
+                        duration={reveal ? REVEAL_TIME : undefined}
+                        delay={reveal ? REVEAL_AT + i * REVEAL_EVERY : shown?.kind === 'mission' ? RESULT_AT : 0}
+                      />
                     </span>
                   ) : null}
                   {cards.length > 0 ? (

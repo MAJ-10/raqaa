@@ -1,42 +1,52 @@
-import { useSyncExternalStore } from 'react';
-import type { Setup } from '../engine/types.ts';
+import { useEffect, useSyncExternalStore } from 'react';
 import { Landing } from '../landing/Landing.tsx';
 import { defaultSetup, demoSetup } from '../state/setup.ts';
 import { PlayScreen } from './play/PlayScreen.tsx';
+import { route, toCompetition, toLanding, toSetup, watchRoute } from './route.ts';
 import { SetupScreen } from './SetupScreen.tsx';
 import { getRefereeStore } from './store.ts';
 
-/** «#landing» shows the landing page even while a competition is saved, to look at the page itself. */
-const atLanding = () => location.hash === '#landing';
-
-const watchHash = (changed: () => void) => {
-  addEventListener('hashchange', changed);
-  return () => removeEventListener('hashchange', changed);
-};
-
 /**
- * An action of the landing page opened at «#landing»: a new competition from this setup, unless one is
- * saved, which it never replaces; then the referee window shows it. The saved competition is only read
- * here, on the click, so looking at the page changes nothing.
+ * The landing page's two actions. «إنشاء غرفة» goes to the setup: the one in progress if there is one,
+ * otherwise a new one. «مسابقة تجريبية» starts a new demo setup. A competition that has started is never
+ * replaced: either action opens it. The saved competition is only read here, on the click, so looking at
+ * the landing page changes nothing.
  */
-function open(setup: () => Setup): void {
+function begin(kind: 'create' | 'demo'): void {
   const store = getRefereeStore();
-  if (!store.getView().state) store.create(setup());
-  location.hash = '';
+  const state = store.getView().state;
+  if (state && state.step !== 'setup') {
+    toCompetition();
+    return;
+  }
+  if (kind === 'demo') store.create(demoSetup());
+  else if (!state || state.setup.demo) store.create(defaultSetup());
+  toSetup();
 }
+
+const actions = { onCreate: () => begin('create'), onDemo: () => begin('demo') };
 
 /** The referee window: the landing page at its own address, or else the referee's screens. */
 export function RefereeApp() {
-  const landing = useSyncExternalStore(watchHash, atLanding);
-  if (landing) return <Landing onCreate={() => open(defaultSetup)} onDemo={() => open(demoSetup)} />;
-  return <RefereeScreens />;
+  const at = useSyncExternalStore(watchRoute, route);
+  if (at === '#landing') return <Landing {...actions} />;
+  return <RefereeScreens at={at} />;
 }
 
-/** The landing page when no competition is saved, the setup, or the competition. */
-function RefereeScreens() {
+/**
+ * The landing page, the setup when the address asks for it, or the competition once it has started. A
+ * setup in progress waits behind the landing page until «إنشاء غرفة» opens it again.
+ */
+function RefereeScreens({ at }: { at: string }) {
   const store = getRefereeStore();
   const { state, events } = useSyncExternalStore(store.subscribe, store.getView);
-  if (!state) return <Landing onCreate={() => store.create(defaultSetup())} onDemo={() => store.create(demoSetup())} />;
-  if (state.step === 'setup') return <SetupScreen store={store} setup={state.setup} />;
-  return <PlayScreen store={store} state={state} events={events} />;
+  const started = state !== null && state.step !== 'setup';
+  // Once the competition starts, the address no longer names the setup.
+  useEffect(() => {
+    if (started && at === '#setup') toCompetition();
+  }, [started, at]);
+
+  if (state && started) return <PlayScreen store={store} state={state} events={events} />;
+  if (state && at === '#setup') return <SetupScreen store={store} setup={state.setup} onHome={toLanding} />;
+  return <Landing {...actions} />;
 }

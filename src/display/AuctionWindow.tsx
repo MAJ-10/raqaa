@@ -1,13 +1,13 @@
-import { useLayoutEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import tokens from '../../assets/tokens.json';
 import { MEMORY_IMAGES, MEMORY_WORDS, ORDERING, SPELLING, sentenceWords } from '../content/index.ts';
 import { TIMER_SECONDS, wins } from '../engine/select.ts';
 import type { Auction, Challenge, ChallengeContent, GameState, Team } from '../engine/types.ts';
 import { Icon } from '../ui/Icon.tsx';
-import { EASE_BOUNCE, EASE_OUT, motion } from '../ui/motion.ts';
+import { EASE_BOUNCE, EASE_OUT, motion, reducedMotion } from '../ui/motion.ts';
 import { CHALLENGE_NAMES, MATH_OPS } from '../ui/names.ts';
 import { formatNumber } from '../ui/number.ts';
-import { TeamSymbol } from '../ui/TeamBadge.tsx';
+import { TeamGlyph, TeamSymbol } from '../ui/TeamBadge.tsx';
 import { TeamTile } from '../ui/TeamTile.tsx';
 import { TEAM_PATHS } from '../ui/team-paths.ts';
 import { Timer } from '../ui/Timer.tsx';
@@ -16,10 +16,7 @@ import { box, decal, MAP_VIEW, project } from './iso.ts';
 import { Box } from './IsoMap.tsx';
 import { Pin } from './Pin.tsx';
 import { useTicking } from './use-clock.ts';
-import type { Running } from './windows.ts';
-
-/** The mental maths steps appear one every three seconds. */
-const MATH_STEP_TIME = 3000;
+import { MATH_STEP_TIME, WON_AT, type Running } from './windows.ts';
 
 /** Each player has three tries at the precision challenge. */
 const PRECISION_TRIES = 3;
@@ -48,12 +45,21 @@ function Appear({ live, pop = false, children }: { live: boolean; pop?: boolean;
 /**
  * D11 to D17: the auction over the dimmed game. On top, the two sides with their players' numbers, the
  * plot between them under the bidder's pin, and each side's two win boxes. Under them, the challenge:
- * its number and name, the timer, and what the challenge shows. When a challenge ends its answer shows,
- * and when the auction is won the winner fills and the plot takes its colour with a pulse.
+ * its number and name, the timer, and what the challenge shows. When a challenge ends its answer shows.
+ * When the auction is won, the winner fills and the plot takes its colour with a pulse; the last
+ * challenge stays a moment, then gives way to the winner's celebration.
  */
 export function AuctionWindow({ state, auction, challenge, timer, live }: Props) {
   const names = state.setup.teams;
   const plot = useRef<HTMLDivElement>(null);
+  const won = auction.status === 'done' && auction.winner !== null;
+  // A display that reopens on a won auction shows the celebration at once.
+  const [celebrating, setCelebrating] = useState(won);
+  useEffect(() => {
+    if (!won || celebrating) return;
+    const id = setTimeout(() => setCelebrating(true), reducedMotion() ? 0 : WON_AT);
+    return () => clearTimeout(id);
+  }, [won, celebrating]);
   useLayoutEffect(() => {
     if (live && auction.status === 'done') {
       motion(plot.current, [{ transform: 'scale(1)' }, { transform: 'scale(1.2)', offset: 0.4 }, { transform: 'scale(1)' }], { duration: 640 });
@@ -81,7 +87,9 @@ export function AuctionWindow({ state, auction, challenge, timer, live }: Props)
         <WinBoxes team={auction.defender} won={wins(auction, auction.defender)} />
         {side(auction.defender, auction.players?.defender ?? 0)}
       </div>
-      {challenge ? (
+      {won && celebrating ? (
+        <AuctionWon winner={auction.winner!} name={names[auction.winner!].name} bought={auction.winner === auction.bidder} live={live} />
+      ) : challenge ? (
         <ChallengeView
           key={`${auction.challenges.indexOf(challenge)}-${challenge.startedAt}`}
           number={auction.challenges.indexOf(challenge) + 1}
@@ -92,6 +100,74 @@ export function AuctionWindow({ state, auction, challenge, timer, live }: Props)
         />
       ) : null}
     </section>
+  );
+}
+
+/** The pieces that burst from the winner's medal: their angle (degrees), how far they fly, and their colour. */
+const BURST: [angle: number, reach: number, colour: 'team' | 'crown' | 'side'][] = Array.from({ length: 18 }, (_, i) => [
+  i * 20 + (i % 2) * 7,
+  150 + (i % 3) * 38,
+  (['team', 'crown', 'side'] as const)[i % 3]!,
+]);
+
+/**
+ * The winner of the auction, celebrated: its medal (its colour and symbol, the crown over it) with a
+ * burst around it, «فاز» and its name, and what it won: the plot bought, or its land kept.
+ */
+function AuctionWon({ winner, name, bought, live }: { winner: Team; name: string; bought: boolean; live: boolean }) {
+  const box = useRef<HTMLDivElement>(null);
+  const came = useRef(live);
+  useLayoutEffect(() => {
+    const node = box.current;
+    if (!node || !came.current) return;
+    motion(node, [{ opacity: 0, transform: 'translateY(16px)' }, { opacity: 1, transform: 'none' }], { duration: 420 });
+    motion(node.querySelector('.won-medal'), [{ transform: 'scale(0.3)' }, { transform: 'none' }], { duration: 620, easing: EASE_BOUNCE, fill: 'backwards' });
+    motion(node.querySelector('.won-crown'), [{ opacity: 0, transform: 'translateY(-50px) rotate(-14deg)' }, { opacity: 1, transform: 'none' }], {
+      duration: 640,
+      delay: 260,
+      easing: EASE_BOUNCE,
+      fill: 'backwards',
+    });
+    node.querySelectorAll<HTMLElement>('.won-piece').forEach((piece, i) => {
+      const [angle, reach] = BURST[i]!;
+      const x = Math.cos((angle * Math.PI) / 180) * reach;
+      const y = Math.sin((angle * Math.PI) / 180) * reach * 0.62;
+      motion(
+        piece,
+        [
+          { opacity: 1, transform: `translate(-50%, -50%) rotate(${angle}deg) scale(0.4)` },
+          { opacity: 1, transform: `translate(calc(-50% + ${x * 0.7}px), calc(-50% + ${y * 0.7}px)) rotate(${angle + 120}deg)`, offset: 0.55 },
+          { opacity: 0, transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y + 40}px)) rotate(${angle + 200}deg)` },
+        ],
+        { duration: 1300, delay: 120 + (i % 4) * 30, easing: 'cubic-bezier(0.2, 0.7, 0.3, 1)', fill: 'both' },
+      );
+    });
+    node.querySelectorAll('.won-words > *').forEach((line, i) => {
+      motion(line, [{ opacity: 0, transform: 'translateY(12px)' }, { opacity: 1, transform: 'none' }], { duration: 420, delay: 380 + i * 140, fill: 'backwards' });
+    });
+  }, []);
+  return (
+    <div ref={box} className="auction-won" data-team={winner} role="status">
+      <div className="won-medal-box" aria-hidden="true">
+        {live ? (
+          <span className="won-burst">
+            {BURST.map(([, , colour], i) => (
+              <i key={i} className="won-piece" data-colour={colour} />
+            ))}
+          </span>
+        ) : null}
+        <span className="won-crown">
+          <Icon name="crown" size={56} />
+        </span>
+        <span className="won-medal">
+          <TeamGlyph team={winner} />
+        </span>
+      </div>
+      <div className="won-words">
+        <h2>فاز {name}</h2>
+        <p>{bought ? 'واشترى القطعة' : 'ودافع عن أرضه'}</p>
+      </div>
+    </div>
   );
 }
 

@@ -2,7 +2,7 @@
 // so the display shows each moment through: a window, a building that lands, a card that turns over.
 import { useEffect } from 'react';
 import { BANKS } from '../../content/index.ts';
-import { AUCTION_LAND, CARD_TIME, PERMITS_TIME, waitOf } from '../../display/windows.ts';
+import { AUCTION_LAND, CARD_TIME, MATH_STEP_TIME, PERMITS_TIME, waitOf } from '../../display/windows.ts';
 import { demoNext } from '../../engine/autoplay.ts';
 import { getBoard } from '../../engine/board.ts';
 import type { EventInput, GameEvent, GameState } from '../../engine/types.ts';
@@ -31,7 +31,8 @@ function hold(state: GameState, e: GameEvent): number {
       return CARD_TIME + 600;
     case 'challenge/start':
     case 'challenge/replay':
-      return 6000;
+      // Mental maths: until every step is out and the question mark has had a moment.
+      return e.content.type === 'math' ? (e.content.steps.length + 1) * MATH_STEP_TIME + 1500 : 6000;
     case 'challenge/result':
       // A won auction: its window, then its plot landing on the map.
       return state.auctions[e.auction]?.status === 'done' ? AUCTION_LAND + 1400 : 2500;

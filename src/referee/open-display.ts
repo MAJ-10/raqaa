@@ -25,14 +25,25 @@ async function otherScreen(): Promise<ScreenDetailed | null> {
   }
 }
 
-let opened = false;
+/**
+ * Whether the word about a mirrored TV is due: from the moment the referee opens the display, until they
+ * close it or play goes on. Opening the display again brings it back.
+ */
+let noteDue = false;
 const listeners = new Set<() => void>();
+const notify = () => listeners.forEach((listener) => listener());
 
-/** Whether the referee opened the display in this window, so a mirrored TV is worth a word. */
-export const displayOpened = () => opened;
-export function onDisplayOpened(listener: () => void): () => void {
+export const screenNoteDue = () => noteDue;
+export function onScreenNote(listener: () => void): () => void {
   listeners.add(listener);
   return () => listeners.delete(listener);
+}
+
+/** The referee closed the word, or went on playing. */
+export function dismissScreenNote(): void {
+  if (!noteDue) return;
+  noteDue = false;
+  notify();
 }
 
 /**
@@ -44,10 +55,8 @@ export function openDisplayWindow(): void {
   url.hash = 'display';
   const win = window.open(url.href, 'raqaa-display', 'popup,width=1280,height=720');
   win?.focus();
-  if (!opened) {
-    opened = true;
-    listeners.forEach((listener) => listener());
-  }
+  noteDue = true;
+  notify();
   if (!win) return;
   void otherScreen().then((tv) => {
     if (!tv || win.closed) return;

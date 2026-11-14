@@ -77,6 +77,15 @@ export const CARD_THE: Record<Card, string> = {
   inspector: 'مفتش البلدية',
 };
 
+/** What each card does, in a few words, for the referee. */
+export const CARD_POWER: Record<Card, string> = {
+  fence: 'يلغي مزاداً على أرض صاحبه',
+  crane: 'حركة إضافية في اليوم، ولو بلا تصريح',
+  bridge: 'يبني على بُعد قطعتين من أرضه',
+  plan: 'فخ على قطعتين لمن يزايد عليهما',
+  inspector: 'يكشف مشاريع حي آخر',
+};
+
 /** When each card is used. */
 export const CARD_WHEN: Record<Card, string> = {
   fence: 'عند المزاد',

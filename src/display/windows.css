@@ -125,10 +125,11 @@
 }
 
 /* The teams in build order, in one row under the answer. */
+/* The teams in two rows of two, so a name of any length (up to the setup's fourteen letters) fits whole. */
 .answer-teams {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 14px;
 }
 
 .answer-teams .team-tile {

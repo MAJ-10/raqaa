@@ -235,7 +235,8 @@ test.describe('play', () => {
     await expect(type).toHaveText(drawn!);
     await button(page, 'ابدأ التحدي').click();
     await expect(type).toHaveText(drawn!); // the same challenge starts
-    await expect(page.locator('.timer')).toBeVisible();
+    // Every challenge runs on a timer, except precision.
+    await expect(page.locator('.timer')).toHaveCount(drawn === 'دقة' ? 0 : 1);
     await expect(page.locator('.challenge-hint')).toHaveCount(0); // explained before it started
     await expect(button(page, 'فاز النجوم')).toBeVisible();
   });

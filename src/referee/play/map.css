@@ -150,15 +150,17 @@
   height: 14px;
 }
 
-/* A plot's tip, when the pointer rests on it: whose it is (or its card), and the population it is worth. */
+/*
+ * A plot's tip, when the pointer rests on it: whose it is (or its card), and the population it is worth;
+ * on a card, under them, what the card does.
+ */
 .plot-tip {
   position: absolute;
   bottom: calc(100% + 6px);
   left: 50%;
   z-index: 8;
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  display: grid;
+  justify-items: center;
   padding: 4px 10px;
   border-radius: 8px;
   background: var(--ink);
@@ -179,6 +181,17 @@
   opacity: 1;
   transform: translate(-50%, 0);
   transition-delay: 250ms;
+}
+
+.plot-tip-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.plot-tip-power {
+  color: var(--line);
+  font-weight: 400;
 }
 
 .plot-tip-value {

@@ -149,8 +149,11 @@ export async function checkDisplayAlone(page: Page, home: string): Promise<void>
   await expect(page).toHaveTitle('شاشة العرض · رقعة');
   await expect(displayTeams(page)).toContainText('الرواد');
 
+  // Opened again from its link, the site shows the landing page; «إنشاء غرفة» goes back to the setup.
   const referee = await page.context().newPage();
   await referee.goto(home);
+  await referee.getByRole('button', { name: 'إنشاء غرفة' }).first().click();
+  await expect(nameField(referee, 'coral')).toHaveValue('الرواد');
   await nameField(referee, 'blue').fill('النجوم');
   await expect(displayTeams(page)).toContainText('النجوم');
 }

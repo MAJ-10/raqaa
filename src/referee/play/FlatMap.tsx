@@ -5,7 +5,7 @@ import { Icon } from '../../ui/Icon.tsx';
 import { iconSvg } from '../../ui/icons.ts';
 import { EASE_OUT, animate, reducedMotion } from '../../ui/motion.ts';
 import { formatNumber } from '../../ui/number.ts';
-import { CARD_NAMES, plotName } from '../../ui/names.ts';
+import { CARD_NAMES, CARD_POWER, plotName } from '../../ui/names.ts';
 import { TeamGlyph } from '../../ui/TeamBadge.tsx';
 
 type Props = {
@@ -91,6 +91,8 @@ export function FlatMap({ state, choices, chooser, bridges, picked, focus, numbe
                 : plot.card
                   ? CARD_NAMES[plot.card]
                   : null;
+          // On a card still lying on its plot, what the card does, in a few words.
+          const power = !plot.owner && plot.card ? CARD_POWER[plot.card] : null;
           const content = (
             <>
               {plot.owner ? <TeamGlyph team={plot.owner} /> : null}
@@ -120,11 +122,14 @@ export function FlatMap({ state, choices, chooser, bridges, picked, focus, numbe
                 </span>
               ) : null}
               <span className="plot-tip" aria-hidden="true">
-                {tip ? <span>{tip}</span> : null}
-                <span className="plot-tip-value">
-                  <Icon name="house" size={null} />
-                  {formatNumber(info.value * 100)}
+                <span className="plot-tip-line">
+                  {tip ? <span>{tip}</span> : null}
+                  <span className="plot-tip-value">
+                    <Icon name="house" size={null} />
+                    {formatNumber(info.value * 100)}
+                  </span>
                 </span>
+                {power ? <span className="plot-tip-power">{power}</span> : null}
               </span>
             </>
           );
