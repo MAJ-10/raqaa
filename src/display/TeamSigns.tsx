@@ -1,7 +1,9 @@
+import { useLayoutEffect, useRef } from 'react';
 import tokens from '../../assets/tokens.json';
 import { TEAMS, type GameState, type Team } from '../engine/types.ts';
 import { CountUp } from '../ui/CountUp.tsx';
 import { Icon } from '../ui/Icon.tsx';
+import { EASE_BOUNCE, motion } from '../ui/motion.ts';
 import { formatNumber } from '../ui/number.ts';
 import { TeamTile } from '../ui/TeamTile.tsx';
 import { TileFrame } from './TileFrame.tsx';
@@ -23,10 +25,11 @@ const CORNER = tokens.teamCorner as Record<Team, string>;
  * frame inside it, that fills with the team's colour while the team plays (no arrow, no turn number);
  * and under it, hung on two posts, a white board with its population and the cards it holds, or its
  * player's number while an individual question is on screen. In the last days the population hides and
- * only the cards stay. Behind a window, the boards of teams with no part in it fade. When the announcement
- * has just started (`reveal`), the populations count up from nothing.
+ * only the cards stay. Behind a window, the boards of teams with no part in it fade. A team with a permit
+ * to use has a tick on its name board. When the announcement has just started (`reveal`), the populations
+ * count up from nothing.
  */
-export function TeamSigns({ state, shown, reveal = false }: { state: GameState; shown: DisplayWindow | null; reveal?: boolean }) {
+export function TeamSigns({ state, shown, live, reveal = false }: { state: GameState; shown: DisplayWindow | null; live: boolean; reveal?: boolean }) {
   const announcing = state.step === 'announce';
   return (
     <div className="signs" data-testid="display-teams">
@@ -40,6 +43,7 @@ export function TeamSigns({ state, shown, reveal = false }: { state: GameState; 
               <span className="team-tile-name">{state.setup.teams[team].name}</span>
               <TileFrame />
             </TeamTile>
+            {look.permit ? <PermitMark live={live} /> : null}
             <span className="sign-posts" aria-hidden="true" />
             <div className="sign-board">
               {number !== null ? (
@@ -73,5 +77,19 @@ export function TeamSigns({ state, shown, reveal = false }: { state: GameState; 
         );
       })}
     </div>
+  );
+}
+
+/** The tick on a team's name board while it has a permit to use: it pops in as the permits' window goes. */
+function PermitMark({ live }: { live: boolean }) {
+  const mark = useRef<HTMLSpanElement>(null);
+  const came = useRef(live);
+  useLayoutEffect(() => {
+    if (came.current) motion(mark.current, [{ opacity: 0, transform: 'scale(0.2)' }, { opacity: 1, transform: 'none' }], { duration: 520, easing: EASE_BOUNCE });
+  }, []);
+  return (
+    <span ref={mark} className="sign-permit" role="img" aria-label="معه تصريح">
+      <Icon name="check" size={26} />
+    </span>
   );
 }

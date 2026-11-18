@@ -17,7 +17,7 @@ export function GameWindow({ state, shown, live }: { state: GameState; shown: Di
     case 'answer':
       return <QuestionCard state={state} shown={shown} live={live} />;
     case 'auction':
-      return <AuctionWindow state={state} auction={shown.auction} challenge={shown.challenge} timer={shown.timer} live={live} />;
+      return <AuctionWindow state={state} auction={shown.auction} challenge={shown.challenge} live={live} />;
     case 'card':
       return <CardWindow state={state} {...shown} live={live} />;
     case 'mission':

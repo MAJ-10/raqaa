@@ -94,7 +94,7 @@ test.describe('play', () => {
     await button(page, 'عرض السؤال').click();
     await expect(page.locator('.timer-number')).toHaveText('٢٠');
     await expect(button(page, 'تأكيد التصاريح')).toBeDisabled();
-    await page.clock.fastForward(21_000);
+    await page.clock.fastForward(24_000); // the display's countdown of three seconds, then the twenty
     await expect(button(page, 'تأكيد التصاريح')).toBeEnabled();
 
     const individual = new Play(sampleSetup())
@@ -146,7 +146,7 @@ test.describe('play', () => {
   });
 
   test('an auction is played challenge by challenge', async ({ page }) => {
-    const { setup, events } = openAuctionScenario(); // coral leads 1–0, a building challenge is running
+    const { setup, events } = openAuctionScenario(); // coral leads 1–0, a sum is running
     await seedGame(page, '/', setup, events);
     await expect(currentStep(page)).toHaveText('المزادات');
     await expect(page.locator('.plot[data-focus]')).toHaveAttribute('data-plot', '1-6'); // the plot in the spotlight
@@ -223,22 +223,34 @@ test.describe('play', () => {
     await expect(page.locator('.plot[data-plot="2-4"] .plot-plan')).toBeVisible();
   });
 
-  test('the referee sees the next challenge, with what it is, before starting it', async ({ page }) => {
+  test('the referee picks each challenge, sees it before starting it, and plays a tie again', async ({ page }) => {
     const { setup, events } = openAuctionScenario();
     await seedGame(page, '/', setup, events.slice(0, -1)); // before the second challenge starts
-    const type = page.locator('.challenge-name');
-    await expect(type).toHaveText(/حساب ذهني|تهجئة|ذاكرة|ترتيب|دقة|بناء/);
-    const drawn = await type.textContent();
-    await expect(page.locator('.challenge-hint')).not.toBeEmpty();
+    await expect(button(page, 'ابدأ التحدي')).toHaveCount(0); // a challenge is picked first
+    await page.getByRole('radiogroup', { name: 'التحدي' }).getByRole('radio', { name: 'ترتيب' }).click();
+    const rules = page.locator('.challenge-hint');
+    await expect(rules).toHaveText('رتّبوا كلمات الجملة. أول ترتيب صحيح يفوز.');
+    await expect(page.locator('.word-chips li').first()).toBeVisible();
     await expect(page.locator('.timer')).toHaveCount(0);
     await button(page, 'تبديل').click(); // other content, the same type, before it starts
-    await expect(type).toHaveText(drawn!);
     await button(page, 'ابدأ التحدي').click();
-    await expect(type).toHaveText(drawn!); // the same challenge starts
-    // Every challenge runs on a timer, except precision.
-    await expect(page.locator('.timer')).toHaveCount(drawn === 'دقة' ? 0 : 1);
-    await expect(page.locator('.challenge-hint')).toHaveCount(0); // explained before it started
-    await expect(button(page, 'فاز النجوم')).toBeVisible();
+    await expect(page.locator('.challenge-name')).toHaveText('ترتيب');
+    await expect(rules).toBeVisible(); // what it is stays while it is played
+    await expect(page.locator('.timer')).toHaveCount(1);
+
+    // No side is right: the answer shows, and the tie plays the next question, here of another type.
+    await button(page, 'عرض الإجابة').click();
+    await expect(page.locator('.timer')).toHaveCount(0);
+    const next = page.getByLabel('التحدي عند التعادل');
+    await expect(next).toHaveValue('ordering'); // the same type, unless the referee changes it
+    await next.selectOption({ label: 'حساب ذهني' });
+    await button(page, 'تعادل').click();
+    await expect(page.locator('.challenge-name')).toHaveText('حساب ذهني');
+    await expect(page.locator('.section-label').first()).toHaveText('التحدي ٢'); // the same challenge, played again
+    await expect(button(page, 'عرض الإجابة')).toBeVisible();
+
+    await button(page, 'فاز النجوم').click();
+    await expect(page.getByRole('radiogroup', { name: 'التحدي' })).toBeVisible(); // one each: the third challenge
   });
 
   test('a plan that fires takes the plot the referee presses', async ({ page }) => {

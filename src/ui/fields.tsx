@@ -31,12 +31,14 @@ type SegmentedProps<T extends string | number> = {
   onChange: (value: T) => void;
   label: string;
   disabled?: boolean;
+  /** Each option a card of its own, so it reads plainly as a button. */
+  cards?: boolean;
 };
 
 /** A choice between a few options. Choosing the one already chosen does nothing. */
-export function Segmented<T extends string | number>({ options, value, onChange, label, disabled }: SegmentedProps<T>) {
+export function Segmented<T extends string | number>({ options, value, onChange, label, disabled, cards = false }: SegmentedProps<T>) {
   return (
-    <div className="segmented" role="radiogroup" aria-label={label}>
+    <div className={cards ? 'segmented segmented-cards' : 'segmented'} role="radiogroup" aria-label={label}>
       {options.map((option) => (
         <button
           key={option.value}

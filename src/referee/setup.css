@@ -223,7 +223,7 @@
 
 /* Mission picker: each level with what it adds and takes, each mission with its picture. */
 .mission-picker {
-  width: min(720px, calc(100vw - 48px));
+  width: min(900px, calc(100vw - 48px));
   max-height: calc(100vh - 32px);
   padding: 24px;
   border: 0;
@@ -320,9 +320,20 @@
   --art: 52px;
 }
 
-.mission-option-name {
+/* The mission's name, and what it asks under it; clear of the tick in the corner. */
+.mission-option-words {
+  display: grid;
   flex: 1;
+  gap: 2px;
   min-width: 0;
+  padding-inline-end: 16px;
+}
+
+.mission-option-text {
+  color: var(--ink-soft);
+  font-size: var(--fs-small);
+  font-weight: 400;
+  line-height: 1.6;
 }
 
 .mission-option-check {

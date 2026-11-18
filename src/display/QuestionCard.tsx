@@ -5,6 +5,8 @@ import { EASE_BOUNCE, EASE_OUT, motion, reducedMotion } from '../ui/motion.ts';
 import { formatNumber, toArabicDigits } from '../ui/number.ts';
 import { TeamTile } from '../ui/TeamTile.tsx';
 import { Timer } from '../ui/Timer.tsx';
+import { Countdown } from './Countdown.tsx';
+import { useCountdown } from './use-clock.ts';
 import type { DisplayWindow } from './windows.ts';
 
 type Phase = Extract<DisplayWindow, { kind: 'numbers' | 'question' | 'answer' }>;
@@ -24,9 +26,13 @@ function onStage(element: Element, stage: Element): Spot {
   return { x: (box.left - frame.left) / k, y: (box.top - frame.top) / k, width: box.width / k, height: box.height / k };
 }
 
-/** The card as it was drawn last: its phase, its height, where the question sat, and the number tiles. */
+/**
+ * The card as it was drawn last: its phase (counting down to the question or not), its height, where the
+ * question sat, and the number tiles.
+ */
 type Drawn = {
   kind: Phase['kind'];
+  counting: boolean;
   marked: boolean;
   height: number;
   words: { spot: Spot; font: number } | null;
@@ -38,13 +44,16 @@ const fontOf = (element: Element) => parseFloat(getComputedStyle(element).fontSi
 /**
  * D02 to D05 as one card: the day's question from the players' numbers to the answer and the permits. The
  * card stays while its parts change, so the question and its answer belong together. The numbers fly to
- * their teams' boards as the question comes; the question moves up and makes room for its answer; the
- * teams come in under it in build order, then their marks. A display that reopens shows the card as it is.
+ * their teams' boards as the countdown to the question starts; the question comes when it ends, then moves
+ * up and makes room for its answer; the teams come in under it in build order, then their marks. A display
+ * that reopens shows the card as it is.
  */
 export function QuestionCard({ state, shown, live }: { state: GameState; shown: Phase; live: boolean }) {
   const card = useRef<HTMLElement>(null);
   const before = useRef<Drawn | null>(null);
   const marked = shown.kind === 'answer' && shown.permits !== null;
+  const left = useCountdown(shown.kind === 'question' ? shown.showsAt : null);
+  const counting = left > 0;
 
   useLayoutEffect(() => {
     const node = card.current;
@@ -55,6 +64,7 @@ export function QuestionCard({ state, shown, live }: { state: GameState; shown: 
     // Measured now, while the parts are on the card: a part that leaves can't be measured once it has gone.
     before.current = {
       kind: shown.kind,
+      counting,
       marked,
       height: node.offsetHeight,
       words: words ? { spot: onStage(words, stage), font: fontOf(words) } : null,
@@ -62,7 +72,7 @@ export function QuestionCard({ state, shown, live }: { state: GameState; shown: 
     };
     if (!live || !was || reducedMotion()) return;
 
-    if (was.kind !== shown.kind) {
+    if (was.kind !== shown.kind || was.counting !== counting) {
       // The card eases to its new size, staying where it stands.
       motion(node, [{ height: `${was.height}px`, overflow: 'hidden' }, { height: `${node.offsetHeight}px`, overflow: 'hidden' }], { duration: MORPH });
     }
@@ -73,6 +83,10 @@ export function QuestionCard({ state, shown, live }: { state: GameState; shown: 
         if (board) flyTo(tile, spot, onStage(board, stage), stage);
       }
       motion(words, [{ opacity: 0, transform: 'translateY(18px)' }, { opacity: 1, transform: 'none' }], { duration: MORPH, delay: 180, fill: 'backwards' });
+    }
+    if (was.counting && !counting) {
+      // The countdown ends: the question comes in its place.
+      motion(words, [{ opacity: 0, transform: 'translateY(18px)' }, { opacity: 1, transform: 'none' }], { duration: MORPH, fill: 'backwards' });
     }
     if (was.kind === 'question' && shown.kind === 'answer' && words && was.words) {
       // The question moves up and grows smaller to make room for its answer. The card changes its height at
@@ -94,7 +108,7 @@ export function QuestionCard({ state, shown, live }: { state: GameState; shown: 
         motion(mark, [{ opacity: 0, transform: 'scale(0.3)' }, { opacity: 1, transform: 'none' }], { duration: 420, delay: i * 110, easing: EASE_BOUNCE, fill: 'backwards' });
       });
     }
-  }, [shown.kind, marked, live]);
+  }, [shown.kind, counting, marked, live]);
 
   const text = shown.kind === 'numbers' ? null : shown.text;
   const words = text ? toArabicDigits(text) : 'سؤال من الحكم';
@@ -105,7 +119,9 @@ export function QuestionCard({ state, shown, live }: { state: GameState; shown: 
           <Icon name="question" size={30} />
           طلب بناء
         </h2>
-        {shown.kind === 'question' && shown.timer ? <Timer startedAt={shown.timer.startedAt} seconds={shown.timer.seconds} size={84} /> : null}
+        {shown.kind === 'question' && shown.timer && !counting ? (
+          <Timer startedAt={shown.timer.startedAt} seconds={shown.timer.seconds} size={84} />
+        ) : null}
       </header>
 
       {shown.kind === 'numbers' ? (
@@ -116,6 +132,10 @@ export function QuestionCard({ state, shown, live }: { state: GameState; shown: 
               <span className="team-tile-name">{state.setup.teams[team].name}</span>
             </TeamTile>
           ))}
+        </div>
+      ) : counting ? (
+        <div className="question-countdown">
+          <Countdown left={left} live={live} />
         </div>
       ) : (
         <p className="question-words" data-long={words.length > 90 || undefined} data-small={shown.kind === 'answer' || undefined}>

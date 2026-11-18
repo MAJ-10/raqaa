@@ -73,7 +73,7 @@ test.describe('display', () => {
 
     const again = await context.newPage();
     await again.goto('/#display');
-    await expect(again.locator('[data-window="auction"] .challenge-type')).toHaveText('بناء');
+    await expect(again.locator('[data-window="auction"] .challenge-type')).toHaveText('حساب ذهني');
     await expect(tally(again)).toHaveCount(1);
   });
 
@@ -103,6 +103,7 @@ test.describe('display', () => {
     await expect(display.locator('[data-window="numbers"] .team-tile-number')).toHaveText(['١', '١', '١', '١']);
     await button(page, 'عرض السؤال').click();
     const question = display.locator('[data-window="question"]');
+    await expect(question.locator('.countdown')).toBeVisible(); // three seconds first
     await expect(question).toContainText('كم عدد أيام الأسبوع؟');
     await expect(question).not.toContainText('فردي');
     await expect(question.locator('.timer')).toHaveCount(0);
@@ -165,8 +166,39 @@ test.describe('display', () => {
     await expect(auction.locator('.duel-boxes[data-team="coral"] .duel-box[data-won]')).toHaveCount(1);
     await expect(auction.locator('.duel-boxes[data-team="blue"] .duel-box[data-won]')).toHaveCount(0);
     await expect(auction.locator('.challenge-number')).toHaveText('التحدي ٢');
-    await expect(auction.locator('.challenge-type')).toHaveText('بناء');
+    await expect(auction.locator('.challenge-type')).toHaveText('حساب ذهني');
     await expect(auction.locator('.timer')).toBeVisible();
+  });
+
+  test('shows the challenge the referee picks and what it is, then counts down to it', async ({ page }) => {
+    const { setup, events } = openAuctionScenario();
+    await seedGame(page, '/', setup, events.slice(0, -1)); // before the second challenge starts
+    const display = await openDisplay(page);
+    const auction = display.locator('[data-window="auction"]');
+
+    await page.bringToFront();
+    await page.getByRole('radio', { name: 'ذاكرة' }).click();
+    await expect(auction.locator('.challenge-intro .challenge-type')).toHaveText('ذاكرة');
+    await expect(auction.locator('.challenge-rules')).toHaveText('احفظوا العناصر في ٢٠ ثانية، ثم اكتبوها في ١٠ ثوانٍ. الأكثر صحيحاً يفوز.');
+    await button(page, 'ابدأ التحدي').click();
+    await expect(auction.locator('.countdown')).toBeVisible();
+    await expect(auction.locator('.challenge-rules')).toBeVisible(); // still there through the countdown
+    await expect(auction.locator('.memory-grid li')).toHaveCount(8);
+    await expect(auction.locator('.countdown')).toHaveCount(0);
+    await expect(auction.locator('.timer-number')).toHaveText(/^[٠-٩]+$/);
+  });
+
+  test('ticks the board of each team with a permit once the permits have shown', async ({ page }) => {
+    const play = new Play(sampleSetup()).do({ type: 'game/start' }).do({ type: 'question/kind', kind: 'group' }).do({ type: 'question/show' }).do({ type: 'answer/show' });
+    await seedGame(page, '/', play.state.setup, play.events);
+    const display = await openDisplay(page);
+    await page.bringToFront();
+    const permits = page.locator('.permit-grid');
+    await permits.getByRole('button', { name: 'الرواد' }).click();
+    await permits.getByRole('button', { name: 'النجوم' }).click();
+    await button(page, 'تأكيد التصاريح').click();
+    await expect(display.locator('[data-window="answer"]')).toHaveCount(0, { timeout: 3000 });
+    await expect(display.locator('.sign:has(.sign-permit)')).toHaveCount(2);
   });
 
   test('announces at night, mission by mission, and ends on the podium', async ({ page }) => {

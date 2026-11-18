@@ -1,6 +1,7 @@
 // Arabic names shown on screen. Code uses the glossary names (team, plot, mission…).
 import cards from '../../assets/cards/cards.json';
 import type { Level } from '../engine/missions.ts';
+import { MEMORY } from '../engine/timing.ts';
 import type { Card, ChallengeType, MathOp, Mission, PlotId, QuestionKind } from '../engine/types.ts';
 import { formatNumber } from './number.ts';
 
@@ -14,6 +15,14 @@ export function countOf(n: number, noun: Noun): string {
   const word = lastTwo >= 3 && lastTwo <= 10 ? noun.plural : lastTwo >= 11 ? noun.accusative : noun.genitive;
   return `${formatNumber(n)} ${word}`;
 }
+
+export const SECOND_NOUN: Noun = {
+  one: 'ثانية واحدة',
+  two: 'ثانيتان',
+  plural: 'ثوانٍ',
+  accusative: 'ثانية',
+  genitive: 'ثانية',
+};
 
 export const QUESTION_NOUN: Noun = {
   one: 'سؤال واحد',
@@ -100,21 +109,17 @@ export const CHALLENGE_NAMES: Record<ChallengeType, string> = {
   spelling: 'تهجئة',
   memory: 'ذاكرة',
   ordering: 'ترتيب',
-  precision: 'دقة',
-  building: 'بناء',
 };
 
 /** The signs of the mental maths challenge, as people write them. */
 export const MATH_OPS: Record<MathOp, string> = { '+': '+', '-': '−', '*': '×', '/': '÷' };
 
-/** What each challenge is, in one line, for the referee who runs it. */
-export const CHALLENGE_HINTS: Record<ChallengeType, string> = {
-  math: 'عدد ثم عمليات تظهر وحدة كل ٣ ثوانٍ. أول إجابة صحيحة تفوز.',
-  spelling: 'اقرأ الكلمة بصوتك، وأول كتابة صحيحة تفوز.',
-  memory: 'العناصر تظهر ٢٠ ثانية ثم تختفي، ويكتبون أسماءها على السبورة. الأكثر صحيحاً يفوز.',
-  ordering: 'كلمات جملة مبعثرة على الشاشة، وأول ترتيب صحيح يفوز.',
-  precision: 'لكل لاعب ٣ محاولات تصويب، والأكثر إصابات يفوز.',
-  building: 'كل طرف يبني برجاً في ٤٥ ثانية، والأطول يفوز.',
+/** What each challenge is, in a line: on the display before it starts, and for the referee throughout. */
+export const CHALLENGE_RULES: Record<ChallengeType, string> = {
+  math: 'معادلة رياضية، أول من يحلها يفوز.',
+  spelling: 'اسمع الكلمة من المنظم، واكتبها بشكل صحيح. أول كتابة صحيحة تفوز.',
+  memory: `احفظوا العناصر في ${countOf(MEMORY.show, SECOND_NOUN)}، ثم اكتبوها في ${countOf(MEMORY.write, SECOND_NOUN)}. الأكثر صحيحاً يفوز.`,
+  ordering: 'رتّبوا كلمات الجملة. أول ترتيب صحيح يفوز.',
 };
 
 /** A plot as people read it: (row، column). */

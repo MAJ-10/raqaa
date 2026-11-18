@@ -4,9 +4,10 @@
 
 /**
  * Raise this when the saved format changes, and teach loadGame to read the older versions.
- * 1: the Phase 1 demo counter. 2: a real competition (engine setup and events).
+ * 1: the Phase 1 demo counter. 2: a real competition (engine setup and events). 3: the referee picks each
+ * challenge, with a countdown before it and before each question; precision and building are gone.
  */
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 const SAVE_KEY = 'raqaa.game';
 

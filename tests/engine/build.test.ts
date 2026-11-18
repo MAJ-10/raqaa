@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { RuleError } from '../../src/engine/reduce.ts';
 import { Play, sampleSetup } from '../../src/engine/scenarios.ts';
 import { buildOrder, canBridge, canBuild, currentQuestion, options, questionsLeft, timerSeconds } from '../../src/engine/select.ts';
+import { COUNTDOWN } from '../../src/engine/timing.ts';
 import type { QuestionKind } from '../../src/engine/types.ts';
 import { arrange, give, startWith } from './helpers.ts';
 
@@ -201,6 +202,15 @@ describe('the question', () => {
     expect(play.state.timer!.startedAt).toBeGreaterThan(started);
     play.do({ type: 'answer/show' });
     expect(() => play.do({ type: 'timer/restart' })).toThrow(RuleError);
+  });
+
+  it('a question shows after the countdown, and a group question’s time runs from then', () => {
+    const play = asking();
+    const shows = play.events.at(-1)!.at + COUNTDOWN * 1000;
+    expect(play.state.question.showsAt).toBe(shows);
+    expect(play.state.timer).toEqual({ kind: 'question', startedAt: shows });
+    play.do({ type: 'question/replace' });
+    expect(play.state.question.showsAt).toBe(play.events.at(-1)!.at + COUNTDOWN * 1000);
   });
 
   it('the timer running out shows the answer', () => {

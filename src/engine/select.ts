@@ -1,5 +1,6 @@
 // Read-only questions about a game state: availability, build order, points, auctions.
 import { bridgeReach, getBoard, neighbours, type Board } from './board.ts';
+import { challengeSeconds, QUESTION_SECONDS } from './timing.ts';
 import { TEAMS, type Auction, type Card, type Challenge, type GameState, type PlotId, type Question, type Team } from './types.ts';
 
 export const boardOf = (s: GameState): Board => getBoard(s.setup.size);
@@ -67,6 +68,11 @@ export function options(s: GameState, team: Team): Options {
 /** The team that plays now: the build is on and nothing waits to be settled first. */
 export function teamInTurn(s: GameState): Team | null {
   return s.step === 'build' && !s.pending && s.turn ? s.turn : null;
+}
+
+/** The team still has a permit to use in today's build: it holds a move, and its turn is now or to come. */
+export function hasPermit(s: GameState, team: Team): boolean {
+  return s.step === 'build' && s.teams[team].moves > 0 && s.order.indexOf(team) >= s.turnIndex;
 }
 
 function hasMove(s: GameState, team: Team, withBridge: boolean): boolean {
@@ -145,16 +151,13 @@ export function currentChallenge(auction: Auction): Challenge | null {
   return last && !last.winner ? last : null;
 }
 
-/** Timer lengths in seconds. An individual question has no timer. */
-export const TIMER_SECONDS = { question: 20, challenge: 45, memory: 20 } as const;
-
-/** How long the running timer lasts: a group question 20 seconds, a memory challenge 20, any other challenge 45. */
+/** How long the running timer lasts, in seconds (timing.ts). */
 export function timerSeconds(s: GameState): number | null {
   if (!s.timer) return null;
-  if (s.timer.kind === 'question') return TIMER_SECONDS.question;
+  if (s.timer.kind === 'question') return QUESTION_SECONDS;
   const auction = openAuction(s);
   const challenge = auction ? currentChallenge(auction) : null;
-  return challenge?.content.type === 'memory' ? TIMER_SECONDS.memory : TIMER_SECONDS.challenge;
+  return challenge ? challengeSeconds(challenge.content.type) : null;
 }
 
 /** Where a team can place a plan: its own plots, not its base, without a plan already. */

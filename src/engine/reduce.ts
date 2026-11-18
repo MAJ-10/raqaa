@@ -2,6 +2,7 @@
 // fold of its events over initialState(setup), so undo is "drop the last event and fold again".
 import { getBoard } from './board.ts';
 import { announcement } from './missions.ts';
+import { afterCountdown } from './timing.ts';
 import {
   buildOrder,
   canAuction,
@@ -21,6 +22,7 @@ import {
   TEAMS,
   type Auction,
   type Card,
+  type Challenge,
   type ChallengeContent,
   type GameEvent,
   type GameState,
@@ -34,11 +36,6 @@ import {
 /** An event that breaks a rule. The referee screen only offers allowed actions, so this means a bug. */
 export class RuleError extends Error {
   override name = 'RuleError';
-}
-
-/** A challenge's timer, from when it starts; the precision challenge has none (decision, 14 November). */
-function challengeTimer(content: ChallengeContent, at: number): GameState['timer'] {
-  return content.type === 'precision' ? null : { kind: 'challenge', startedAt: at };
 }
 
 function rule(ok: unknown, message: string): asserts ok {
@@ -68,7 +65,7 @@ export function initialState(setup: Setup): GameState {
     step: 'setup',
     day: 0,
     days: setup.days,
-    question: { kind: null, index: null, numbers: null, outside: false },
+    question: { kind: null, index: null, numbers: null, outside: false, showsAt: null },
     nextQuestion: 0,
     permits: [],
     order: [],
@@ -111,7 +108,7 @@ function takeQuestion(s: GameState): number | null {
 function startDay(s: GameState): void {
   s.day += 1;
   s.step = 'question';
-  s.question = { kind: null, index: takeQuestion(s), numbers: null, outside: false };
+  s.question = { kind: null, index: takeQuestion(s), numbers: null, outside: false, showsAt: null };
   s.permits = [];
   s.order = [];
   s.turn = null;
@@ -159,8 +156,22 @@ function spendCard(s: GameState, team: Team, card: Card): void {
 }
 
 /** An individual question has no timer: the fastest right answer takes the permit. A group question has one. */
-function questionTimer(s: GameState, at: number): GameState['timer'] {
-  return s.question.kind === 'group' ? { kind: 'question', startedAt: at } : null;
+/**
+ * The question shown at `at`: it appears on the display after the countdown, and a group question's
+ * timer runs from then.
+ */
+function showQuestion(s: GameState, at: number): void {
+  s.question.showsAt = afterCountdown(at);
+  s.timer = s.question.kind === 'group' ? { kind: 'question', startedAt: s.question.showsAt } : null;
+}
+
+/** A challenge starting at `at`: its question shows after the countdown, and its timer runs from then. */
+function startChallenge(s: GameState, challenge: Challenge, content: ChallengeContent, at: number): void {
+  challenge.content = content;
+  challenge.startedAt = afterCountdown(at);
+  challenge.stopped = false;
+  noteContent(s, content);
+  s.timer = { kind: 'challenge', startedAt: challenge.startedAt };
 }
 
 /**
@@ -258,7 +269,7 @@ function apply(s: GameState, e: GameEvent): void {
       rule(s.question.index !== null, 'No questions left in the file');
       rule(questionReady(s), 'Choose the kind, and show the numbers first for an individual question');
       s.step = 'asking';
-      s.timer = questionTimer(s, e.at);
+      showQuestion(s, e.at);
       return;
 
     case 'question/outside':
@@ -268,7 +279,7 @@ function apply(s: GameState, e: GameEvent): void {
       rule(questionReady(s), 'Choose the kind, and show the numbers first for an individual question');
       s.question.outside = true;
       s.step = 'asking';
-      s.timer = questionTimer(s, e.at);
+      showQuestion(s, e.at);
       return;
 
     case 'question/replace':
@@ -277,7 +288,7 @@ function apply(s: GameState, e: GameEvent): void {
       rule(s.nextQuestion < s.setup.questions.length, 'No questions left to replace it with');
       s.question.index = takeQuestion(s);
       s.question.outside = false;
-      if (s.step === 'asking') s.timer = questionTimer(s, e.at);
+      if (s.step === 'asking') showQuestion(s, e.at);
       return;
 
     case 'answer/show':
@@ -296,8 +307,6 @@ function apply(s: GameState, e: GameEvent): void {
       }
       const auction = openAuction(s);
       const challenge = auction && currentChallenge(auction);
-      // A precision challenge has no timer. Competitions saved before that may hold its timer's end: it changes nothing.
-      if (challenge?.content.type === 'precision' && !s.timer) return;
       rule(challenge && !challenge.stopped && s.timer?.kind === 'challenge', 'No timer is running');
       challenge.stopped = true;
       s.timer = null;
@@ -368,6 +377,7 @@ function apply(s: GameState, e: GameEvent): void {
         status: 'declared',
         players: null,
         challenges: [],
+        picked: null,
         winner: null,
       });
       // A defender with a fence (and no card used today) is asked right away.
@@ -443,26 +453,31 @@ function apply(s: GameState, e: GameEvent): void {
       return;
     }
 
+    case 'challenge/pick': {
+      // The referee picks the next challenge; the display shows what it is. Picking again changes it.
+      const auction = openAuctionById(s, e.auction);
+      rule(!currentChallenge(auction), 'A challenge is already being played');
+      auction.picked = e.challenge;
+      return;
+    }
+
     case 'challenge/start': {
       const auction = openAuctionById(s, e.auction);
       rule(!currentChallenge(auction), 'A challenge is already being played');
-      auction.challenges.push({ content: e.content, startedAt: e.at, stopped: false, winner: null });
-      noteContent(s, e.content);
-      s.timer = challengeTimer(e.content, e.at);
+      rule(!auction.picked || auction.picked === e.content.type, 'Start the challenge that was picked');
+      auction.picked = null;
+      const challenge: Challenge = { content: e.content, startedAt: e.at, stopped: false, winner: null };
+      auction.challenges.push(challenge);
+      startChallenge(s, challenge, e.content, e.at);
       return;
     }
 
     case 'challenge/replay': {
-      // A tied challenge is played again with new content of the same type.
+      // A tie: the challenge is played again with new content, of the same type unless the referee changes it.
       const auction = openAuctionById(s, e.auction);
       const challenge = currentChallenge(auction);
       rule(challenge, 'No challenge to replay');
-      rule(e.content.type === challenge.content.type, 'A replay keeps the same challenge type');
-      challenge.content = e.content;
-      challenge.startedAt = e.at;
-      challenge.stopped = false;
-      noteContent(s, e.content);
-      s.timer = challengeTimer(e.content, e.at);
+      startChallenge(s, challenge, e.content, e.at);
       return;
     }
 

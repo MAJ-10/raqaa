@@ -4,9 +4,11 @@ import { boardLooks, landing } from '../../src/display/board-art.ts';
 import { announcedPopulation, CARD_TIME, displayWindow, JUMP, LAND, MOMENT, nextWake, PERMITS_TIME, signLook, type DisplayWindow } from '../../src/display/windows.ts';
 import { plotNumbers } from '../../src/ui/plot-numbers.ts';
 import { announcement } from '../../src/engine/missions.ts';
-import { fourDays, fourSmallDays, lastDayScenario, Play, planScenario, sampleSetup } from '../../src/engine/scenarios.ts';
-import { buildOrder, nextAuction, options, population, TIMER_SECONDS } from '../../src/engine/select.ts';
+import { fourDays, fourSmallDays, lastDayScenario, Play, planScenario, sampleSetup, SUM } from '../../src/engine/scenarios.ts';
+import { buildOrder, nextAuction, options, population } from '../../src/engine/select.ts';
+import { COUNTDOWN, QUESTION_SECONDS } from '../../src/engine/timing.ts';
 import { TEAMS, type ChallengeContent } from '../../src/engine/types.ts';
+import { give } from '../engine/helpers.ts';
 
 /** What the display shows right after the last event, or `later` ms after it. */
 function shownNow(play: Play, later = 100): DisplayWindow | null {
@@ -41,18 +43,21 @@ describe('the day’s question on the display', () => {
       expect(signLook(play.state, team, shown)).toEqual({
         faded: false,
         filled: true,
+        permit: false,
         board: { number: play.state.question.numbers![team] },
       });
     }
   });
 
-  it('runs a 20-second timer on a group question, and never says individual or group', () => {
+  it('counts down to the question, then runs a 20-second timer on a group question; it never says individual or group', () => {
     const play = new Play(sampleSetup()).do({ type: 'game/start' }).do({ type: 'question/kind', kind: 'group' }).do({ type: 'question/show' });
     const shown = shownNow(play);
+    const showsAt = play.events.at(-1)!.at + COUNTDOWN * 1000;
     expect(shown).toEqual({
       kind: 'question',
       text: 'كم عدد أيام الأسبوع؟',
-      timer: { startedAt: play.events.at(-1)!.at, seconds: TIMER_SECONDS.question },
+      showsAt,
+      timer: { startedAt: showsAt, seconds: QUESTION_SECONDS },
     });
     expect(signLook(play.state, 'coral', shown).board).toEqual({ population: 100 });
   });
@@ -69,8 +74,9 @@ describe('the day’s question on the display', () => {
     expect(TEAMS.every((team) => signLook(play.state, team, shownNow(play)).faded)).toBe(true);
   });
 
-  it('shows the permits for a few seconds, then the map for the team in turn; its first move ends them sooner', () => {
+  it('shows the permits a moment, then the map for the team in turn; its first move ends them sooner', () => {
     const play = new Play(sampleSetup()).do({ type: 'game/start' }).question(['coral', 'blue']);
+    expect(PERMITS_TIME).toBeLessThanOrEqual(2000);
     expect(shownNow(play, PERMITS_TIME - 100)?.kind).toBe('answer');
     expect(shownNow(play, PERMITS_TIME + 1)).toBeNull();
     // The team in turn fills with its colour; there is no arrow.
@@ -78,6 +84,15 @@ describe('the day’s question on the display', () => {
     expect(signLook(play.state, 'blue', null).filled).toBe(false);
     play.do({ type: 'build', team: 'coral', plot: '1-2' });
     expect(shownNow(play)).toBeNull();
+  });
+
+  it('ticks the board of each team with a permit to use, once the permits have shown, until it has used it', () => {
+    const play = new Play(sampleSetup()).do({ type: 'game/start' }).question(['coral', 'blue']);
+    expect(signLook(play.state, 'coral', shownNow(play)).permit).toBe(false); // the permits' window shows them
+    const ticked = () => TEAMS.filter((team) => signLook(play.state, team, null).permit);
+    expect(ticked()).toEqual(['coral', 'blue']);
+    play.do({ type: 'build', team: 'coral', plot: '1-2' });
+    expect(ticked()).toEqual(['blue']);
   });
 
   it('says in an individual question that only one team took the permit', () => {
@@ -131,34 +146,32 @@ describe('cards on the display', () => {
 describe('the auction on the display', () => {
   const math: ChallengeContent = { type: 'math', start: 12, steps: [{ op: '+', n: 8 }, { op: '/', n: 4 }, { op: '*', n: 3 }], answer: 15 };
 
-  it('shows the two sides as soon as it opens, and each challenge with its timer once it starts', () => {
+  it('shows the two sides as soon as it opens, then the challenge picked, then the challenge once it starts', () => {
     const { play, id } = openAuction();
-    expect(shownNow(play)).toMatchObject({ kind: 'auction', challenge: null, timer: null });
+    expect(shownNow(play)).toMatchObject({ kind: 'auction', challenge: null, auction: { picked: null } });
+    play.do({ type: 'challenge/pick', auction: id, challenge: 'math' });
+    expect(shownNow(play)).toMatchObject({ kind: 'auction', challenge: null, auction: { picked: 'math' } });
     play.do({ type: 'challenge/start', auction: id, content: math });
-    const shown = shownNow(play);
-    expect(shown).toMatchObject({ kind: 'auction', challenge: { content: math, stopped: false, winner: null } });
-    expect(shown?.kind === 'auction' && shown.timer).toEqual({ startedAt: play.events.at(-1)!.at, seconds: TIMER_SECONDS.challenge });
+    expect(shownNow(play)).toMatchObject({
+      kind: 'auction',
+      challenge: { content: math, startedAt: play.events.at(-1)!.at + COUNTDOWN * 1000, stopped: false, winner: null },
+    });
   });
 
-  it('gives memory 20 seconds', () => {
-    const { play, id } = openAuction();
-    play.do({ type: 'challenge/start', auction: id, content: { type: 'memory', kind: 'words', items: ['w001'] } });
-    const shown = shownNow(play);
-    expect(shown?.kind === 'auction' && shown.timer?.seconds).toBe(TIMER_SECONDS.memory);
-  });
-
-  it('keeps the last challenge, with its winner, until the next one starts', () => {
+  it('keeps the last challenge, with its winner, until the referee picks the next one', () => {
     const { play, id } = openAuction();
     play.do({ type: 'challenge/start', auction: id, content: math }).do({ type: 'timer/end' });
-    expect(shownNow(play)).toMatchObject({ challenge: { stopped: true, winner: null }, timer: null });
+    expect(shownNow(play)).toMatchObject({ challenge: { stopped: true, winner: null } });
     play.do({ type: 'challenge/result', auction: id, winner: 'blue' });
     expect(shownNow(play, 60_000)).toMatchObject({ kind: 'auction', challenge: { content: math, winner: 'blue' } });
+    play.do({ type: 'challenge/pick', auction: id, challenge: 'ordering' });
+    expect(shownNow(play)).toMatchObject({ kind: 'auction', challenge: null, auction: { picked: 'ordering' } });
   });
 
   it('shows the won auction for a moment, then the map', () => {
     const { play, id } = openAuction();
     for (const _ of [0, 1]) {
-      play.do({ type: 'challenge/start', auction: id, content: { type: 'precision' } });
+      play.do({ type: 'challenge/start', auction: id, content: SUM });
       play.do({ type: 'challenge/result', auction: id, winner: 'coral' });
     }
     expect(shownNow(play)).toMatchObject({ kind: 'auction', auction: { status: 'done', winner: 'coral' } });
@@ -181,7 +194,7 @@ describe('the announcement on the display', () => {
     const play = announce();
     expect(shownNow(play)).toBeNull();
     for (const team of TEAMS) {
-      expect(signLook(play.state, team, null)).toEqual({ faded: false, filled: true, board: { population: population(play.state, team) } });
+      expect(signLook(play.state, team, null)).toEqual({ faded: false, filled: true, permit: false, board: { population: population(play.state, team) } });
     }
     play.do({ type: 'announce/next' });
     const step = announcement(play.state)[1]!;
@@ -221,6 +234,17 @@ describe('the plots the team in turn can act on', () => {
       ['1-2', 1],
       ['2-1', 2],
     ]);
+  });
+
+  it('numbers none for a team out of moves, until the referee uses its crane', () => {
+    const play = new Play(sampleSetup()).do({ type: 'game/start' });
+    play.state = give(play.state, 'blue', ['crane']);
+    play.question([]); // no permits: blue still has its turn, for its crane
+    expect(play.state.turn).toBe('blue');
+    expect(plotNumbers(play.state).size).toBe(0);
+    expect(boardLooks(play.state, false).some((look) => look.number)).toBe(false);
+    play.do({ type: 'card/crane', team: 'blue' });
+    expect(plotNumbers(play.state).size).toBeGreaterThan(0);
   });
 
   it('numbers the plots it can bid for too, in the same count; they stay up, edged as choices', () => {

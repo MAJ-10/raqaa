@@ -6,10 +6,11 @@ import type { GameState, PlotId } from '../engine/types.ts';
  * The plots the team in turn can act on: build (its bridge's plots too) or bid for. Each has the number its
  * leader calls out to the referee: the display shows the numbers on its map, and the referee's map shows
  * the same ones. They count the way the display's map reads, from its back to its front, right to left.
+ * A team out of moves gets numbers only once the referee uses its crane for it (decision, 18 November).
  */
 export function plotNumbers(state: GameState): Map<PlotId, number> {
   const team = teamInTurn(state);
-  if (!team) return new Map();
+  if (!team || state.teams[team].moves === 0) return new Map();
   const { build, bridge, auction } = options(state, team);
   const board = getBoard(state.setup.size);
   const n = board.size;

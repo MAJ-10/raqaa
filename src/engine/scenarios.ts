@@ -1,7 +1,11 @@
 // Ready-made competitions stopped at interesting moments. Tests use them, and so can the screens later.
 import { initialState, reduce } from './reduce.ts';
 import { nextAuction } from './select.ts';
-import type { EventInput, GameEvent, GameState, PlotId, QuestionKind, Setup, Team } from './types.ts';
+import type { ChallengeContent, EventInput, GameEvent, GameState, PlotId, QuestionKind, Setup, Team } from './types.ts';
+
+/** The challenges the ready-made games play: two small sums, so they need no bank. */
+export const SUM: ChallengeContent = { type: 'math', start: 4, steps: [{ op: '+', n: 3 }], answer: 7 };
+export const SUM_AGAIN: ChallengeContent = { type: 'math', start: 9, steps: [{ op: '-', n: 2 }], answer: 7 };
 
 /** One move in a team's turn: a plot id builds there. A build that takes the inspector says whom it inspects. */
 type Move =
@@ -84,9 +88,9 @@ export class Play {
     this.do({ type: 'auction/open', auction: auction.id });
     let running = false;
     for (const winner of winners) {
-      if (!running) this.do({ type: 'challenge/start', auction: auction.id, content: { type: 'precision' } });
+      if (!running) this.do({ type: 'challenge/start', auction: auction.id, content: SUM });
       if (winner === 'tie') {
-        this.do({ type: 'challenge/replay', auction: auction.id, content: { type: 'precision' } });
+        this.do({ type: 'challenge/replay', auction: auction.id, content: SUM_AGAIN });
         running = true;
       } else {
         this.do({ type: 'challenge/result', auction: auction.id, winner });
@@ -184,9 +188,9 @@ export function openAuctionScenario(): Scenario {
   const auction = nextAuction(play.state)!;
   play
     .do({ type: 'auction/open', auction: auction.id })
-    .do({ type: 'challenge/start', auction: auction.id, content: { type: 'precision' } })
+    .do({ type: 'challenge/start', auction: auction.id, content: SUM })
     .do({ type: 'challenge/result', auction: auction.id, winner: 'coral' })
-    .do({ type: 'challenge/start', auction: auction.id, content: { type: 'building' } });
+    .do({ type: 'challenge/start', auction: auction.id, content: SUM_AGAIN });
   return done(play);
 }
 
@@ -205,9 +209,9 @@ export function planScenario(): Scenario {
   const auction = nextAuction(play.state)!;
   play
     .do({ type: 'auction/open', auction: auction.id })
-    .do({ type: 'challenge/start', auction: auction.id, content: { type: 'precision' } })
+    .do({ type: 'challenge/start', auction: auction.id, content: SUM })
     .do({ type: 'challenge/result', auction: auction.id, winner: 'coral' })
-    .do({ type: 'challenge/start', auction: auction.id, content: { type: 'building' } })
+    .do({ type: 'challenge/start', auction: auction.id, content: SUM_AGAIN })
     .do({ type: 'challenge/result', auction: auction.id, winner: 'coral' });
   return done(play);
 }

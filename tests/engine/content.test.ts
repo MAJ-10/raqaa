@@ -1,7 +1,7 @@
 // Criterion 13: content never repeats, memory alternates images and words, and mental math is sound.
-// Challenge types are random (decision).
+// The referee picks each challenge's type (decision, 18 November); its content is drawn.
 import { describe, expect, it } from 'vitest';
-import { makeContent, makeMath, newChallenge, pickFresh, scramble, solveMath, type Banks } from '../../src/engine/content.ts';
+import { makeContent, makeMath, pickFresh, scramble, solveMath, type Banks } from '../../src/engine/content.ts';
 import { initialState, replay } from '../../src/engine/reduce.ts';
 import { openAuctionScenario, Play, sampleSetup } from '../../src/engine/scenarios.ts';
 import { CHALLENGES, type ChallengeContent } from '../../src/engine/types.ts';
@@ -109,11 +109,10 @@ describe('memory alternates images and words (criterion 13)', () => {
 });
 
 describe('random challenge types (decision)', () => {
-  it('draws every one of the six types', () => {
+  it('makes content for each of the four types', () => {
     const state = initialState(sampleSetup());
     const random = seeded(4);
-    const types = new Set(Array.from({ length: 300 }, () => newChallenge(state, banks, random).content.type));
-    expect([...types].sort()).toEqual([...CHALLENGES].sort());
+    expect(CHALLENGES.map((type) => makeContent(state, type, banks, random).content.type)).toEqual([...CHALLENGES]);
   });
 
   it('replaying the events gives the same challenges, because the content lives in the events', () => {
@@ -122,7 +121,7 @@ describe('random challenge types (decision)', () => {
     const play = new Play(scenario.setup);
     for (const event of scenario.events.slice(0, -1)) play.do(event);
     const auction = play.state.auctions.find((a) => a.status === 'open')!.id;
-    const content: ChallengeContent = newChallenge(play.state, banks).content; // Math.random
+    const content: ChallengeContent = makeContent(play.state, 'ordering', banks).content; // Math.random
     play.do({ type: 'challenge/start', auction, content });
     const again = replay(scenario.setup, play.events);
     expect(again.auctions[auction]?.challenges[1]?.content).toEqual(content);

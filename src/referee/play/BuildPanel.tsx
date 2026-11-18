@@ -139,7 +139,7 @@ function InspectorDecision({ state, act }: Props) {
   return (
     <>
       <Decision card="inspector" title="مفتش البلدية">
-        <TeamName team={team} name={names[team].name} /> أخذ مفتش البلدية. اختر الحي الذي تُكشف مشاريعه.
+        <TeamName team={team} name={names[team].name} /> أخذ مفتش البلدية. القائد يختار الحي الذي تُكشف مشاريعه له وحده.
       </Decision>
       <div className="inspector-targets">
         {TEAMS.filter((t) => t !== team).map((target) => (

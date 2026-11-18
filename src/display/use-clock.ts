@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { COUNTDOWN } from '../engine/timing.ts';
 
 /**
  * The clock for what the display shows by time: it moves on when `next` says something comes or goes, so
@@ -24,4 +25,14 @@ export function useTicking(running: boolean, every = 250): number {
     return () => clearInterval(id);
   }, [running, every]);
   return now;
+}
+
+/**
+ * The seconds left before `until` (ms), from COUNTDOWN down to 1; 0 once it has come, or with nothing to
+ * count (null). It counts from the referee's event, so a display that reopens carries on from the same second.
+ */
+export function useCountdown(until: number | null): number {
+  // The clock looks again as each second turns.
+  const now = useClock((t) => (until === null || t >= until ? null : until - (Math.ceil((until - t) / 1000) - 1) * 1000));
+  return until === null ? 0 : Math.min(COUNTDOWN, Math.max(0, Math.ceil((until - now) / 1000)));
 }

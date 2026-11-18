@@ -132,6 +132,21 @@
   font-weight: 900;
 }
 
+/* A permit to use: a tick at the outer top corner of the name board, in the colour of a right answer. */
+.sign-permit {
+  position: absolute;
+  top: -14px;
+  inset-inline-end: -14px;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 3px solid var(--ok);
+  border-radius: 50%;
+  background: var(--white);
+  color: var(--ok);
+}
+
 .sign-posts {
   width: 196px;
   height: 12px;

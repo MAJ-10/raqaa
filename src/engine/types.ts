@@ -24,7 +24,8 @@ export const MISSIONS = [
 ] as const;
 export type Mission = (typeof MISSIONS)[number];
 
-export const CHALLENGES = ['math', 'spelling', 'memory', 'ordering', 'precision', 'building'] as const;
+/** The auction's challenges; the referee picks one for each turn (decision, 18 November). */
+export const CHALLENGES = ['math', 'spelling', 'memory', 'ordering'] as const;
 export type ChallengeType = (typeof CHALLENGES)[number];
 
 export type Question = { text: string; answer: string };
@@ -54,9 +55,7 @@ export type ChallengeContent =
   | { type: 'math'; start: number; steps: { op: MathOp; n: number }[]; answer: number }
   | { type: 'spelling'; id: string } // a spelling bank id
   | { type: 'memory'; kind: 'images' | 'words'; items: string[] }
-  | { type: 'ordering'; id: string; order: number[] } // a sentence bank id, and the order its words are shown in
-  | { type: 'precision' }
-  | { type: 'building' };
+  | { type: 'ordering'; id: string; order: number[] }; // a sentence bank id, and the order its words are shown in
 
 /** Every event carries the time it happened, in milliseconds. */
 export type GameEvent = { at: number } & (
@@ -79,6 +78,7 @@ export type GameEvent = { at: number } & (
   | { type: 'card/inspector'; team: Team; target: Team }
   | { type: 'turn/pass'; team: Team }
   | { type: 'auction/open'; auction: number }
+  | { type: 'challenge/pick'; auction: number; challenge: ChallengeType }
   | { type: 'challenge/start'; auction: number; content: ChallengeContent }
   | { type: 'challenge/result'; auction: number; winner: Team }
   | { type: 'challenge/replay'; auction: number; content: ChallengeContent }
@@ -138,8 +138,9 @@ export type TeamState = {
 
 export type Challenge = {
   content: ChallengeContent;
+  /** When its question shows on the display, after the countdown; its timer runs from then. */
   startedAt: number;
-  /** The timer ran out: the challenge stops and its answer shows. */
+  /** The time ran out, or the referee showed the answer: the challenge stops and its answer shows. */
   stopped: boolean;
   winner: Team | null;
 };
@@ -156,6 +157,8 @@ export type Auction = {
   /** Player numbers, reserved when the auction opens. */
   players: { bidder: number; defender: number } | null;
   challenges: Challenge[];
+  /** The challenge the referee picked to play next: the display shows what it is before it starts. */
+  picked: ChallengeType | null;
   winner: Team | null;
 };
 
@@ -181,6 +184,8 @@ export type GameState = {
     numbers: Record<Team, number> | null;
     /** The referee asks a question of their own instead of the file's. */
     outside: boolean;
+    /** When the question shows on the display, after the countdown; null before it is shown. */
+    showsAt: number | null;
   };
   /** Next unused question. Shown or replaced questions never come back. */
   nextQuestion: number;

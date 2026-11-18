@@ -2,10 +2,14 @@
 // so the display shows each moment through: a window, a building that lands, a card that turns over.
 import { useEffect } from 'react';
 import { BANKS } from '../../content/index.ts';
-import { AUCTION_LAND, CARD_TIME, MATH_STEP_TIME, PERMITS_TIME, waitOf } from '../../display/windows.ts';
+import { AUCTION_LAND, CARD_TIME, PERMITS_TIME, waitOf } from '../../display/windows.ts';
 import { demoNext } from '../../engine/autoplay.ts';
 import { getBoard } from '../../engine/board.ts';
+import { COUNTDOWN } from '../../engine/timing.ts';
 import type { EventInput, GameEvent, GameState } from '../../engine/types.ts';
+
+/** The display's countdown before a question or a challenge, in ms. */
+const COUNT = COUNTDOWN * 1000;
 
 /** How long the demo leaves a moment on screen before its next move, in ms. */
 function hold(state: GameState, e: GameEvent): number {
@@ -17,7 +21,7 @@ function hold(state: GameState, e: GameEvent): number {
       return 3000;
     case 'question/show':
     case 'question/outside':
-      return 4500;
+      return COUNT + 4500;
     case 'permits/set':
       return PERMITS_TIME + 600;
     case 'build': {
@@ -29,10 +33,13 @@ function hold(state: GameState, e: GameEvent): number {
     case 'card/inspector':
     case 'plan/take':
       return CARD_TIME + 600;
+    case 'challenge/pick':
+      return 3500;
     case 'challenge/start':
     case 'challenge/replay':
-      // Mental maths: until every step is out and the question mark has had a moment.
-      return e.content.type === 'math' ? (e.content.steps.length + 1) * MATH_STEP_TIME + 1500 : 6000;
+      return COUNT + 6000;
+    case 'timer/end':
+      return 3000;
     case 'challenge/result':
       // A won auction: its window, then its plot landing on the map.
       return state.auctions[e.auction]?.status === 'done' ? AUCTION_LAND + 1400 : 2500;

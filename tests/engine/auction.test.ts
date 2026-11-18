@@ -1,8 +1,9 @@
 // Criteria 4, 5, 9, 10 and 12: auctions, the fence and the player counters. And the auction decisions.
 import { describe, expect, it } from 'vitest';
 import { RuleError } from '../../src/engine/reduce.ts';
-import { Play, sampleSetup } from '../../src/engine/scenarios.ts';
-import { canAuction } from '../../src/engine/select.ts';
+import { Play, sampleSetup, SUM, SUM_AGAIN } from '../../src/engine/scenarios.ts';
+import { canAuction, timerSeconds } from '../../src/engine/select.ts';
+import { COUNTDOWN, MEMORY } from '../../src/engine/timing.ts';
 import type { ChallengeContent } from '../../src/engine/types.ts';
 import { give, startWith } from './helpers.ts';
 
@@ -78,7 +79,7 @@ describe('playing an auction (criterion 10)', () => {
     expect(play.state.auctions[0]).toMatchObject({ status: 'done', winner: 'coral' });
     expect(play.state.plots['4-5']).toMatchObject({ owner: 'coral', since: 1 });
     expect(play.state.step).toBe('dayEnd');
-    expect(() => play.do({ type: 'challenge/start', auction: 0, content: { type: 'precision' } })).toThrow(RuleError);
+    expect(() => play.do({ type: 'challenge/start', auction: 0, content: SUM })).toThrow(RuleError);
   });
 
   it('goes to a third challenge at one each; the defender keeps the plot when it wins', () => {
@@ -88,34 +89,49 @@ describe('playing an auction (criterion 10)', () => {
     expect(play.state.teams.coral).toMatchObject({ moves: 0, bidderWins: 0 });
   });
 
-  it('replays a tied challenge with new content of the same type', () => {
+  it('replays a tie with new content: of the same type, or another the referee picks', () => {
     const play = declared().do({ type: 'auction/open', auction: 0 });
-    const math: ChallengeContent = { type: 'math', start: 4, steps: [{ op: '+', n: 3 }], answer: 7 };
-    play.do({ type: 'challenge/start', auction: 0, content: math });
-    expect(() => play.do({ type: 'challenge/replay', auction: 0, content: { type: 'precision' } })).toThrow(RuleError);
-    const again: ChallengeContent = { type: 'math', start: 9, steps: [{ op: '-', n: 2 }], answer: 7 };
-    play.do({ type: 'challenge/replay', auction: 0, content: again });
+    play.do({ type: 'challenge/start', auction: 0, content: SUM }).do({ type: 'timer/end' });
+    play.do({ type: 'challenge/replay', auction: 0, content: SUM_AGAIN });
     const challenges = play.state.auctions[0]!.challenges;
     expect(challenges).toHaveLength(1);
-    expect(challenges[0]?.content).toEqual(again);
+    expect(challenges[0]).toMatchObject({ content: SUM_AGAIN, stopped: false, winner: null });
+    const spelling: ChallengeContent = { type: 'spelling', id: 's001' };
+    play.do({ type: 'timer/end' }).do({ type: 'challenge/replay', auction: 0, content: spelling });
+    expect(play.state.auctions[0]!.challenges).toMatchObject([{ content: spelling, stopped: false }]);
   });
 
-  it('runs the precision challenge with no timer (a saved timer end of it changes nothing)', () => {
+  it('plays the challenge the referee picks; picking again changes it, until it starts', () => {
     const play = declared().do({ type: 'auction/open', auction: 0 });
-    play.do({ type: 'challenge/start', auction: 0, content: { type: 'precision' } });
+    play.do({ type: 'challenge/pick', auction: 0, challenge: 'memory' }).do({ type: 'challenge/pick', auction: 0, challenge: 'math' });
+    expect(play.state.auctions[0]?.picked).toBe('math');
+    expect(() => play.do({ type: 'challenge/start', auction: 0, content: { type: 'spelling', id: 's001' } })).toThrow(RuleError);
+    play.do({ type: 'challenge/start', auction: 0, content: SUM });
+    expect(play.state.auctions[0]).toMatchObject({ picked: null, challenges: [{ content: SUM }] });
+    expect(() => play.do({ type: 'challenge/pick', auction: 0, challenge: 'ordering' })).toThrow(RuleError);
+  });
+
+  it('shows a challenge after the countdown, and its time runs from then: 20 seconds, memory 20 and 10', () => {
+    const play = declared().do({ type: 'auction/open', auction: 0 }).do({ type: 'challenge/start', auction: 0, content: SUM });
+    const shows = play.events.at(-1)!.at + COUNTDOWN * 1000;
+    expect(play.state.auctions[0]?.challenges[0]?.startedAt).toBe(shows);
+    expect(play.state.timer).toEqual({ kind: 'challenge', startedAt: shows });
+    expect(timerSeconds(play.state)).toBe(20);
+    play.do({ type: 'timer/end' }).do({ type: 'challenge/replay', auction: 0, content: { type: 'memory', kind: 'words', items: ['w001'] } });
+    expect(play.state.timer?.startedAt).toBe(play.events.at(-1)!.at + COUNTDOWN * 1000);
+    expect(timerSeconds(play.state)).toBe(MEMORY.show + MEMORY.write);
+  });
+
+  it('a side that answers right wins at once, even while the time runs', () => {
+    const play = declared().do({ type: 'auction/open', auction: 0 }).do({ type: 'challenge/start', auction: 0, content: SUM });
+    play.do({ type: 'challenge/result', auction: 0, winner: 'coral' });
+    expect(play.state.auctions[0]?.challenges[0]).toMatchObject({ stopped: false, winner: 'coral' });
     expect(play.state.timer).toBeNull();
-    play.do({ type: 'timer/end' });
-    expect(play.state.auctions[0]?.challenges[0]).toMatchObject({ stopped: false, winner: null });
-    play.do({ type: 'challenge/replay', auction: 0, content: { type: 'precision' } });
-    expect(play.state.timer).toBeNull();
-    const math: ChallengeContent = { type: 'math', start: 4, steps: [{ op: '+', n: 1 }], answer: 5 };
-    play.do({ type: 'challenge/result', auction: 0, winner: 'blue' }).do({ type: 'challenge/start', auction: 0, content: math });
-    expect(play.state.timer).toMatchObject({ kind: 'challenge' });
   });
 
   it('the timer stops the challenge, and the referee still picks the winner', () => {
     const play = declared().do({ type: 'auction/open', auction: 0 });
-    play.do({ type: 'challenge/start', auction: 0, content: { type: 'building' } }).do({ type: 'timer/end' });
+    play.do({ type: 'challenge/start', auction: 0, content: SUM_AGAIN }).do({ type: 'timer/end' });
     expect(play.state.auctions[0]?.challenges[0]).toMatchObject({ stopped: true, winner: null });
     play.do({ type: 'challenge/result', auction: 0, winner: 'blue' });
     expect(play.state.auctions[0]?.challenges[0]?.winner).toBe('blue');
@@ -123,7 +139,7 @@ describe('playing an auction (criterion 10)', () => {
 
   it('only one of the two sides can win', () => {
     const play = declared().do({ type: 'auction/open', auction: 0 });
-    play.do({ type: 'challenge/start', auction: 0, content: { type: 'precision' } });
+    play.do({ type: 'challenge/start', auction: 0, content: SUM });
     expect(() => play.do({ type: 'challenge/result', auction: 0, winner: 'gold' })).toThrow(RuleError);
   });
 });
@@ -165,8 +181,8 @@ describe('player counters (criterion 12)', () => {
     const play = startWith({ coral: ['4-4'], blue: ['4-5'] }).question(['coral']).build({ coral: [{ auction: '4-5' }] });
     play.do({ type: 'auction/open', auction: 0 });
     const players = play.state.auctions[0]?.players;
-    play.do({ type: 'challenge/start', auction: 0, content: { type: 'precision' } }).do({ type: 'challenge/result', auction: 0, winner: 'blue' });
-    play.do({ type: 'challenge/start', auction: 0, content: { type: 'precision' } });
+    play.do({ type: 'challenge/start', auction: 0, content: SUM }).do({ type: 'challenge/result', auction: 0, winner: 'blue' });
+    play.do({ type: 'challenge/start', auction: 0, content: SUM_AGAIN });
     expect(play.state.auctions[0]?.players).toEqual(players);
   });
 });

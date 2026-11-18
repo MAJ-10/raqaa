@@ -5,7 +5,7 @@ import { LIMITS } from '../state/setup.ts';
 import { Button } from '../ui/Button.tsx';
 import { Icon } from '../ui/Icon.tsx';
 import { MissionArt } from '../ui/MissionArt.tsx';
-import { LEVEL_NAMES, MISSION_NAMES, TEAM_COLOUR } from '../ui/names.ts';
+import { LEVEL_NAMES, MISSION_NAMES, MISSION_TEXT, TEAM_COLOUR } from '../ui/names.ts';
 import { formatNumber } from '../ui/number.ts';
 import { TeamSymbol } from '../ui/TeamBadge.tsx';
 
@@ -21,7 +21,7 @@ type Props = {
 
 /**
  * A dialog to pick a team's secret missions, from one to three. Each level says what it adds to the
- * team's population on success and takes away on failure; each mission shows its picture.
+ * team's population on success and takes away on failure; each mission shows its picture, and what it asks.
  */
 export function MissionPicker({ team, name, chosen, onChange, onClose }: Props) {
   const dialog = useRef<HTMLDialogElement>(null);
@@ -65,7 +65,10 @@ export function MissionPicker({ team, name, chosen, onChange, onClose }: Props) 
                   onClick={() => toggle(mission)}
                 >
                   <MissionArt mission={mission} team={team} />
-                  <span className="mission-option-name">{MISSION_NAMES[mission]}</span>
+                  <span className="mission-option-words">
+                    <span className="mission-option-name">{MISSION_NAMES[mission]}</span>
+                    <span className="mission-option-text">{MISSION_TEXT[mission]}</span>
+                  </span>
                   <Icon name="check" size={16} className="mission-option-check" />
                 </button>
               );

@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { cuesFor } from '../../src/display/cues.ts';
 import { AUCTION_LAND, JUMP_DRAW, WON_AT } from '../../src/display/windows.ts';
-import { fourSmallDays, lastDayScenario, openAuctionScenario, Play, sampleSetup } from '../../src/engine/scenarios.ts';
+import { fourSmallDays, lastDayScenario, openAuctionScenario, Play, sampleSetup, SUM } from '../../src/engine/scenarios.ts';
 import { announcement } from '../../src/engine/missions.ts';
 import { options } from '../../src/engine/select.ts';
 
@@ -10,10 +10,15 @@ const last = (play: Play) => play.events.at(-1)!;
 const sounds = (play: Play) => cuesFor(play.state, last(play)).map((cue) => cue.sound);
 
 describe('the display’s sounds', () => {
-  it('puts a question on screen with a whoosh, and the numbers, the answer and the permits with a click', () => {
+  it('ticks the countdown to a question and brings it with a whoosh; the numbers, the answer and the permits click', () => {
     const play = new Play(sampleSetup()).do({ type: 'game/start' }).do({ type: 'question/kind', kind: 'individual' });
     expect(sounds(play.do({ type: 'numbers/show' }))).toEqual(['click']);
-    expect(sounds(play.do({ type: 'question/show' }))).toEqual(['whoosh']);
+    expect(cuesFor(play.state, last(play.do({ type: 'question/show' })))).toEqual([
+      { sound: 'tick', after: 0 },
+      { sound: 'tick', after: 1 },
+      { sound: 'tick', after: 2 },
+      { sound: 'whoosh', after: 3 },
+    ]);
     expect(sounds(play.do({ type: 'answer/show' }))).toEqual(['click']);
     expect(sounds(play.do({ type: 'permits/set', teams: ['coral'] }))).toEqual(['click']);
   });
@@ -47,7 +52,9 @@ describe('the display’s sounds', () => {
     for (const e of events) play.do(e);
     const id = play.state.auctions.find((a) => a.status === 'open')!.id;
     expect(sounds(play.do({ type: 'challenge/result', auction: id, winner: 'blue' }))).toEqual(['pop']);
-    play.do({ type: 'challenge/start', auction: id, content: { type: 'precision' } });
+    play.do({ type: 'challenge/pick', auction: id, challenge: 'math' });
+    expect(sounds(play)).toEqual(['click']);
+    expect(sounds(play.do({ type: 'challenge/start', auction: id, content: SUM }))).toEqual(['tick', 'tick', 'tick', 'whoosh']);
     const won = play.do({ type: 'challenge/result', auction: id, winner: 'coral' });
     expect(cuesFor(won.state, last(won))).toEqual([
       { sound: 'gavel', after: 0 },

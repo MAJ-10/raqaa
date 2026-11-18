@@ -29,6 +29,49 @@
   font-weight: 900;
 }
 
+/* The seconds before a question or a challenge shows: a large number, a ring running round it each second. */
+.countdown {
+  position: relative;
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 150px;
+  height: 150px;
+}
+
+.countdown > svg {
+  position: absolute;
+  inset: 0;
+  transform: rotate(-90deg);
+}
+
+.countdown-track {
+  fill: var(--sky);
+  stroke: var(--line);
+  stroke-width: 5;
+}
+
+.countdown-ring {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 5;
+  stroke-linecap: round;
+}
+
+.countdown-number {
+  position: relative;
+  padding-bottom: 8px;
+  font-size: 76px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.question-countdown {
+  display: grid;
+  place-items: center;
+  padding: 6px 0 4px;
+}
+
 .window-teams {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

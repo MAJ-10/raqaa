@@ -1,6 +1,6 @@
 // Challenge content. The referee window makes it with these functions and puts it in the event,
 // so replaying the events always gives the same challenge.
-import { CHALLENGES, type ChallengeContent, type ChallengeType, type GameState, type MathOp } from './types.ts';
+import { type ChallengeContent, type ChallengeType, type GameState, type MathOp } from './types.ts';
 
 export type Random = () => number;
 
@@ -122,13 +122,5 @@ export function makeContent(s: GameState, type: ChallengeType, banks: Banks, ran
       const { items, recycled } = pickFresh(banks[kind], s.used[kind], MEMORY_ITEMS, random);
       return { content: { type, kind, items }, recycled };
     }
-    case 'precision':
-    case 'building':
-      return { content: { type }, recycled: false };
   }
-}
-
-/** Each challenge's type is random, from the six types. */
-export function newChallenge(s: GameState, banks: Banks, random: Random = Math.random): MadeContent {
-  return makeContent(s, pick(CHALLENGES, random), banks, random);
 }

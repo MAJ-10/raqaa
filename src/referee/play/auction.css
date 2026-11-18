@@ -121,6 +121,7 @@
   font-weight: 900;
 }
 
+/* What the challenge is, in a line, from when it is picked until it ends. */
 .challenge-hint {
   margin: 0;
   color: var(--ink-soft);
@@ -175,17 +176,6 @@
   text-align: center;
 }
 
-.hit-counters {
-  display: grid;
-  gap: 8px;
-}
-
-.hit-counters .team-tile {
-  --rest: calc(var(--tile-h) * 0.85);
-  width: 100%;
-  font-size: var(--fs-label);
-}
-
 /* Memory: what the teams will write on the board, to check against. */
 .memory-items {
   display: grid;
@@ -222,10 +212,35 @@
   height: 100%;
 }
 
-/* The end of a challenge: the swap above the two teams' buttons. */
+/* The end of a challenge: showing the answer, or the tie and its type, above the two teams' buttons. */
 .win-actions {
   display: grid;
   gap: 8px;
+}
+
+.tie-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+/* The next challenge's type on a tie: a short list, lined like the button beside it. */
+.tie-type {
+  min-width: 0;
+  min-height: 46px;
+  padding: 0 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-tile);
+  background: var(--white);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--fs-label);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tie-type:hover {
+  border-color: var(--ink);
 }
 
 /*

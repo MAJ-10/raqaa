@@ -2,6 +2,7 @@
 // Pure, so the tests can check it; DisplayApp plays them.
 import { getBoard } from '../engine/board.ts';
 import { announcement } from '../engine/missions.ts';
+import { COUNTDOWN } from '../engine/timing.ts';
 import type { GameEvent, GameState } from '../engine/types.ts';
 import type { Sound } from './sound.ts';
 import { landing } from './board-art.ts';
@@ -16,6 +17,12 @@ const LANDING = 0.28;
 /** The swish of a card turning over in its window, which comes `wait` ms after the event. */
 const flip = (wait: number): Cue => ({ sound: 'swish', after: (wait + CARD_FLIP) / 1000 });
 
+/** A tick with each number of the countdown, then the whoosh of the question or challenge coming. */
+const countdown: Cue[] = [
+  ...Array.from({ length: COUNTDOWN }, (_, i): Cue => ({ sound: 'tick', after: i })),
+  { sound: 'whoosh', after: COUNTDOWN },
+];
+
 export function cuesFor(state: GameState, e: GameEvent): Cue[] {
   const now = (sound: Sound): Cue => ({ sound, after: 0 });
   switch (e.type) {
@@ -23,11 +30,16 @@ export function cuesFor(state: GameState, e: GameEvent): Cue[] {
     case 'question/outside':
     case 'challenge/start':
     case 'challenge/replay':
+      return countdown;
+    case 'question/replace':
+      // Another question while one is on screen counts down again.
+      return state.step === 'asking' ? countdown : [];
     case 'game/end':
       return [now('whoosh')];
     case 'numbers/show':
     case 'answer/show':
     case 'permits/set':
+    case 'challenge/pick':
       return [now('click')];
     case 'timer/end':
       return [now('timeUp')];

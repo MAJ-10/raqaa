@@ -1,27 +1,26 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import tokens from '../../assets/tokens.json';
 import { MEMORY_IMAGES, MEMORY_WORDS, ORDERING, SPELLING, sentenceWords } from '../content/index.ts';
-import { TIMER_SECONDS, wins } from '../engine/select.ts';
-import type { Auction, Challenge, ChallengeContent, GameState, Team } from '../engine/types.ts';
+import { wins } from '../engine/select.ts';
+import { challengeClock } from '../engine/timing.ts';
+import type { Auction, Challenge, ChallengeContent, ChallengeType, GameState, Team } from '../engine/types.ts';
 import { Icon } from '../ui/Icon.tsx';
 import { EASE_BOUNCE, EASE_OUT, motion, reducedMotion } from '../ui/motion.ts';
-import { CHALLENGE_NAMES, MATH_OPS } from '../ui/names.ts';
+import { CHALLENGE_NAMES, CHALLENGE_RULES, MATH_OPS } from '../ui/names.ts';
 import { formatNumber } from '../ui/number.ts';
-import { TeamGlyph, TeamSymbol } from '../ui/TeamBadge.tsx';
+import { TeamGlyph } from '../ui/TeamBadge.tsx';
 import { TeamTile } from '../ui/TeamTile.tsx';
 import { TEAM_PATHS } from '../ui/team-paths.ts';
 import { Timer } from '../ui/Timer.tsx';
 import { tones } from './board-art.ts';
 import { box, decal, MAP_VIEW, project } from './iso.ts';
+import { Countdown } from './Countdown.tsx';
 import { Box } from './IsoMap.tsx';
 import { Pin } from './Pin.tsx';
-import { useTicking } from './use-clock.ts';
-import { MATH_STEP_TIME, WON_AT, type Running } from './windows.ts';
+import { useCountdown, useTicking } from './use-clock.ts';
+import { WON_AT } from './windows.ts';
 
-/** Each player has three tries at the precision challenge. */
-const PRECISION_TRIES = 3;
-
-type Props = { state: GameState; auction: Auction; challenge: Challenge | null; timer: Running | null; live: boolean };
+type Props = { state: GameState; auction: Auction; challenge: Challenge | null; live: boolean };
 
 /**
  * Something that comes in when the moment brings it: fading up into place, or popping. Not when the display
@@ -43,13 +42,14 @@ function Appear({ live, pop = false, children }: { live: boolean; pop?: boolean;
 }
 
 /**
- * D11 to D17: the auction over the dimmed game. On top, the two sides with their players' numbers, the
- * plot between them under the bidder's pin, and each side's two win boxes. Under them, the challenge:
- * its number and name, the timer, and what the challenge shows. When a challenge ends its answer shows.
- * When the auction is won, the winner fills and the plot takes its colour with a pulse; the last
- * challenge stays a moment, then gives way to the winner's celebration.
+ * D11 to D16: the auction over the dimmed game. On top, the two sides with their players' numbers, the
+ * plot between them under the bidder's pin, and each side's two win boxes. Under them, the challenge the
+ * referee picked and what it is; once started, the countdown, then its number and name, its clock and
+ * what it shows. When a challenge ends its answer shows. When the auction is won, the winner fills and
+ * the plot takes its colour with a pulse; the last challenge stays a moment, then gives way to the
+ * winner's celebration.
  */
-export function AuctionWindow({ state, auction, challenge, timer, live }: Props) {
+export function AuctionWindow({ state, auction, challenge, live }: Props) {
   const names = state.setup.teams;
   const plot = useRef<HTMLDivElement>(null);
   const won = auction.status === 'done' && auction.winner !== null;
@@ -94,10 +94,10 @@ export function AuctionWindow({ state, auction, challenge, timer, live }: Props)
           key={`${auction.challenges.indexOf(challenge)}-${challenge.startedAt}`}
           number={auction.challenges.indexOf(challenge) + 1}
           challenge={challenge}
-          timer={timer}
-          auction={auction}
           live={live}
         />
+      ) : auction.picked ? (
+        <ChallengeIntro key={auction.picked} type={auction.picked} number={auction.challenges.length + 1} live={live} />
       ) : null}
     </section>
   );
@@ -203,20 +203,47 @@ function AuctionPlot({ auction }: { auction: Auction }) {
   );
 }
 
-type ViewProps = { number: number; challenge: Challenge; timer: Running | null; auction: Auction; live: boolean };
-
 /**
- * One challenge: its number and name, the timer while it runs, and its content. When the time is up, or
- * once the referee names the winner, its answer shows. A new challenge (or a tie played again) comes in.
+ * D11 before a challenge starts: the challenge the referee picked, and what it is, so the teams know what
+ * comes before the countdown starts.
  */
-function ChallengeView({ number, challenge, timer, auction, live }: ViewProps) {
-  const { content } = challenge;
-  const running = !challenge.stopped && !challenge.winner;
+function ChallengeIntro({ type, number, live }: { type: ChallengeType; number: number; live: boolean }) {
+  const element = useComeIn(live);
+  return (
+    <div ref={element} className="challenge challenge-intro">
+      <header className="challenge-title">
+        <span className="challenge-number">التحدي {formatNumber(number)}</span>
+        <h2 className="challenge-type">{CHALLENGE_NAMES[type]}</h2>
+      </header>
+      <p className="challenge-rules">{CHALLENGE_RULES[type]}</p>
+    </div>
+  );
+}
+
+/** A challenge's part of the window comes up into place when the moment brings it; not when the display reopens. */
+function useComeIn(live: boolean) {
   const element = useRef<HTMLDivElement>(null);
   const came = useRef(live);
   useLayoutEffect(() => {
     if (came.current) motion(element.current, [{ opacity: 0, transform: 'translateY(14px)' }, { opacity: 1, transform: 'none' }], { duration: 420 });
   }, []);
+  return element;
+}
+
+type ViewProps = { number: number; challenge: Challenge; live: boolean };
+
+/**
+ * One challenge: its number and name; the countdown, with what the challenge is; then its clock and its
+ * content. When a side answers right or the time is up, its answer shows. A tie played again comes in anew.
+ */
+function ChallengeView({ number, challenge, live }: ViewProps) {
+  const { content } = challenge;
+  const running = !challenge.stopped && !challenge.winner;
+  const left = useCountdown(running ? challenge.startedAt : null);
+  // Memory changes its clock halfway, from showing to writing.
+  const now = useTicking(running && content.type === 'memory');
+  const clock = challengeClock(content.type, challenge.startedAt, now);
+  const element = useComeIn(live);
   return (
     <div ref={element} className="challenge" data-type={content.type} data-running={running || undefined}>
       <header className="challenge-head">
@@ -224,19 +251,27 @@ function ChallengeView({ number, challenge, timer, auction, live }: ViewProps) {
           <span className="challenge-number">التحدي {formatNumber(number)}</span>
           <h2 className="challenge-type">{CHALLENGE_NAMES[content.type]}</h2>
         </div>
-        {running && timer ? <Timer startedAt={timer.startedAt} seconds={timer.seconds} size={84} /> : null}
+        {running && left === 0 ? <Timer key={clock.startedAt} startedAt={clock.startedAt} seconds={clock.seconds} size={84} /> : null}
       </header>
-      <ChallengeBody content={content} challenge={challenge} running={running} auction={auction} live={live} />
+      {left > 0 ? (
+        <div className="challenge-ready">
+          <Countdown left={left} live={live} />
+          <p className="challenge-rules">{CHALLENGE_RULES[content.type]}</p>
+        </div>
+      ) : (
+        <ChallengeBody content={content} running={running} writing={clock.writing} live={live} />
+      )}
     </div>
   );
 }
 
-type BodyProps = { content: ChallengeContent; challenge: Challenge; running: boolean; auction: Auction; live: boolean };
+type BodyProps = { content: ChallengeContent; running: boolean; writing: boolean; live: boolean };
 
-function ChallengeBody({ content, challenge, running, auction, live }: BodyProps) {
+/** What a challenge shows: its question while it runs, then its answer. */
+function ChallengeBody({ content, running, writing, live }: BodyProps) {
   switch (content.type) {
     case 'math':
-      return <MathChain content={content} startedAt={challenge.startedAt} running={running} live={live} />;
+      return <MathChain content={content} running={running} live={live} />;
     case 'spelling': {
       const word = SPELLING.find((w) => w.id === content.id)?.word ?? '';
       return running ? (
@@ -254,16 +289,8 @@ function ChallengeBody({ content, challenge, running, auction, live }: BodyProps
       return <OrderWords words={words} order={order} solved={!running} live={live} />;
     }
     case 'memory':
-      return <MemoryItems content={content} startedAt={challenge.startedAt} running={running} done={challenge.winner !== null} live={live} />;
-    case 'precision':
-      return <p className="challenge-text">{formatNumber(PRECISION_TRIES)} محاولات لكل لاعب</p>;
-    case 'building':
-      return (
-        <div className="cup-towers">
-          <CupTower team={auction.bidder} />
-          <CupTower team={auction.defender} />
-        </div>
-      );
+      // The items while the teams learn them; hidden while they write; then shown again, to check.
+      return running && writing ? <WriteNow text="اكتبوا ما تتذكرونه" live={live} /> : <MemoryItems content={content} />;
   }
 }
 
@@ -316,13 +343,14 @@ function OrderWords({ words, order, solved, live }: { words: string[]; order: nu
 
 type MathContent = Extract<ChallengeContent, { type: 'math' }>;
 
+/** How far apart the maths steps come in, so the chain builds before the eyes without making anyone wait. */
+const MATH_STEP_IN = 140;
+
 /**
- * D12: the start number, then one step every three seconds, the newest in ink; the question mark once the
- * last step is out. When the time is up, the answer takes its place.
+ * D12: the start number and every step at once, as the question shows, each coming in just after the one
+ * before; then the question mark. When the challenge ends, the answer takes its place.
  */
-function MathChain({ content, startedAt, running, live }: { content: MathContent; startedAt: number; running: boolean; live: boolean }) {
-  const now = useTicking(running);
-  const shown = running ? Math.min(content.steps.length, Math.max(0, Math.floor((now - startedAt) / MATH_STEP_TIME))) : content.steps.length;
+function MathChain({ content, running, live }: { content: MathContent; running: boolean; live: boolean }) {
   const arrow = (
     <span className="math-arrow" aria-hidden="true">
       ←
@@ -331,33 +359,36 @@ function MathChain({ content, startedAt, running, live }: { content: MathContent
   return (
     <div className="math-chain">
       <span className="math-box">{formatNumber(content.start)}</span>
-      {content.steps.slice(0, shown).map((step, i) => (
-        <MathStep key={i} live={live}>
+      {content.steps.map((step, i) => (
+        <MathStep key={i} live={live} order={i}>
           {arrow}
-          <span className="math-box" data-new={(running && i === shown - 1) || undefined}>
+          <span className="math-box">
             {MATH_OPS[step.op]} {formatNumber(step.n)}
           </span>
         </MathStep>
       ))}
-      {shown === content.steps.length ? (
-        <MathStep live={live}>
-          {arrow}
-          <span className="math-box math-result" data-answer={!running || undefined}>
-            {running ? '؟' : formatNumber(content.answer)}
-          </span>
-        </MathStep>
-      ) : null}
+      <MathStep live={live} order={content.steps.length}>
+        {arrow}
+        <span className="math-box math-result" data-answer={!running || undefined}>
+          {running ? '؟' : formatNumber(content.answer)}
+        </span>
+      </MathStep>
     </div>
   );
 }
 
-/** One step of the maths chain, sliding in from the side the chain grows from. */
-function MathStep({ live, children }: { live: boolean; children: ReactNode }) {
+/** One step of the maths chain, sliding in from the side the chain grows from, its `order` in line. */
+function MathStep({ live, order, children }: { live: boolean; order: number; children: ReactNode }) {
   const element = useRef<HTMLSpanElement>(null);
   const came = useRef(live);
   useLayoutEffect(() => {
-    if (came.current) motion(element.current, [{ opacity: 0, transform: 'translateX(18px)' }, { opacity: 1, transform: 'none' }], { duration: 380 });
-  }, []);
+    if (!came.current) return;
+    motion(element.current, [{ opacity: 0, transform: 'translateX(18px)' }, { opacity: 1, transform: 'none' }], {
+      duration: 380,
+      delay: (order + 1) * MATH_STEP_IN,
+      fill: 'backwards',
+    });
+  }, [order]);
   return (
     <span ref={element} className="math-step">
       {children}
@@ -367,16 +398,8 @@ function MathStep({ live, children }: { live: boolean; children: ReactNode }) {
 
 type MemoryContent = Extract<ChallengeContent, { type: 'memory' }>;
 
-type MemoryProps = { content: MemoryContent; startedAt: number; running: boolean; done: boolean; live: boolean };
-
-/**
- * D14 and D15: eight pictures or words, for twenty seconds at most; then they hide and the teams write
- * them on the board. Once the referee names the winner they show again, to check.
- */
-function MemoryItems({ content, startedAt, running, done, live }: MemoryProps) {
-  const now = useTicking(running);
-  const visible = done || (running && now - startedAt < TIMER_SECONDS.memory * 1000);
-  if (!visible) return <WriteNow text="اكتبوا ما تتذكرونه" live={live} />;
+/** D14 and D15: the eight pictures or words, while the teams learn them, and again once the challenge ends, to check. */
+function MemoryItems({ content }: { content: MemoryContent }) {
   return (
     <ul className="memory-grid" data-kind={content.kind}>
       {content.items.map((id) => {
@@ -392,30 +415,5 @@ function MemoryItems({ content, startedAt, running, done, live }: MemoryProps) {
         );
       })}
     </ul>
-  );
-}
-
-/** D17: each side builds a tower of cups; the picture under its symbol shows what to build. */
-function CupTower({ team }: { team: Team }) {
-  const rows = [4, 3, 2, 1];
-  const w = 40;
-  const h = 34;
-  const gap = 5;
-  const cups = rows.flatMap((count, row) =>
-    Array.from({ length: count }, (_, k) => {
-      const x = (row * (w + gap)) / 2 + k * (w + gap);
-      const y = (rows.length - 1 - row) * (h + gap);
-      return `M${x} ${y}h${w}l-5 ${h}h${-(w - 10)}Z`;
-    }),
-  );
-  const width = rows[0]! * (w + gap) - gap;
-  const height = rows.length * (h + gap) - gap;
-  return (
-    <div className="cup-tower">
-      <TeamSymbol team={team} size={40} />
-      <svg viewBox={`-3 -3 ${width + 6} ${height + 6}`} width={width + 6} height={height + 6} aria-hidden="true" focusable="false">
-        <path d={cups.join('')} fill={tokens.color.white} stroke={tokens.team[team].main} strokeWidth={3.5} strokeLinejoin="round" />
-      </svg>
-    </div>
   );
 }

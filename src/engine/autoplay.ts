@@ -2,10 +2,10 @@
 // selectors the screen uses), sampled at random where a choice has many forms; the random games test plays
 // thousands of moves through it. `demoNext` picks from it the way a referee showing the game would.
 import { getBoard, neighbours } from './board.ts';
-import { makeContent, newChallenge, type Banks, type Random } from './content.ts';
+import { makeContent, type Banks, type Random } from './content.ts';
 import { announcement } from './missions.ts';
 import { canUseCard, currentChallenge, nextAuction, openAuction, options, planPlots, planTargets, questionsLeft } from './select.ts';
-import { TEAMS, type EventInput, type GameState, type Team } from './types.ts';
+import { CHALLENGES, TEAMS, type EventInput, type GameState, type Team } from './types.ts';
 
 /** A small seeded random generator (mulberry32), so a game can be played again. */
 export function seeded(seed: number): Random {
@@ -108,18 +108,20 @@ export function offered(s: GameState, random: Random, banks: Banks): EventInput[
       if (open) {
         const challenge = currentChallenge(open);
         if (!challenge) {
-          list.push({ type: 'challenge/start', auction: open.id, content: newChallenge(s, banks, random).content });
+          // The referee picks a challenge (the display shows what it is), then starts it.
+          for (const type of CHALLENGES) if (type !== open.picked) list.push({ type: 'challenge/pick', auction: open.id, challenge: type });
+          if (open.picked) list.push({ type: 'challenge/start', auction: open.id, content: makeContent(s, open.picked, banks, random).content });
         } else if (s.plots[open.plot]?.plan && random() < 0.7) {
           // A bid on a plan plot: lean towards the defender, so plans fire in the games.
           list.push({ type: 'challenge/result', auction: open.id, winner: open.defender });
         } else {
           for (const winner of [open.bidder, open.defender]) list.push({ type: 'challenge/result', auction: open.id, winner });
-          list.push({
-            type: 'challenge/replay',
-            auction: open.id,
-            content: makeContent(s, challenge.content.type, banks, random).content,
-          });
-          if (s.timer?.kind === 'challenge' && !challenge.stopped) list.push({ type: 'timer/end' });
+          if (challenge.stopped) {
+            // A tie, once the answer shows: the same type again, or another the referee chooses.
+            for (const type of CHALLENGES) list.push({ type: 'challenge/replay', auction: open.id, content: makeContent(s, type, banks, random).content });
+          } else if (s.timer?.kind === 'challenge') {
+            list.push({ type: 'timer/end' });
+          }
         }
       } else if (next) {
         list.push({ type: 'auction/open', auction: next.id });
@@ -157,10 +159,15 @@ export function demoNext(s: GameState, random: Random, banks: Banks): EventInput
       case 'question/kind':
         return s.question.kind === null;
       case 'question/replace':
-      case 'timer/end':
         return false;
+      case 'timer/end':
+        // Now and then no side is right, and the answer shows.
+        return random() < 0.2;
+      case 'challenge/pick':
+        // One pick, then the challenge starts.
+        return !s.auctions.some((a) => a.status === 'open' && a.picked);
       case 'challenge/replay':
-        return random() < 0.15;
+        return random() < 0.3;
       case 'build':
         // A plan needs two of the team's plots: the one it takes, and another.
         return board.plots[e.plot]?.card !== 'plan' || planPlots(s, e.team).length >= 1;
